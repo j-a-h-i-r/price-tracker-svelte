@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '../app.css';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	let { children } = $props();
 
 	function toTitleCase(str: string) {
@@ -13,9 +13,9 @@
 		<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
 			<div class="flex items-center space-x-2 text-sm text-gray-600">
 				<a href="/" class="hover:text-gray-900">Home</a>
-				{#if $page.url.pathname !== '/'}
+				{#if page.url.pathname !== '/'}
 					<span>/</span>
-					<span class="text-gray-900">{toTitleCase($page.url.pathname.substring(1))}</span>
+					<span class="text-gray-900">{toTitleCase(page.url.pathname.substring(1))}</span>
 				{/if}
 			</div>
 		</div>
