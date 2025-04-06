@@ -43,3 +43,5 @@ You can preview the production build with `npm run preview`.
 - Add a empty .static file in the root of the project
 - set NGINX_ROOT=dist config
 - Add app.json to build the static files
+- Set API_URL config in dokku
+> If the API app name is `my-api` then the value will be `http://my-api.web:5000`
