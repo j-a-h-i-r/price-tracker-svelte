@@ -12,7 +12,9 @@ export interface WebsitePrice {
     website_id: string;
     price: number;
     url: string;
-    website: string
+    website: string;
+    created_at: string;
+    is_available: boolean;
 }
 
 export interface ProductWithPrice extends Product {

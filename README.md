@@ -45,3 +45,6 @@ You can preview the production build with `npm run preview`.
 - Add app.json to build the static files
 - Set API_URL config in dokku
 > If the API app name is `my-api` then the value will be `http://my-api.web:5000`
+- dokku network:create custom-network
+- dokku network:set <server> attach-post-create custom-network
+- dokku network:set <client> attach-post-create custom-network
