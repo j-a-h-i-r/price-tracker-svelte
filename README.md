@@ -36,3 +36,10 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+
+
+### Deploying with Dokku
+- Add the nginx buildpack (see `.buildpacks`)
+- Add a empty .static file in the root of the project
+- set NGINX_ROOT=dist config
+- Add app.json to build the static files
