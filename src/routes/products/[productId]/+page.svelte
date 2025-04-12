@@ -43,14 +43,6 @@
         }
     });
 
-    function toggleWebsite(website: string) {
-        if (selectedWebsites.has(website)) {
-            selectedWebsites.delete(website);
-        } else {
-            selectedWebsites.add(website);
-        }
-        createChart();
-    }
 
     let chartCanvas: HTMLCanvasElement;
     let chart: Chart;
@@ -72,14 +64,6 @@
 
         console.log(pricesByWebsite);
         let priceDatasets: any[] = [];
-        const colors = [
-            "#2563eb",
-            "#dc2626",
-            "#16a34a",
-            "#d97706",
-            "#7c3aed",
-            "#db2777",
-        ];
         pricesByWebsite.forEach((prices, website) => {
             console.log(prices);
             priceDatasets.push({
@@ -175,10 +159,6 @@
 </script>
 
 <div class="product-details">
-    <button class="back-button" onclick={() => goto("/products")}>
-        ← Back to Products
-    </button>
-
     <div class="product-header">
         <h1>{product?.name}</h1>
         <div class="flex-spacer"></div>
@@ -188,26 +168,6 @@
                 >{isAvailable ? "Available" : "Unavailable"}</span
             >
         </div>
-    </div>
-
-    <div class="website-filters">
-        <h3>Filter by Website</h3>
-        <div class="checkbox-group">
-            {#each websites as website}
-                <label class="checkbox-label">
-                    <input
-                        type="checkbox"
-                        checked={selectedWebsites.has(website)}
-                        onchange={() => toggleWebsite(website)}
-                    />
-                    {website}
-                </label>
-            {/each}
-        </div>
-    </div>
-
-    <div class="chart-container">
-        <canvas bind:this={chartCanvas}></canvas>
     </div>
 
     <div class="websites-header">Available retailers</div>
@@ -285,6 +245,10 @@
                 }
             </style>
         {/each}
+    </div>
+
+    <div class="chart-container">
+        <canvas bind:this={chartCanvas}></canvas>
     </div>
 
     <style>
