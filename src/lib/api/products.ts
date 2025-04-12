@@ -1,4 +1,4 @@
-import type { Product, ProductWithPrice } from '$lib/types/Product';
+import type { Product, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
 
 export async function fetchProducts(): Promise<Product[]> {
     const response = await fetch('api/products');
@@ -16,6 +16,12 @@ export async function fetchProductById(id: string | number): Promise<Product> {
 
 export async function fetchProductPricesById(id: string | number): Promise<ProductWithPrice> {
     const response = await fetch(`/api/products/${id}/prices`);
+    if (!response.ok) throw new Error('Failed to fetch product');
+    return response.json();
+}
+
+export async function fetchProductWebsites(productId: string | number): Promise<ProductWithWebsite> {
+    const response = await fetch(`/api/products/${productId}/websites`);
     if (!response.ok) throw new Error('Failed to fetch product');
     return response.json();
 }

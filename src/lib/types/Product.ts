@@ -20,3 +20,28 @@ export interface WebsitePrice {
 export interface ProductWithPrice extends Product {
     prices: WebsitePrice[];
 }
+
+export interface ProductWebsite {
+    website_id: string;
+    website_name: string;
+    product_url: string;
+}
+
+export interface ProductWebsiteWithPrice extends ProductWebsite {
+    price: number | null;
+    is_available: boolean;
+    created_at: string | null;
+    saved_price: number | null;
+}
+
+export interface ProductWithWebsite {
+    id: string;
+    name: string;
+    websites: ProductWebsite[];
+}
+
+export interface ProductWithWebsitePrice {
+    id: string;
+    name: string;
+    websites: ProductWebsiteWithPrice[];
+}
