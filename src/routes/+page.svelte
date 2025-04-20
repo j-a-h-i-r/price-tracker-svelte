@@ -6,11 +6,19 @@
     let totalWebsites = 0;
     let totalCategories = 0;
     let searchResults: any[] = [];
+    let searchTimeout: ReturnType<typeof setTimeout>;
+    let categoryMap: { [key: string]: string } = {};
+    let isLoading = false;
 
     onMount(async() => {
         totalProducts = await getTotalProducts();
         totalWebsites = await getTotalWebsites();
         totalCategories = await getTotalCategories();
+        let categories = await getCategories();
+        categories.forEach((category: { id: string; name: string }) => {
+            categoryMap[category.id] = category.name;
+        });
+        console.log('Categories:', categoryMap);
     });
 
     async function getTotalProducts() {
@@ -31,10 +39,28 @@
         return data.length;
     }
 
+    async function getCategories() {
+        const response = await fetch('/api/categories');
+        return await response.json();
+    }
+
     async function handleSearch() {
+        isLoading = true;
         const response = await fetch(`/api/products?name=${encodeURIComponent(searchQuery)}`);
         const data = await response.json();
         searchResults = data;
+        isLoading = false;
+    }
+
+    function debouncedSearch() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            handleSearch();
+        }, 300);
+    }
+
+    $: if (searchQuery !== undefined && searchQuery !== '') {
+        debouncedSearch();
     }
 </script>
 
@@ -64,9 +90,10 @@
         type="text"
         bind:value={searchQuery}
         placeholder="Search for products..."
-        on:keydown={(e) => e.key === 'Enter' && handleSearch()}
     />
-    <button on:click={handleSearch}>Search</button>
+    {#if isLoading}
+        <div class="loading-spinner"></div>
+    {/if}
 </div>
 
 {#if searchResults.length > 0}
@@ -75,8 +102,6 @@
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Price</th>
-                    <th>Website</th>
                     <th>Category</th>
                 </tr>
             </thead>
@@ -84,9 +109,7 @@
                 {#each searchResults as product}
                     <tr>
                         <td><a href="/products/{product.id}">{product.name}</a></td>
-                        <td>${product.price}</td>
-                        <td>{product.website}</td>
-                        <td>{product.category}</td>
+                        <td>{categoryMap[product.category_id] || '?'}</td>
                     </tr>
                 {/each}
             </tbody>
@@ -133,15 +156,14 @@
 
     .search-container {
         margin: 2rem 0;
-        display: flex;
-        gap: 1rem;
         max-width: 600px;
         margin-left: auto;
         margin-right: auto;
+        position: relative;
     }
 
     input {
-        flex: 1;
+        width: 100%;
         padding: 0.75rem 1rem;
         font-size: 1.1rem;
         border: 2px solid #e5e7eb;
@@ -153,19 +175,22 @@
         border-color: #2563eb;
     }
 
-    button {
-        padding: 0.75rem 1.5rem;
-        background: #2563eb;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: 1.1rem;
-        cursor: pointer;
-        transition: background-color 0.2s;
+    .loading-spinner {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 20px;
+        height: 20px;
+        border: 2px solid #e5e7eb;
+        border-top: 2px solid #2563eb;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
     }
 
-    button:hover {
-        background: #1d4ed8;
+    @keyframes spin {
+        0% { transform: translateY(-50%) rotate(0deg); }
+        100% { transform: translateY(-50%) rotate(360deg); }
     }
 
     .table-container {

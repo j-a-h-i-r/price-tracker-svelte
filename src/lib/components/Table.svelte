@@ -4,8 +4,19 @@
     export let headers: string[] = [];
     export let keys: string[] = [];
     export let rows: any[] = [];
+    export let highlightPattern: string = '';
 
     const dispatch = createEventDispatcher();
+
+    function highlightText(text: string): string {
+        if (!highlightPattern) return text;
+        try {
+            const regex = new RegExp(highlightPattern, 'gi');
+            return text.toString().replace(regex, match => `<mark>${match}</mark>`);
+        } catch (e) {
+            return text;
+        }
+    }
 </script>
 
 <div class="table-container">
@@ -21,7 +32,7 @@
             {#each rows as row}
                 <tr onclick={() => dispatch('rowClick', row)} class="clickable">
                     {#each keys as key}
-                        <td>{row[key]}</td>
+                        <td>{@html highlightText(row[key])}</td>
                     {/each}
                 </tr>
             {/each}
@@ -65,5 +76,11 @@
 
     .clickable:hover {
         background-color: #f8f9fa;
+    }
+
+    :global(mark) {
+        background-color: #fef08a;
+        padding: 0.1em 0;
+        border-radius: 2px;
     }
 </style>
