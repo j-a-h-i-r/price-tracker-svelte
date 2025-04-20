@@ -385,6 +385,49 @@
             width: 1rem;
             height: 1rem;
         }
+
+        .metadata-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .metadata-section h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1.5rem;
+        }
+
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .metadata-item {
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .metadata-key {
+            color: #6b7280;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .metadata-value {
+            color: #1f2937;
+            font-size: 1rem;
+            font-weight: 500;
+        }
     </style>
 </div>
 
@@ -395,34 +438,10 @@
         padding: 0 1rem;
     }
 
-    .back-button {
-        padding: 0.5rem 1rem;
-        border: 1px solid #e5e7eb;
-        border-radius: 4px;
-        background-color: white;
-        cursor: pointer;
-        margin-bottom: 2rem;
-    }
-
-    .back-button:hover {
-        background-color: #f8f9fa;
-    }
-
     .details {
         margin-top: 2rem;
     }
 
-    .price {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #2563eb;
-        margin-bottom: 1rem;
-    }
-
-    .description {
-        line-height: 1.6;
-        color: #4b5563;
-    }
 
     h1 {
         font-size: 2rem;
