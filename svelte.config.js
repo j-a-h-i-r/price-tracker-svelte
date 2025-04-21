@@ -19,7 +19,7 @@ const config = {
 			strict: true
 		}),
 		prerender: {
-			entries: ['*', '/products/[productId]'],
+			entries: ['*', '/products/[productId]', '/metadata/[metadataName]'],
 		}
 	}
 };
