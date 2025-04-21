@@ -9,8 +9,12 @@
     let searchTimeout: ReturnType<typeof setTimeout>;
     let categoryMap: { [key: string]: string } = {};
     let isLoading = false;
+    let deals: any[] = [];
+    let dealsContainer: HTMLElement;
+    let autoScrollInterval: ReturnType<typeof setInterval>;
+    let isHovering = false;
 
-    onMount(async() => {
+    onMount(async () => {
         totalProducts = await getTotalProducts();
         totalWebsites = await getTotalWebsites();
         totalCategories = await getTotalCategories();
@@ -18,8 +22,45 @@
         categories.forEach((category: { id: string; name: string }) => {
             categoryMap[category.id] = category.name;
         });
-        console.log('Categories:', categoryMap);
+        const allDeals = await getDeals();
+        deals = allDeals.slice(0, 10); // Limit to first 10 deals
+        startAutoScroll();
     });
+
+    onMount(() => {
+        return () => {
+            if (autoScrollInterval) {
+                clearInterval(autoScrollInterval);
+            }
+        };
+    });
+
+    function startAutoScroll() {
+        autoScrollInterval = setInterval(() => {
+            if (!dealsContainer || isHovering) return;
+            
+            const firstCard = dealsContainer.querySelector('.deal-card');
+            if (!firstCard) return;
+
+            const cardWidth = (firstCard as HTMLElement).offsetWidth + 16; // Width + gap
+            const newScrollLeft = dealsContainer.scrollLeft + cardWidth;
+            
+            if (newScrollLeft >= dealsContainer.scrollWidth - dealsContainer.offsetWidth) {
+                // Reset to start when reaching the end
+                dealsContainer.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                dealsContainer.scrollTo({ left: newScrollLeft, behavior: 'smooth' });
+            }
+        }, 3000); // Scroll every 3 seconds
+    }
+
+    function handleMouseEnter() {
+        isHovering = true;
+    }
+
+    function handleMouseLeave() {
+        isHovering = false;
+    }
 
     async function getTotalProducts() {
         const response = await fetch('/api/products');
@@ -42,6 +83,12 @@
     async function getCategories() {
         const response = await fetch('/api/categories');
         return await response.json();
+    }
+
+    async function getDeals() {
+        const response = await fetch('/api/products/deals');
+        const data = await response.json();
+        return data;
     }
 
     async function handleSearch() {
@@ -84,6 +131,39 @@
         </a>
     </div>
 </div>
+
+{#if deals.length > 0}
+    <div class="deals-section">
+        <div class="deals-header">
+            <h2>Weekly Deals</h2>
+            <a href="/deals" class="view-all">View all →</a>
+        </div>
+        <div 
+            class="deals-scroll" 
+            bind:this={dealsContainer} 
+            on:mouseenter={handleMouseEnter} 
+            on:mouseleave={handleMouseLeave}
+            aria-details="Deals carousel"
+            role="region"
+            aria-label="Deals carousel"
+        >
+            {#each deals as deal}
+                <a href="/products/{deal.internal_product_id}" class="deal-card">
+                    <div class="deal-content">
+                        <h3>{deal.product_name}</h3>
+                        <div class="price-section">
+                            <span class="current-price">${deal.current_price}</span>
+                            {#if deal.current_price}
+                                <span class="msrp">${deal.avg_price_last_week}</span>
+                                <span class="discount">-{Math.round((1 - deal.current_price/deal.avg_price_last_week) * 100)}%</span>
+                            {/if}
+                        </div>
+                    </div>
+                </a>
+            {/each}
+        </div>
+    </div>
+{/if}
 
 <div class="search-container">
     <input
@@ -226,6 +306,104 @@
         text-align: center;
         color: #6b7280;
         margin: 2rem 0;
+    }
+
+    .deals-section {
+        margin: 2rem 0;
+        padding: 0 1rem;
+    }
+
+    .deals-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+    }
+
+    .deals-section h2 {
+        margin: 0;
+        color: #4b5563;
+        font-size: 1.125rem;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+    }
+
+    .view-all {
+        font-size: 0.875rem;
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .view-all:hover {
+        text-decoration: underline;
+    }
+
+    .deals-scroll {
+        display: flex;
+        overflow-x: auto;
+        gap: 1rem;
+        padding: 0.5rem;
+        margin: 0 -1rem;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;  /* Firefox */
+    }
+
+    .deals-scroll::-webkit-scrollbar {
+        display: none;  /* Chrome, Safari, Opera */
+    }
+
+    .deal-card {
+        flex: 0 0 280px;
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-decoration: none;
+        color: inherit;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+        scroll-snap-align: start;
+    }
+
+    .deal-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .deal-content h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.1rem;
+        color: #1f2937;
+        line-height: 1.4;
+    }
+
+    .price-section {
+        display: flex;
+        align-items: baseline;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .current-price {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #16a34a;
+    }
+
+    .msrp {
+        font-size: 1rem;
+        text-decoration: line-through;
+        color: #6b7280;
+    }
+
+    .discount {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #ef4444;
+        background: #fee2e2;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
     }
 </style>
 
