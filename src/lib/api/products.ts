@@ -1,6 +1,6 @@
-import type { Product, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
+import type { Product, ProductWithLastPrice, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
 
-export async function fetchProducts(): Promise<Product[]> {
+export async function fetchProducts(): Promise<ProductWithLastPrice[]> {
     const response = await fetch('api/products');
     if (!response.ok) {
         throw new Error('Failed to fetch products');

@@ -20,9 +20,9 @@
     $effect(() => {
         if (metadataDetails.length > 0) {
             try {
-                const regex = new RegExp(searchPattern);
+                const regex = new RegExp(searchPattern, 'i');
                 matchCount = metadataDetails.filter(metadata => 
-                    regex.test(metadata.metadata[metadataName]?.toString() || '')
+                    regex.test(metadata.raw_metadata[metadataName]?.toString() || '')
                 ).length;
             } catch (e) {
                 // Invalid regex pattern, don't update match count
@@ -68,9 +68,9 @@
     function getFilteredRows() {
         if (!searchPattern) return metadataDetails;
         try {
-            const regex = new RegExp(searchPattern);
+            const regex = new RegExp(searchPattern, 'i');
             return metadataDetails.filter(metadata => {
-                const value = metadata.metadata[metadataName]?.toString() || '';
+                const value = metadata.raw_metadata[metadataName]?.toString() || '';
                 const matches = regex.test(value);
                 console.log("Matches:", value.match(regex));
                 return showNonMatching ? !matches : matches;
@@ -122,7 +122,7 @@
                 headers={["Name", "Product", "Category"]}
                 keys={["name", "product", "category"]}
                 rows={getFilteredRows().map(metadata => ({
-                    name: metadata.metadata[metadataName],
+                    name: metadata.raw_metadata[metadataName],
                     product: metadata.name,
                     category: metadata.category_id,
                     product_id: metadata.internal_product_id,
@@ -150,48 +150,6 @@
     h1 {
         color: #1f2937;
         margin-bottom: 0.5rem;
-    }
-
-    .stats {
-        color: #6b7280;
-        font-size: 1.1rem;
-    }
-
-    .values-section {
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-    }
-
-    h2 {
-        color: #374151;
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-    }
-
-    .value-card {
-        background: white;
-        border-radius: 8px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .value-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .value-header h3 {
-        color: #1f2937;
-        font-size: 1.25rem;
-        margin: 0;
-    }
-
-    .count {
-        color: #6b7280;
-        font-size: 0.875rem;
     }
 
     .error {

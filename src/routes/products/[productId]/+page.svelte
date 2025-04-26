@@ -251,11 +251,11 @@
         <canvas bind:this={chartCanvas}></canvas>
     </div>
 
-    {#if product?.metadata}
+    {#if product?.raw_metadata}
         <div class="metadata-section">
             <h2>Product Specifications</h2>
             <div class="metadata-grid">
-                {#each Object.entries(product.metadata) as [key, value]}
+                {#each Object.entries(product.raw_metadata) as [key, value]}
                     <div class="metadata-item">
                         <span class="metadata-key">{key}</span>
                         <span class="metadata-value">{value}</span>

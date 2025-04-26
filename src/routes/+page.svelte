@@ -86,7 +86,7 @@
     }
 
     async function getDeals() {
-        const response = await fetch('/api/products/deals');
+        const response = await fetch('/api/deals');
         const data = await response.json();
         return data;
     }
@@ -182,14 +182,18 @@
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Category</th>
+                    <th>Lowest Price</th>
                 </tr>
             </thead>
             <tbody>
                 {#each searchResults as product}
                     <tr>
-                        <td><a href="/products/{product.id}">{product.name}</a></td>
-                        <td>{categoryMap[product.category_id] || '?'}</td>
+                        <td>
+                            <a href="/products/{product.id}">{product.name}</a>
+                            <span class="badge category-badge">{categoryMap[product.category_id] || '?'}</span>
+                            <span class="badge">{product.prices?.length || 0} websites</span>
+                        </td>
+                        <td>{product.lowest_available_price ? product.lowest_available_price.price : 'Not Available'}</td>
                     </tr>
                 {/each}
             </tbody>
@@ -404,6 +408,22 @@
         background: #fee2e2;
         padding: 0.25rem 0.5rem;
         border-radius: 4px;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #4b5563;
+        background: #e5e7eb;
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        margin-left: 0.5rem;
+        display: inline-block;
+    }
+
+    .category-badge {
+        background: #dbeafe;
+        color: #1e40af;
     }
 </style>
 

@@ -1,5 +1,31 @@
 import type { MetadataDetail } from '$lib/types/Metadata';
 
+export interface MetadataFilter {
+    key: string;
+    displayName: string;
+    type: 'range' | 'boolean' | 'string';
+    unit?: string;  // For range type filters
+    values?: string[];  // For string type filters
+    range?: {
+        min: number;
+        max: number;
+    }
+}
+
+export function fetchMetadataFilters(): Promise<MetadataFilter[]> {
+    return fetch('/api/filters')
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch metadata filters');
+            }
+            return response.json();
+        })
+        .catch((error) => {
+            console.error(error);
+            throw error;
+        });
+}
+
 export function fetchMetadatas({
     category_id,
     website_id,
@@ -9,7 +35,7 @@ export function fetchMetadatas({
 }): Promise<string[]> {
     // Construct the URL with query parameters
     let url = '/api/metadatas';
-    let params: string[] = [];
+    const params: string[] = [];
     if (category_id) {
         params.push(`category_id=${category_id}`);
     }

@@ -2,10 +2,16 @@ export interface Product {
     id: string;
     name: string;
     category_id: number;
-    metadata: Record<string, string>;
-    price: number;
-    description: string;
-    imageUrl: string;
+    raw_metadata: Record<string, string>;
+    parsed_metadata: Record<string, string | number | boolean>;
+}
+
+export interface ProductWithLastPrice extends Product {
+    prices: {
+        price: number,
+        created_at: string,
+        website_id: number,
+    }[]
 }
 
 export interface WebsitePrice {

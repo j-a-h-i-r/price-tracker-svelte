@@ -4,5 +4,5 @@ export interface MetadataDetail {
     name: string;
     category_id: string,
     website_id: string,
-    metadata: Record<string, string>,
+    raw_metadata: Record<string, string>,
 }
