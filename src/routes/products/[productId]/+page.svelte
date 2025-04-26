@@ -130,6 +130,10 @@
             );
             productWebsites = websites.map((website, index) => {
                 let currentPrice = currentPrices[index];
+                let savedPrice = null;
+                if (currentPrice && currentPrice.price) {
+                    savedPrice = maxCurrentPrice - currentPrice.price;
+                }
                 return {
                     ...website,
                     price: currentPrice?.price ? currentPrice.price : null,
@@ -137,12 +141,11 @@
                         ? currentPrice.is_available
                         : false,
                     created_at: currentPrice ? currentPrice.created_at : null,
-                    saved_price: maxCurrentPrice - 
-                        (currentPrice ? currentPrice.price : 0),
+                    saved_price: savedPrice,
                 };
             });
 
-            console.log($state.snapshot(product));
+            console.log($state.snapshot(productWebsites));
             if (product) {
                 setTimeout(createChart, 0);
             }
@@ -190,7 +193,11 @@
                     <div
                         style="display: flex; align-items: center; gap: 0.5rem"
                     >
-                        <div class="price-amount">{website.price}</div>
+                        {#if website.price !== null}
+                            <div class="price-amount">{website.price}</div>
+                        {:else}
+                            <div class="price-not-found">Price not found</div>
+                        {/if}
                         {#if website.is_available}
                             <div class="availability-dot"></div>
                         {/if}
@@ -283,6 +290,15 @@
             font-size: 1.75rem;
             font-weight: bold;
             color: #2563eb;
+        }
+
+        .price-not-found {
+            background-color: #fef2f2;
+            color: #dc2626;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
         }
 
         .store-info {
