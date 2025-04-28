@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { fetchStats } from "$lib/api/stats.js";
     import { onMount } from "svelte";
 
     let searchQuery = '';
@@ -15,9 +16,12 @@
     let isHovering = false;
 
     onMount(async () => {
-        totalProducts = await getTotalProducts();
-        totalWebsites = await getTotalWebsites();
-        totalCategories = await getTotalCategories();
+        const stats = await fetchStats();
+        if (stats) {
+            totalProducts = stats.products ?? 0;
+            totalWebsites = stats.websites ?? 0;
+            totalCategories = stats.categories ?? 0;
+        }
         let categories = await getCategories();
         categories.forEach((category: { id: string; name: string }) => {
             categoryMap[category.id] = category.name;
@@ -60,24 +64,6 @@
 
     function handleMouseLeave() {
         isHovering = false;
-    }
-
-    async function getTotalProducts() {
-        const response = await fetch('/api/products');
-        const data = await response.json();
-        return data.length;
-    }
-
-    async function getTotalWebsites() {
-        const response = await fetch('/api/websites');
-        const data = await response.json();
-        return data.length;
-    }
-
-    async function getTotalCategories() {
-        const response = await fetch('/api/categories');
-        const data = await response.json();
-        return data.length;
     }
 
     async function getCategories() {
