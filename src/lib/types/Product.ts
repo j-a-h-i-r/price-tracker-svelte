@@ -1,5 +1,5 @@
 export interface Product {
-    id: string;
+    id: number;
     name: string;
     category_id: number;
     raw_metadata: Record<string, string>;

@@ -2,12 +2,13 @@
 	import '../app.css';
 	import { page } from '$app/stores';
 	import { userState } from '$lib/shared.svelte.js';
+    import { goto } from '$app/navigation';
 	let { children } = $props();
 
 	let pathname = $derived($page?.url?.pathname || '/');
 
-	function handleLogout() {
-		userState.email = '';
+	function gotoAccount() {
+		goto('/accounts');
 	}
 
 	function toTitleCase(str: string) {
@@ -43,10 +44,10 @@
 					<div class="flex items-center gap-4">
 						<span class="text-sm text-gray-600">{userState.email}</span>
 						<button
-							onclick={handleLogout}
+							onclick={gotoAccount}
 							class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
 						>
-							Sign out
+							Account
 						</button>
 					</div>
 				{:else}

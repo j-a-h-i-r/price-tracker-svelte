@@ -1,13 +1,13 @@
 import { browser } from '$app/environment';
+import { trackedProducts } from './states/tracked.svelte.js';
 import { type User } from './types/User.js';
-
-export const _user: User = $state({email: ''});
 
 class UserState {
     #user: User = $state({email: ''});
     constructor() {
         if (browser && localStorage.getItem('userEmail')) {
             this.#user.email = localStorage.getItem('userEmail') as string;
+            trackedProducts.refresh();
         }
     }
 

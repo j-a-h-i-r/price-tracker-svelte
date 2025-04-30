@@ -13,6 +13,8 @@
     import { onMount } from "svelte";
     import { Chart } from "chart.js/auto";
     import "chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm";
+    import { trackedProducts } from "$lib/states/tracked.svelte.js";
+    import { callback } from "chart.js/helpers";
 
     let { productId } = page.params;
     let product: ProductWithPrice | null = $state(null);
@@ -115,6 +117,44 @@
         });
     }
 
+    async function handleUntrack() {
+        try {
+            const response = await fetch(`/api/products/${productId}/track`, {
+                method: 'DELETE',
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to track product');
+            }
+            
+            // Optional: Show some feedback to the user that tracking was successful
+            alert('Product tracking disabled!');
+            await trackedProducts.refresh();
+        } catch (error) {
+            console.error('Error tracking product:', error);
+            alert('Failed to track product. Please try again.');
+        }
+    }
+
+    async function handleTrack() {
+        try {
+            const response = await fetch(`/api/products/${productId}/track`, {
+                method: 'POST',
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to track product');
+            }
+            
+            // Optional: Show some feedback to the user that tracking was successful
+            alert('Product tracking enabled!');
+            await trackedProducts.refresh();
+        } catch (error) {
+            console.error('Error tracking product:', error);
+            alert('Failed to track product. Please try again.');
+        }
+    }
+
     onMount(async () => {
         try {
             product = await fetchProductPricesById(productId);
@@ -171,7 +211,35 @@
                 >{isAvailable ? "Available" : "Unavailable"}</span
             >
         </div>
+        {#if trackedProducts.isTracked(productId)}
+            <button class="track-btn untrack" onclick={handleUntrack}> Untrack </button>
+        {:else}
+            <button class="track-btn" onclick={handleTrack}>Track</button>
+        {/if}
     </div>
+
+    <style>
+        .untrack {
+            background-color: #dc2626;
+        }
+
+        .track-btn {
+            padding: 0.5rem 1rem;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-left: 1rem;
+        }
+
+        .track-btn:hover {
+            background-color: #1d4ed8;
+        }
+    </style>
 
     <div class="websites-header">Available retailers</div>
 
