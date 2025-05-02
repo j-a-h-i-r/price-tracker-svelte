@@ -137,16 +137,25 @@
     }
 
     async function handleTrack() {
+        const targetPrice = parseFloat(prompt('Enter your target price:'));
+        if (isNaN(targetPrice) || targetPrice <= 0) {
+            alert('Please enter a valid target price');
+            return;
+        }
+
         try {
             const response = await fetch(`/api/products/${productId}/track`, {
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ target_price: targetPrice }),
             });
             
             if (!response.ok) {
                 throw new Error('Failed to track product');
             }
             
-            // Optional: Show some feedback to the user that tracking was successful
             alert('Product tracking enabled!');
             await trackedProducts.refresh();
         } catch (error) {

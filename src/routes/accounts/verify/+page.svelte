@@ -29,6 +29,7 @@
             const result = await response.json();
             if (result && result.email) {
                 userState.email = result.email;
+                userState.isAdmin = result.isAdmin || false;
                 isLoading = false;
                 redirectMessage = `Redirecting to the home page in ${countdown} seconds`;
                 

@@ -1,7 +1,7 @@
-import type { Product, ProductWithLastPrice, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
+import type { PotentialProductMatch, Product, ProductWithLastPrice, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
 
 export async function fetchProducts(): Promise<ProductWithLastPrice[]> {
-    const response = await fetch('api/products');
+    const response = await fetch('/api/products');
     if (!response.ok) {
         throw new Error('Failed to fetch products');
     }
@@ -39,3 +39,10 @@ export async function fetchCategories(): Promise<Category[]> {
     return response.json();
 }
 
+export async function fetchPotentiallySimilarProducts(): Promise<PotentialProductMatch[]> {
+    const response = await fetch('/api/potentialsimilar');
+    if (!response.ok) {
+        throw new Error('Failed to fetch products');
+    }
+    return response.json();
+}

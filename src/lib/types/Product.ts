@@ -51,3 +51,13 @@ export interface ProductWithWebsitePrice {
     name: string;
     websites: ProductWebsiteWithPrice[];
 }
+
+export interface PotentialProductMatch {
+    product_id: number,
+    product_name: string,
+    similar_products: {
+        product_id: number,
+        product_name: string,
+        similarity_score: number,
+    }[],
+}
