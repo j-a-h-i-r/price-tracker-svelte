@@ -19,6 +19,7 @@ jobs:
       - name: Push to dokku
         uses: dokku/github-action@master
         with:
+          git_push_flags: '--force'
           branch: main
           git_remote_url: 'ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client'
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
