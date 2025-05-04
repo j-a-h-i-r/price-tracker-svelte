@@ -1,5 +1,7 @@
 <script lang="ts">
     import { fetchStats } from "$lib/api/stats.js";
+    import { fetchDeals } from "$lib/api/deals.js";
+    import type { Deal } from "$lib/types/Deal.js";
     import { onMount } from "svelte";
 
     let searchQuery = '';
@@ -10,7 +12,7 @@
     let searchTimeout: ReturnType<typeof setTimeout>;
     let categoryMap: { [key: string]: string } = {};
     let isLoading = false;
-    let deals: any[] = [];
+    let deals: Deal[] = [];
     let dealsContainer: HTMLElement;
     let autoScrollInterval: ReturnType<typeof setInterval>;
     let isHovering = false;
@@ -26,8 +28,8 @@
         categories.forEach((category: { id: string; name: string }) => {
             categoryMap[category.id] = category.name;
         });
-        const allDeals = await getDeals();
-        deals = allDeals.slice(0, 10); // Limit to first 10 deals
+        deals = await fetchDeals();
+        deals = deals.slice(0, 10); // Limit to first 10 deals
         startAutoScroll();
     });
 
@@ -69,12 +71,6 @@
     async function getCategories() {
         const response = await fetch('/api/categories');
         return await response.json();
-    }
-
-    async function getDeals() {
-        const response = await fetch('/api/deals');
-        const data = await response.json();
-        return data;
     }
 
     async function handleSearch() {
@@ -134,14 +130,14 @@
             aria-label="Deals carousel"
         >
             {#each deals as deal}
-                <a href="/products/{deal.internal_product_id}" class="deal-card">
+                <a href="/products/{deal.product_id}" class="deal-card">
                     <div class="deal-content">
                         <h3>{deal.product_name}</h3>
                         <div class="price-section">
                             <span class="current-price">${deal.current_price}</span>
                             {#if deal.current_price}
-                                <span class="msrp">${deal.avg_price_last_week}</span>
-                                <span class="discount">-{Math.round((1 - deal.current_price/deal.avg_price_last_week) * 100)}%</span>
+                                <span class="msrp">${deal.max_price_last_days}</span>
+                                <span class="discount">-{Math.round((1 - deal.current_price/deal.max_price_last_days) * 100)}%</span>
                             {/if}
                         </div>
                     </div>
@@ -307,15 +303,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 1.25rem;
-    }
-
-    .deals-section h2 {
-        margin: 0;
-        color: #4b5563;
-        font-size: 1.125rem;
-        letter-spacing: 0.05em;
-        font-weight: 600;
+        margin-bottom: 1rem;
     }
 
     .view-all {
