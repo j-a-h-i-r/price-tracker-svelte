@@ -90,8 +90,8 @@
                                     Untrack
                                 </button>
                             </div>
-                            <p class="price">Current price: ${product.currentPrice}</p>
-                            <p class="target">Target price: ${product.targetPrice}</p>
+                            <p class="price">Current price: ৳{product.currentPrice}</p>
+                            <p class="target">Target price: ৳{product.targetPrice}</p>
                         </div>
                     {/each}
                 </div>

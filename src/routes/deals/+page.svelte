@@ -40,9 +40,9 @@
                 <div class="deal-content">
                     <h3>{deal.product_name}</h3>
                     <div class="price-section">
-                        <span class="current-price">${deal.current_price}</span>
+                        <span class="current-price">৳{deal.current_price}</span>
                         {#if deal.current_price}
-                            <span class="msrp">${deal.max_price_last_days}</span>
+                            <span class="msrp">৳{deal.max_price_last_days}</span>
                             <span class="discount">-{Math.round((1 - deal.current_price/deal.max_price_last_days) * 100)}%</span>
                         {/if}
                     </div>
