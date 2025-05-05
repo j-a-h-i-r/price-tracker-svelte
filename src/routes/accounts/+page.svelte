@@ -78,20 +78,20 @@
             {:else}
                 <div class="products-grid">
                     {#each trackedProducts.products as product}
-                        <div class="product-card">
+                        <div class="product-card {product.current_price < product.target_price ? 'highlight' : ''}">
                             <div class="product-header">
                                 <h3>
-                                    <a href={`products/${product.id}`}>{product.name}</a>
+                                    <a href={`products/${product.product_id}`}>{product.name}</a>
                                 </h3>
                                 <button 
                                     class="untrack-button"
-                                    on:click={() => handleUntrack(product.id)}
+                                    on:click={() => handleUntrack(product.product_id)}
                                 >
                                     Untrack
                                 </button>
                             </div>
-                            <p class="price">Current price: ৳{product.currentPrice}</p>
-                            <p class="target">Target price: ৳{product.targetPrice}</p>
+                            <p class="price">Current price: ৳{product.current_price}</p>
+                            <p class="target">Target price: ৳{product.target_price}</p>
                         </div>
                     {/each}
                 </div>
@@ -228,6 +228,13 @@
         border: 1px solid #d1d5db;
         border-radius: 6px;
         background: #f9fafb;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .product-card.highlight {
+        background: #ecfdf5;
+        border-color: #059669;
+        box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
     }
 
     .product-card h3 {

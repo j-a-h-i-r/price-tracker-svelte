@@ -61,3 +61,10 @@ export interface PotentialProductMatch {
         similarity_score: number,
     }[],
 }
+
+export interface TrackedProduct {
+    product_id: number,
+    name: string,
+    target_price: number,
+    current_price: number,
+}

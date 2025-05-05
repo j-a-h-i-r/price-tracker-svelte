@@ -1,7 +1,7 @@
-import type { Product } from "$lib/types/Product.js";
+import type { TrackedProduct } from "$lib/types/Product.js";
 
 class TrackedProducts {
-    #trackedProducts: Product[] = $state([]);
+    #trackedProducts: TrackedProduct[] = $state([]);
     constructor() {
         this.#trackedProducts = [];
     }
@@ -17,7 +17,7 @@ class TrackedProducts {
     isTracked(productId: string) {
         console.log('isTracked', productId);
         console.log('trackedProducts', this.#trackedProducts);
-        return this.#trackedProducts.some((product) => product.id === Number(productId));
+        return this.#trackedProducts.some((product) => product.product_id === Number(productId));
     }
 
     refresh() {
