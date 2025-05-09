@@ -4,7 +4,7 @@ interface WebsiteSummary {
 }
 
 export interface Website {
-    id: string;
+    id: number;
     name: string;
     product_count?: number;
     url?: string;
