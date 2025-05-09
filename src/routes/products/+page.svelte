@@ -5,11 +5,14 @@
     import { fetchMetadataFilters, type MetadataFilter } from "$lib/api/metadata";
     import type { ProductWithLastPrice } from "$lib/types/Product";
     import Table from "$lib/components/Table.svelte";
+    import { fetchWebsites, type Website } from "$lib/api/websites.js";
 
     let products: ProductWithLastPrice[] = $state([]);
+    let websitesMap: Record<number, Website> = $state({});
     let loading = $state(true);
     let error: string | null = $state(null);
-    let isSidebarOpen = $state(true);
+    let isFilterModalOpen = $state(false);
+    let modalNode: HTMLDivElement;
 
     // Filters
     let categories: Category[] = $state([]);
@@ -55,7 +58,7 @@
                     if (filter.type === 'boolean') {
                         if (value && metadata !== true) return false;
                     } else if (filter.type === 'range') {
-                        const numValue = parseFloat(metadata);
+                        const numValue = typeof metadata === 'string' ? parseFloat(metadata) : Number(metadata);
                         if (isNaN(numValue)) continue;
                         if (numValue < value.min || numValue > value.max) return false;
                     } else if (filter.type === 'string') {
@@ -95,6 +98,36 @@
     const handleRowClick = (row: ProductWithLastPrice) => {
         goto(`/products/${row.id}`);
     };
+
+    function handleClickOutside(event: MouseEvent) {
+        if (modalNode && !modalNode.contains(event.target as Node)) {
+            isFilterModalOpen = false;
+        }
+    }
+
+    onMount(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    });
+
+    $effect(() => {
+        // Prevent body scroll when modal is open
+        if (isFilterModalOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+    });
+
+    onMount(async () => {
+        let websites = await fetchWebsites();
+        websitesMap = websites.reduce((acc, website) => {
+            acc[website.id] = website;
+            return acc;
+        }, {} as Record<number, Website>);
+    });
 
     onMount(async () => {
         try {
@@ -149,156 +182,155 @@
 </script>
 
 <div class="layout">
-    <aside class="filters-sidebar" class:closed={!isSidebarOpen}>
-        <div class="sidebar-header">
-            <h2>Filters</h2>
-            <button 
-                class="toggle-btn" 
-                onclick={() => isSidebarOpen = !isSidebarOpen}
-            >
-                {isSidebarOpen ? '←' : '→'}
-            </button>
-        </div>
-
-        <div class="filters-content">
-            <div class="filter-section">
-                <label>
-                    Search
-                    <input 
-                        type="text" 
-                        bind:value={searchQuery}
-                        placeholder="Search products..."
-                        class="filter-input"
-                    />
-                </label>
+    <div class="filter-modal" class:open={isFilterModalOpen}>
+        <div class="modal-content" bind:this={modalNode}>
+            <div class="modal-header">
+                <h2>Filters</h2>
+                <button 
+                    class="close-btn" 
+                    onclick={() => isFilterModalOpen = false}
+                >
+                    ×
+                </button>
             </div>
 
-            <div class="filter-section">
-                <label>
-                    Category
-                    <select bind:value={selectedCategory} class="filter-select">
-                        <option value="all">All Categories</option>
-                        {#each categories as category}
-                            <option value={category?.id}>{category?.name}</option>
-                        {/each}
-                    </select>
-                </label>
-            </div>
-
-            <div class="filter-section">
-                <label>
-                    Price Range
-                    <div class="range-inputs">
-                        <input 
-                            type="number" 
-                            bind:value={priceRange.min}
-                            min={actualPriceRange.min}
-                            max={actualPriceRange.max}
-                            class="filter-input"
-                        />
-                        <span>to</span>
-                        <input 
-                            type="number" 
-                            bind:value={priceRange.max}
-                            min={actualPriceRange.min}
-                            max={actualPriceRange.max}
-                            class="filter-input"
-                        />
+            <div class="filters-content">
+                <div class="filter-section">
+                    <div class="filter-row">
+                        <span class="filter-label">Category</span>
+                        <select bind:value={selectedCategory} class="filter-select">
+                            <option value="all">All Categories</option>
+                            {#each categories as category}
+                                <option value={category?.id}>{category?.name}</option>
+                            {/each}
+                        </select>
                     </div>
-                    <input 
-                        type="range" 
-                        bind:value={priceRange.min}
-                        min={actualPriceRange.min}
-                        max={actualPriceRange.max}
-                        class="range-slider"
-                    />
-                    <input 
-                        type="range" 
-                        bind:value={priceRange.max}
-                        min={actualPriceRange.min}
-                        max={actualPriceRange.max}
-                        class="range-slider"
-                    />
-                </label>
-            </div>
+                </div>
 
-            <div class="filter-section">
-                <label class="checkbox-label">
-                    <input type="checkbox" bind:checked={showOutOfStock}>
-                    Show Out of Stock
-                </label>
-            </div>
+                <div class="filter-section">
+                    <div class="filter-row">
+                        <span class="filter-label">Price Range</span>
+                        <div class="range-inputs">
+                            <input 
+                                type="number" 
+                                bind:value={priceRange.min}
+                                min={actualPriceRange.min}
+                                max={actualPriceRange.max}
+                                class="filter-input"
+                            />
+                            <span>to</span>
+                            <input 
+                                type="number" 
+                                bind:value={priceRange.max}
+                                min={actualPriceRange.min}
+                                max={actualPriceRange.max}
+                                class="filter-input"
+                            />
+                        </div>
+                    </div>
+                </div>
 
-            {#if metadataFilters.length > 0}
-                <div class="metadata-filters">
-                    <h3>Specifications</h3>
-                    {#each metadataFilters as filter}
-                        <div class="filter-section">
-                            <label>
-                                {`${filter.displayName} (${filter.unit})`}
-                                {#if filter.type === 'boolean'}
-                                    <label class="checkbox-label">
+                <div class="filter-section">
+                    <div class="filter-row">
+                        <span class="filter-label">Show Out of Stock</span>
+                        <input type="checkbox" bind:checked={showOutOfStock}>
+                    </div>
+                </div>
+
+                <!-- {#if metadataFilters.length > 0}
+                    <div class="metadata-filters">
+                        <h3>Specifications</h3>
+                        {#each metadataFilters as filter}
+                            <div class="filter-section">
+                                <div class="filter-row">
+                                    <span class="filter-label">{`${filter.displayName} ${filter.unit ? `(${filter.unit})` : ''}`}</span>
+                                    {#if filter.type === 'boolean'}
                                         <input 
                                             type="checkbox" 
                                             bind:checked={selectedMetadataFilters[filter.key]}
                                         >
-                                        Required
-                                    </label>
-                                {:else if filter.type === 'range' && filter.range}
-                                    <div class="range-inputs">
-                                        <input 
-                                            type="number" 
-                                            bind:value={selectedMetadataFilters[filter.key].min}
-                                            min={filter.range.min}
-                                            max={filter.range.max}
-                                            class="filter-input"
-                                        />
-                                        <span>to</span>
-                                        <input 
-                                            type="number" 
-                                            bind:value={selectedMetadataFilters[filter.key].max}
-                                            min={filter.range.min}
-                                            max={filter.range.max}
-                                            class="filter-input"
-                                        />
-                                    </div>
-                                {:else if filter.type === 'string' && filter.values}
-                                    <select 
-                                        bind:value={selectedMetadataFilters[filter.key]}
-                                        class="filter-select"
-                                    >
-                                        <option value="">Any</option>
-                                        {#each filter.values as value}
-                                            <option value={value}>{value}</option>
-                                        {/each}
-                                    </select>
-                                {/if}
-                            </label>
-                        </div>
-                    {/each}
+                                    {:else if filter.type === 'range' && filter.range}
+                                        <div class="range-inputs">
+                                            <input 
+                                                type="number" 
+                                                bind:value={selectedMetadataFilters[filter.key].min}
+                                                min={filter.range.min}
+                                                max={filter.range.max}
+                                                class="filter-input"
+                                            />
+                                            <span>to</span>
+                                            <input 
+                                                type="number" 
+                                                bind:value={selectedMetadataFilters[filter.key].max}
+                                                min={filter.range.min}
+                                                max={filter.range.max}
+                                                class="filter-input"
+                                            />
+                                        </div>
+                                    {:else if filter.type === 'string' && filter.values}
+                                        <select 
+                                            bind:value={selectedMetadataFilters[filter.key]}
+                                            class="filter-select"
+                                        >
+                                            <option value="">Any</option>
+                                            {#each filter.values as value}
+                                                <option value={value}>{value}</option>
+                                            {/each}
+                                        </select>
+                                    {/if}
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                {/if} -->
+
+                <div class="filter-section">
+                    <div class="filter-row">
+                        <span class="filter-label">Sort By</span>
+                        <select bind:value={sortBy} class="filter-select">
+                            <option value="price-asc">Price: Low to High</option>
+                            <option value="price-desc">Price: High to Low</option>
+                            <option value="name-asc">Name: A to Z</option>
+                            <option value="name-desc">Name: Z to A</option>
+                        </select>
+                    </div>
                 </div>
-            {/if}
 
-            <div class="filter-section">
-                <label>
-                    Sort By
-                    <select bind:value={sortBy} class="filter-select">
-                        <option value="price-asc">Price: Low to High</option>
-                        <option value="price-desc">Price: High to Low</option>
-                        <option value="name-asc">Name: A to Z</option>
-                        <option value="name-desc">Name: Z to A</option>
-                    </select>
-                </label>
+                <button class="reset-btn" onclick={resetFilters}>
+                    Reset Filters
+                </button>
             </div>
-
-            <button class="reset-btn" onclick={resetFilters}>
-                Reset Filters
-            </button>
         </div>
-    </aside>
+    </div>
 
     <main class="content">
-        <h1>Products</h1>
+        <div class="search-header">
+            <div class="search-container">
+                <input 
+                    type="text" 
+                    bind:value={searchQuery}
+                    placeholder="Search products..."
+                    class="search-input"
+                />
+                <button 
+                    class="filter-button" 
+                    onclick={() => isFilterModalOpen = !isFilterModalOpen}
+                    aria-label="Toggle filters"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="4" y1="21" x2="4" y2="14"></line>
+                        <line x1="4" y1="10" x2="4" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12" y2="3"></line>
+                        <line x1="20" y1="21" x2="20" y2="16"></line>
+                        <line x1="20" y1="12" x2="20" y2="3"></line>
+                        <line x1="1" y1="14" x2="7" y2="14"></line>
+                        <line x1="9" y1="8" x2="15" y2="8"></line>
+                        <line x1="17" y1="16" x2="23" y2="16"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
 
         {#if loading}
             <p>Loading products...</p>
@@ -310,11 +342,16 @@
             </div>
 
             <Table 
-                headers={["Name", "Last Price"]}
+                headers={["Name", "Lowest Price"]}
                 keys={["name", "price"]}
                 rows={paginatedProducts.map(p => ({
                     ...p,
-                    price: p.prices.map(p => `${p.price}`).join(", "),
+                    expandedContent: p.prices.map(price => ({
+                        website: websitesMap[price.website_id]?.name || "Unknown",
+                        price: price.price,
+                        date: new Date(price.created_at).toLocaleDateString()
+                    })),
+                    price: `৳ ${p?.lowest_available_price?.price ?? 'N/A'}`,
                 }))}
                 on:rowClick={e => handleRowClick(e.detail)}
             />
@@ -348,40 +385,45 @@
         min-height: calc(100vh - 4rem);
     }
 
-    .filters-sidebar {
-        width: 300px;
-        background: white;
-        border-right: 1px solid #e5e7eb;
-        padding: 1.5rem;
-        height: calc(100vh - 4rem);
-        position: sticky;
+    .filter-modal {
+        position: fixed;
         top: 0;
-        transition: transform 0.3s ease;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .filter-modal.open {
         display: flex;
-        flex-direction: column;
     }
 
-    .filters-sidebar.closed {
-        transform: translateX(-100%);
+    .modal-content {
+        background: white;
+        width: 90%;
+        max-width: 500px;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        position: relative;
     }
 
-    .sidebar-header {
+    .modal-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 1.5rem;
     }
 
-    .toggle-btn {
-        padding: 0.5rem;
+    .close-btn {
+        background: none;
         border: none;
-        background: #f3f4f6;
-        border-radius: 4px;
+        font-size: 1.5rem;
         cursor: pointer;
-    }
-
-    .toggle-btn:hover {
-        background: #e5e7eb;
     }
 
     .filters-content {
@@ -389,8 +431,7 @@
         flex-direction: column;
         gap: 1.5rem;
         overflow-y: auto;
-        flex: 1;
-        padding-right: 0.5rem; /* Add some padding for the scrollbar */
+        max-height: 70vh;
     }
 
     .filters-content::-webkit-scrollbar {
@@ -417,15 +458,22 @@
         gap: 0.5rem;
     }
 
-    .filter-input {
-        width: 100%;
-        padding: 0.5rem;
-        border: 1px solid #e5e7eb;
-        border-radius: 4px;
+    .filter-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
     }
 
-    .filter-select {
-        width: 100%;
+    .filter-label {
+        font-weight: 500;
+        flex: 0 0 auto;
+        min-width: 120px;
+    }
+
+    .filter-input, .filter-select {
+        flex: 1;
+        min-width: 0;
         padding: 0.5rem;
         border: 1px solid #e5e7eb;
         border-radius: 4px;
@@ -435,20 +483,17 @@
         display: flex;
         gap: 0.5rem;
         align-items: center;
+        flex: 1;
     }
 
     .range-inputs input {
         width: 100px;
+        min-width: 0;
     }
 
-    .range-slider {
-        width: 100%;
-    }
-
-    .checkbox-label {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+    .range-inputs span {
+        flex: 0 0 auto;
+        color: #6b7280;
     }
 
     .reset-btn {
@@ -468,6 +513,55 @@
     .content {
         flex: 1;
         padding: 1rem;
+    }
+
+    .search-header {
+        background-color: white;
+        padding: 1rem;
+        margin: -1rem -1rem 1rem -1rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .search-container {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        max-width: 800px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border-color 0.15s ease;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 1px #2563eb;
+    }
+
+    .filter-button {
+        padding: 0.75rem;
+        border: 1px solid #e5e7eb;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #4b5563;
+        transition: all 0.15s ease;
+    }
+
+    .filter-button:hover {
+        background: #f3f4f6;
+        border-color: #d1d5db;
     }
 
     .results-header {
@@ -511,12 +605,6 @@
         margin: 0 0 1.5rem 0;
     }
 
-    .metadata-filters {
-        border-top: 1px solid #e5e7eb;
-        padding-top: 1rem;
-        margin-top: 0.5rem;
-    }
-
     .metadata-filters h3 {
         font-size: 1rem;
         font-weight: 600;
@@ -528,21 +616,7 @@
         margin-bottom: 1rem;
     }
 
-    .metadata-filters .filter-section label {
-        font-size: 0.875rem;
-        color: #6b7280;
-    }
-
     .metadata-filters .range-inputs {
         margin-top: 0.5rem;
-    }
-
-    @media (max-width: 768px) {
-        .filters-sidebar {
-            position: fixed;
-            z-index: 50;
-            background: white;
-            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-        }
     }
 </style>

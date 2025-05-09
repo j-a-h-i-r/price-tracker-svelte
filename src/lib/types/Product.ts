@@ -1,17 +1,21 @@
+interface ProductPrice {
+    price: number,
+    created_at: string,
+    website_id: number,
+    is_available: boolean,
+}
+
 export interface Product {
     id: number;
     name: string;
     category_id: number;
     raw_metadata: Record<string, string>;
     parsed_metadata: Record<string, string | number | boolean>;
+    lowest_available_price: ProductPrice;
 }
 
 export interface ProductWithLastPrice extends Product {
-    prices: {
-        price: number,
-        created_at: string,
-        website_id: number,
-    }[]
+    prices: ProductPrice[]
 }
 
 export interface WebsitePrice {
