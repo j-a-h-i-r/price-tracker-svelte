@@ -63,11 +63,8 @@
                 }
             }
         });
-
-        console.log(pricesByWebsite);
         let priceDatasets: any[] = [];
         pricesByWebsite.forEach((prices, website) => {
-            console.log(prices);
             priceDatasets.push({
                 label: website,
                 data: prices.map((p) => ({
@@ -88,8 +85,6 @@
         if (chart) {
             chart.destroy();
         }
-
-        console.log(priceDatasets);
 
         chart = new Chart(chartCanvas, {
             type: "line",
@@ -194,7 +189,6 @@
                 };
             });
 
-            console.log($state.snapshot(productWebsites));
             if (product) {
                 setTimeout(createChart, 0);
             }

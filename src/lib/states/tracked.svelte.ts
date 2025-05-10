@@ -15,8 +15,6 @@ class TrackedProducts {
     }
 
     isTracked(productId: string) {
-        console.log('isTracked', productId);
-        console.log('trackedProducts', this.#trackedProducts);
         return this.#trackedProducts.some((product) => product.product_id === Number(productId));
     }
 
