@@ -61,7 +61,6 @@
     });
 
     function handleRowClick(event: CustomEvent<{ product_id: string }>) {
-        console.log("Row clicked:", event);
         goto(`/products/${event.detail.product_id}`);
     }
 
@@ -72,7 +71,6 @@
             return metadataDetails.filter(metadata => {
                 const value = metadata.raw_metadata[metadataName]?.toString() || '';
                 const matches = regex.test(value);
-                console.log("Matches:", value.match(regex));
                 return showNonMatching ? !matches : matches;
             });
         } catch (e) {

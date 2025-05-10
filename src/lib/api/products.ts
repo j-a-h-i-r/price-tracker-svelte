@@ -1,7 +1,11 @@
 import type { PotentialProductMatch, Product, ProductWithLastPrice, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
 
-export async function fetchProducts(): Promise<ProductWithLastPrice[]> {
-    const response = await fetch('/api/products');
+export async function fetchProducts(limit?: number): Promise<ProductWithLastPrice[]> {
+    let url = '/api/products';
+    if (limit) {
+        url += `?limit=${limit}`;
+    }
+    const response = await fetch(url);
     if (!response.ok) {
         throw new Error('Failed to fetch products');
     }

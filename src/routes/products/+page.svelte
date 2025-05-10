@@ -7,12 +7,13 @@
     import Table from "$lib/components/Table.svelte";
     import { fetchWebsites, type Website } from "$lib/api/websites.js";
 
+    let initialProductsLoaded = $state(false);
     let products: ProductWithLastPrice[] = $state([]);
     let websitesMap: Record<number, Website> = $state({});
     let loading = $state(true);
     let error: string | null = $state(null);
     let isFilterModalOpen = $state(false);
-    let modalNode: HTMLDivElement;
+    let modalNode: HTMLDivElement | null = null;
 
     // Filters
     let categories: Category[] = $state([]);
@@ -24,8 +25,8 @@
     let searchQuery = $state("");
 
     // Metadata filters
-    let metadataFilters: MetadataFilter[] = $state([]);
-    let selectedMetadataFilters: Record<string, any> = $state({});
+    // let metadataFilters: MetadataFilter[] = $state([]);
+    // let selectedMetadataFilters: Record<string, any> = $state({});
 
     // Pagination
     let currentPage = $state(1);
@@ -48,23 +49,22 @@
                 if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
                 
                 // Metadata filters
-                for (const filter of metadataFilters) {
-                    const value = selectedMetadataFilters[filter.key];
-                    const metadata = p.parsed_metadata[filter.key];
+                // for (const filter of metadataFilters) {
+                //     const value = selectedMetadataFilters[filter.key];
+                //     const metadata = p.parsed_metadata[filter.key];
                     
-                    // if (value === undefined || value === '' || metadata === undefined) continue;
-                    console.log({metadata: metadata, filterKey: filter.key, filterValue: value})
+                //     // if (value === undefined || value === '' || metadata === undefined) continue;
                     
-                    if (filter.type === 'boolean') {
-                        if (value && metadata !== true) return false;
-                    } else if (filter.type === 'range') {
-                        const numValue = typeof metadata === 'string' ? parseFloat(metadata) : Number(metadata);
-                        if (isNaN(numValue)) continue;
-                        if (numValue < value.min || numValue > value.max) return false;
-                    } else if (filter.type === 'string') {
-                        if (value && metadata !== value) return false;
-                    }
-                }
+                //     if (filter.type === 'boolean') {
+                //         if (value && metadata !== true) return false;
+                //     } else if (filter.type === 'range') {
+                //         const numValue = typeof metadata === 'string' ? parseFloat(metadata) : Number(metadata);
+                //         if (isNaN(numValue)) continue;
+                //         if (numValue < value.min || numValue > value.max) return false;
+                //     } else if (filter.type === 'string') {
+                //         if (value && metadata !== value) return false;
+                //     }
+                // }
                 
                 return true;
             })
@@ -129,29 +129,39 @@
         }, {} as Record<number, Website>);
     });
 
+    $effect(() => {
+        // Reset filters when products are loaded
+        if (initialProductsLoaded) {
+            fetchProducts().then((p) => products = p);
+        }
+    });
+
     onMount(async () => {
         try {
-            products = await fetchProducts();
+            // Initially fetch 100 products
+            products = await fetchProducts(100);
+            initialProductsLoaded = true;
             categories = await fetchCategories();
-            metadataFilters = await fetchMetadataFilters();
+            // metadataFilters = await fetchMetadataFilters();
             
             // Initialize metadata filter values
-            metadataFilters.forEach(filter => {
-                if (filter.type === 'boolean') {
-                    selectedMetadataFilters[filter.key] = false;
-                } else if (filter.type === 'range') {
-                    selectedMetadataFilters[filter.key] = { ...filter.range };
-                } else {
-                    selectedMetadataFilters[filter.key] = '';
-                }
-            });
+            // metadataFilters.forEach(filter => {
+            //     if (filter.type === 'boolean') {
+            //         selectedMetadataFilters[filter.key] = false;
+            //     } else if (filter.type === 'range') {
+            //         selectedMetadataFilters[filter.key] = { ...filter.range };
+            //     } else {
+            //         selectedMetadataFilters[filter.key] = '';
+            //     }
+            // });
             
             // Set actual price range based on products
-            const prices = products.flatMap(p => p.prices.map(price => price.price));
+            const prices = products
+                .flatMap(p => p.prices.map(price => price.price))
+                .filter(price => !isNaN(price));
             actualPriceRange.min = Math.min(...prices);
             actualPriceRange.max = Math.max(...prices);
             priceRange = { ...actualPriceRange };
-            
         } catch (e) {
             console.error("Error fetching data:", e);
             error = e instanceof Error ? e.message : "An error occurred";
@@ -169,140 +179,19 @@
         currentPage = 1;
 
         // Reset metadata filters
-        metadataFilters.forEach(filter => {
-            if (filter.type === 'boolean') {
-                selectedMetadataFilters[filter.key] = false;
-            } else if (filter.type === 'range' && filter.range) {
-                selectedMetadataFilters[filter.key] = { ...filter.range };
-            } else {
-                selectedMetadataFilters[filter.key] = '';
-            }
-        });
+        // metadataFilters.forEach(filter => {
+        //     if (filter.type === 'boolean') {
+        //         selectedMetadataFilters[filter.key] = false;
+        //     } else if (filter.type === 'range' && filter.range) {
+        //         selectedMetadataFilters[filter.key] = { ...filter.range };
+        //     } else {
+        //         selectedMetadataFilters[filter.key] = '';
+        //     }
+        // });
     }
 </script>
 
 <div class="layout">
-    <div class="filter-modal" class:open={isFilterModalOpen}>
-        <div class="modal-content" bind:this={modalNode}>
-            <div class="modal-header">
-                <h2>Filters</h2>
-                <button 
-                    class="close-btn" 
-                    onclick={() => isFilterModalOpen = false}
-                >
-                    ×
-                </button>
-            </div>
-
-            <div class="filters-content">
-                <div class="filter-section">
-                    <div class="filter-row">
-                        <span class="filter-label">Category</span>
-                        <select bind:value={selectedCategory} class="filter-select">
-                            <option value="all">All Categories</option>
-                            {#each categories as category}
-                                <option value={category?.id}>{category?.name}</option>
-                            {/each}
-                        </select>
-                    </div>
-                </div>
-
-                <div class="filter-section">
-                    <div class="filter-row">
-                        <span class="filter-label">Price Range</span>
-                        <div class="range-inputs">
-                            <input 
-                                type="number" 
-                                bind:value={priceRange.min}
-                                min={actualPriceRange.min}
-                                max={actualPriceRange.max}
-                                class="filter-input"
-                            />
-                            <span>to</span>
-                            <input 
-                                type="number" 
-                                bind:value={priceRange.max}
-                                min={actualPriceRange.min}
-                                max={actualPriceRange.max}
-                                class="filter-input"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="filter-section">
-                    <div class="filter-row">
-                        <span class="filter-label">Show Out of Stock</span>
-                        <input type="checkbox" bind:checked={showOutOfStock}>
-                    </div>
-                </div>
-
-                <!-- {#if metadataFilters.length > 0}
-                    <div class="metadata-filters">
-                        <h3>Specifications</h3>
-                        {#each metadataFilters as filter}
-                            <div class="filter-section">
-                                <div class="filter-row">
-                                    <span class="filter-label">{`${filter.displayName} ${filter.unit ? `(${filter.unit})` : ''}`}</span>
-                                    {#if filter.type === 'boolean'}
-                                        <input 
-                                            type="checkbox" 
-                                            bind:checked={selectedMetadataFilters[filter.key]}
-                                        >
-                                    {:else if filter.type === 'range' && filter.range}
-                                        <div class="range-inputs">
-                                            <input 
-                                                type="number" 
-                                                bind:value={selectedMetadataFilters[filter.key].min}
-                                                min={filter.range.min}
-                                                max={filter.range.max}
-                                                class="filter-input"
-                                            />
-                                            <span>to</span>
-                                            <input 
-                                                type="number" 
-                                                bind:value={selectedMetadataFilters[filter.key].max}
-                                                min={filter.range.min}
-                                                max={filter.range.max}
-                                                class="filter-input"
-                                            />
-                                        </div>
-                                    {:else if filter.type === 'string' && filter.values}
-                                        <select 
-                                            bind:value={selectedMetadataFilters[filter.key]}
-                                            class="filter-select"
-                                        >
-                                            <option value="">Any</option>
-                                            {#each filter.values as value}
-                                                <option value={value}>{value}</option>
-                                            {/each}
-                                        </select>
-                                    {/if}
-                                </div>
-                            </div>
-                        {/each}
-                    </div>
-                {/if} -->
-
-                <div class="filter-section">
-                    <div class="filter-row">
-                        <span class="filter-label">Sort By</span>
-                        <select bind:value={sortBy} class="filter-select">
-                            <option value="price-asc">Price: Low to High</option>
-                            <option value="price-desc">Price: High to Low</option>
-                            <option value="name-asc">Name: A to Z</option>
-                            <option value="name-desc">Name: Z to A</option>
-                        </select>
-                    </div>
-                </div>
-
-                <button class="reset-btn" onclick={resetFilters}>
-                    Reset Filters
-                </button>
-            </div>
-        </div>
-    </div>
-
     <main class="content">
         <div class="search-header">
             <div class="search-container">
@@ -312,25 +201,66 @@
                     placeholder="Search products..."
                     class="search-input"
                 />
-                <button 
-                    class="filter-button" 
-                    onclick={() => isFilterModalOpen = !isFilterModalOpen}
-                    aria-label="Toggle filters"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="4" y1="21" x2="4" y2="14"></line>
-                        <line x1="4" y1="10" x2="4" y2="3"></line>
-                        <line x1="12" y1="21" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12" y2="3"></line>
-                        <line x1="20" y1="21" x2="20" y2="16"></line>
-                        <line x1="20" y1="12" x2="20" y2="3"></line>
-                        <line x1="1" y1="14" x2="7" y2="14"></line>
-                        <line x1="9" y1="8" x2="15" y2="8"></line>
-                        <line x1="17" y1="16" x2="23" y2="16"></line>
-                    </svg>
-                </button>
             </div>
         </div>
+
+        <!-- Inline Filters -->
+        <div class="inline-filters">
+            <button class="filter-chip" class:active={selectedCategory !== "all"}>
+                <span>Category</span>
+                <select bind:value={selectedCategory} class="chip-select">
+                    <option value="all">All Categories</option>
+                    {#each categories as category}
+                        <option value={category.id}>{category.name}</option>
+                    {/each}
+                </select>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+
+            <button class="filter-chip" class:active={priceRange.min !== actualPriceRange.min || priceRange.max !== actualPriceRange.max}>
+                <span>Price Range</span>
+                <div class="chip-inputs">
+                    <input 
+                        type="number" 
+                        bind:value={priceRange.min}
+                        min={actualPriceRange.min}
+                        max={actualPriceRange.max}
+                        placeholder="Min"
+                        class="chip-input"
+                    />
+                    <span class="separator">-</span>
+                    <input 
+                        type="number" 
+                        bind:value={priceRange.max}
+                        min={actualPriceRange.min}
+                        max={actualPriceRange.max}
+                        placeholder="Max"
+                        class="chip-input"
+                    />
+                </div>
+            </button>
+
+            <button class="filter-chip" class:active={!showOutOfStock}>
+                <span>Stock</span>
+                <select bind:value={showOutOfStock} class="chip-select">
+                    <option value={true}>All</option>
+                    <option value={false}>In Stock Only</option>
+                </select>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+
+            <button class="filter-chip" class:active={sortBy !== "price-asc"}>
+                <span>Sort by</span>
+                <select bind:value={sortBy} class="chip-select">
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="name-asc">Name: A to Z</option>
+                    <option value="name-desc">Name: Z to A</option>
+                </select>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+        </div>
+        <!-- End Inline Filters -->
 
         {#if loading}
             <p>Loading products...</p>
@@ -526,7 +456,6 @@
         display: flex;
         gap: 0.5rem;
         align-items: center;
-        max-width: 800px;
         margin: 0 auto;
         width: 100%;
     }
@@ -618,5 +547,85 @@
 
     .metadata-filters .range-inputs {
         margin-top: 0.5rem;
+    }
+
+    .inline-filters {
+        display: flex;
+        gap: 0.5rem;
+        margin: 1rem 0;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.75rem;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        color: #374151;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .filter-chip:hover {
+        border-color: #2563eb;
+        color: #2563eb;
+    }
+
+    .filter-chip.active {
+        background: #eef2ff;
+        border-color: #6366f1;
+        color: #4f46e5;
+    }
+
+    .filter-chip span {
+        font-weight: 500;
+    }
+
+    .chip-select {
+        appearance: none;
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin: 0;
+        font-size: 0.875rem;
+        color: inherit;
+        cursor: pointer;
+        min-width: 100px;
+    }
+
+    .chip-select:focus {
+        outline: none;
+    }
+
+    .chip-inputs {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .chip-input {
+        width: auto;
+        border: none;
+        background: transparent;
+        padding: 0;
+        font-size: 0.875rem;
+        color: inherit;
+    }
+
+    .chip-input:focus {
+        outline: none;
+    }
+
+    .chip-input::placeholder {
+        color: #9ca3af;
+    }
+
+    .separator {
+        color: #9ca3af;
     }
 </style>
