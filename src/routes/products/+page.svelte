@@ -136,32 +136,22 @@
         }
     });
 
+    $effect(() => {
+        // Recalculate price range based on products
+        const prices = products
+            .flatMap(p => p.prices.map(price => price.price))
+            .filter(price => !isNaN(price));
+        actualPriceRange.min = Math.min(...prices);
+        actualPriceRange.max = Math.max(...prices);
+        priceRange = { ...actualPriceRange };
+    });
+
     onMount(async () => {
         try {
             // Initially fetch 100 products
             products = await fetchProducts(100);
             initialProductsLoaded = true;
             categories = await fetchCategories();
-            // metadataFilters = await fetchMetadataFilters();
-            
-            // Initialize metadata filter values
-            // metadataFilters.forEach(filter => {
-            //     if (filter.type === 'boolean') {
-            //         selectedMetadataFilters[filter.key] = false;
-            //     } else if (filter.type === 'range') {
-            //         selectedMetadataFilters[filter.key] = { ...filter.range };
-            //     } else {
-            //         selectedMetadataFilters[filter.key] = '';
-            //     }
-            // });
-            
-            // Set actual price range based on products
-            const prices = products
-                .flatMap(p => p.prices.map(price => price.price))
-                .filter(price => !isNaN(price));
-            actualPriceRange.min = Math.min(...prices);
-            actualPriceRange.max = Math.max(...prices);
-            priceRange = { ...actualPriceRange };
         } catch (e) {
             console.error("Error fetching data:", e);
             error = e instanceof Error ? e.message : "An error occurred";
