@@ -20,13 +20,9 @@
     let selectedCategory: string | number = $state("all");
     let priceRange = $state({ min: 0, max: 2000 });
     let actualPriceRange = $state({ min: 0, max: 0 });
-    let showOutOfStock = $state(true);
+    let showOutOfStock = $state(false);
     let sortBy = $state("price-asc");
     let searchQuery = $state("");
-
-    // Metadata filters
-    // let metadataFilters: MetadataFilter[] = $state([]);
-    // let selectedMetadataFilters: Record<string, any> = $state({});
 
     // Pagination
     let currentPage = $state(1);
@@ -43,34 +39,19 @@
                 if (productPrice < priceRange.min || productPrice > priceRange.max) return false;
                 
                 // Stock filter
-                if (!showOutOfStock && p.prices.length === 0) return false;
+                if (!showOutOfStock) {
+                    if (p.prices.length === 0) return false;
+                    if (p.prices.every(price => price.is_available === false)) return false;
+                }
 
                 // Search query
                 if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
                 
-                // Metadata filters
-                // for (const filter of metadataFilters) {
-                //     const value = selectedMetadataFilters[filter.key];
-                //     const metadata = p.parsed_metadata[filter.key];
-                    
-                //     // if (value === undefined || value === '' || metadata === undefined) continue;
-                    
-                //     if (filter.type === 'boolean') {
-                //         if (value && metadata !== true) return false;
-                //     } else if (filter.type === 'range') {
-                //         const numValue = typeof metadata === 'string' ? parseFloat(metadata) : Number(metadata);
-                //         if (isNaN(numValue)) continue;
-                //         if (numValue < value.min || numValue > value.max) return false;
-                //     } else if (filter.type === 'string') {
-                //         if (value && metadata !== value) return false;
-                //     }
-                // }
-                
                 return true;
             })
             .sort((a, b) => {
-                const priceA = Math.min(...a.prices.map(p => p.price));
-                const priceB = Math.min(...b.prices.map(p => p.price));
+                const priceA = Math.min(...a.prices.filter(p => p.price !== null).map(p => p.price));
+                const priceB = Math.min(...b.prices.filter(p => p.price !== null).map(p => p.price));
                 
                 switch (sortBy) {
                     case "price-asc":
@@ -305,131 +286,6 @@
         min-height: calc(100vh - 4rem);
     }
 
-    .filter-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-    }
-
-    .filter-modal.open {
-        display: flex;
-    }
-
-    .modal-content {
-        background: white;
-        width: 90%;
-        max-width: 500px;
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        position: relative;
-    }
-
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-    }
-
-    .close-btn {
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        cursor: pointer;
-    }
-
-    .filters-content {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-        overflow-y: auto;
-        max-height: 70vh;
-    }
-
-    .filters-content::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .filters-content::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 3px;
-    }
-
-    .filters-content::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 3px;
-    }
-
-    .filters-content::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
-
-    .filter-section {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .filter-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-    }
-
-    .filter-label {
-        font-weight: 500;
-        flex: 0 0 auto;
-        min-width: 120px;
-    }
-
-    .filter-input, .filter-select {
-        flex: 1;
-        min-width: 0;
-        padding: 0.5rem;
-        border: 1px solid #e5e7eb;
-        border-radius: 4px;
-    }
-
-    .range-inputs {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        flex: 1;
-    }
-
-    .range-inputs input {
-        width: 100px;
-        min-width: 0;
-    }
-
-    .range-inputs span {
-        flex: 0 0 auto;
-        color: #6b7280;
-    }
-
-    .reset-btn {
-        padding: 0.75rem;
-        background: #ef4444;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: 500;
-    }
-
-    .reset-btn:hover {
-        background: #dc2626;
-    }
-
     .content {
         flex: 1;
         padding: 1rem;
@@ -463,24 +319,6 @@
         outline: none;
         border-color: #2563eb;
         box-shadow: 0 0 0 1px #2563eb;
-    }
-
-    .filter-button {
-        padding: 0.75rem;
-        border: 1px solid #e5e7eb;
-        background: white;
-        border-radius: 6px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #4b5563;
-        transition: all 0.15s ease;
-    }
-
-    .filter-button:hover {
-        background: #f3f4f6;
-        border-color: #d1d5db;
     }
 
     .results-header {
@@ -522,21 +360,6 @@
 
     h1 {
         margin: 0 0 1.5rem 0;
-    }
-
-    .metadata-filters h3 {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #4b5563;
-        margin-bottom: 1rem;
-    }
-
-    .metadata-filters .filter-section {
-        margin-bottom: 1rem;
-    }
-
-    .metadata-filters .range-inputs {
-        margin-top: 0.5rem;
     }
 
     .inline-filters {
