@@ -134,12 +134,14 @@
             {#each products as product}
                 <div class="product-comparison">
                     <div class="product-main">
-                        <h2>{product.product_name}</h2>
+                        <h2><a href="/products/{product.product_id}">{product.product_name}</a></h2>
                         <div class="similar-products">
                             {#each product.similar_products as similarProduct}
                                 <div class="similar-product">
                                     <div class="similar-product-info">
-                                        <p>{similarProduct.product_name}</p>
+                                        <p>
+                                            <a href="/products/{similarProduct.product_id}">{similarProduct.product_name}</a>
+                                        </p>
                                         <span class="similarity-score">Similarity: {similarProduct.similarity_score.toFixed(2)}</span>
                                     </div>
                                     <div class="action-buttons">
