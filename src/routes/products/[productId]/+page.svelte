@@ -186,6 +186,7 @@
                         : false,
                     created_at: currentPrice ? currentPrice.created_at : null,
                     saved_price: savedPrice,
+                    product_name: currentPrice?.product_name ?? '',
                 };
             });
 
@@ -258,6 +259,9 @@
     <div class="details">
         {#each productWebsites as website}
             <div class="price-card">
+                <div class="product-name">
+                    {website.product_name}
+                </div>
                 <div
                     style="display: flex; justify-content: space-between; align-items: start"
                 >
@@ -355,6 +359,12 @@
 
         .price-card:hover {
             transform: translateY(-2px);
+        }
+
+        .product-name {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
         }
 
         .price-amount {

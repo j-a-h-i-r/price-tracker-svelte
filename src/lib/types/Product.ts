@@ -25,6 +25,7 @@ export interface WebsitePrice {
     website: string;
     created_at: string;
     is_available: boolean;
+    product_name: string;
 }
 
 export interface ProductWithPrice extends Product {
@@ -42,6 +43,7 @@ export interface ProductWebsiteWithPrice extends ProductWebsite {
     is_available: boolean;
     created_at: string | null;
     saved_price: number | null;
+    product_name: string;
 }
 
 export interface ProductWithWebsite {
