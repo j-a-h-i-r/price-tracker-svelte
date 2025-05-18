@@ -1,4 +1,4 @@
-import type { PotentialProductMatch, Product, ProductWithLastPrice, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
+import type { ExternalProduct, ExternalProductPrice, PotentialProductMatch, Product, ProductWithLastPrice, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
 
 export async function fetchProducts(limit?: number): Promise<ProductWithLastPrice[]> {
     let url = '/api/products';
@@ -27,6 +27,24 @@ export async function fetchProductPricesById(id: string | number): Promise<Produ
 export async function fetchProductWebsites(productId: string | number): Promise<ProductWithWebsite> {
     const response = await fetch(`/api/products/${productId}/websites`);
     if (!response.ok) throw new Error('Failed to fetch product');
+    return response.json();
+}
+
+export async function fetchExternalProductsByInternalId(internalId: number): Promise<ExternalProduct[]> {
+    const url = `/api/products/${internalId}/externals`;
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error('Failed to fetch external products');
+    }
+    return response.json();
+}
+
+export async function fetchExternalProductPrices(internalId: number, externalId: number): Promise<ExternalProductPrice[]> {
+    const url = `/api/products/${internalId}/externals/${externalId}/prices`;
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error('Failed to fetch product prices');
+    }
     return response.json();
 }
 

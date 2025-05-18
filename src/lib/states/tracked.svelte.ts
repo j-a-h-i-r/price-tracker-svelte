@@ -14,7 +14,7 @@ class TrackedProducts {
         this.#trackedProducts = [];
     }
 
-    isTracked(productId: string) {
+    isTracked(productId: number) {
         return this.#trackedProducts.some((product) => product.product_id === Number(productId));
     }
 

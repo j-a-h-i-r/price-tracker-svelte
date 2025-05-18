@@ -74,3 +74,18 @@ export interface TrackedProduct {
     target_price: number,
     current_price: number,
 }
+
+export interface ExternalProduct {
+    external_product_id: number,
+    website_id: number,
+    name: string,
+    url: string,
+}
+
+export interface ExternalProductPrice {
+    external_product_id: number,
+    is_available: boolean,
+    price: number,
+    created_at: string,
+    updated_at: string,
+}

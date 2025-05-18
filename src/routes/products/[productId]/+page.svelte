@@ -1,80 +1,101 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
     import { page } from "$app/state";
     import {
+        fetchExternalProductPrices,
+        fetchExternalProductsByInternalId,
         fetchProductPricesById,
-        fetchProductWebsites,
     } from "$lib/api/products.js";
     import type {
-        ProductWebsiteWithPrice,
+        ExternalProduct,
+        ExternalProductPrice,
         ProductWithPrice,
-        WebsitePrice,
     } from "$lib/types/Product.js";
     import { onMount } from "svelte";
     import { Chart } from "chart.js/auto";
     import "chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm";
     import { trackedProducts } from "$lib/states/tracked.svelte.js";
-    import { callback } from "chart.js/helpers";
+    import { fetchWebsites, type Website } from "$lib/api/websites.js";
 
-    let { productId } = page.params;
+    let productId = Number(page.params.productId);
     let product: ProductWithPrice | null = $state(null);
-    let productWebsites: ProductWebsiteWithPrice[] = $state([]);
-    let isAvailable = $derived.by(() => {
-        if (!product || product.prices.length === 0) {
-            return false;
-        }
-        let latestPrice = product.prices[0];
-        return latestPrice.is_available;
-    });
-    let websites: string[] = $derived.by(() => {
-        if (!product || product.prices.length === 0) {
-            return [];
-        }
-        let websites = new Set<string>();
-        product.prices.forEach((price) => {
-            websites.add(price.website);
-        });
-        return Array.from(websites);
-    });
+    let websiteMap: Map<number, Website> = $state(new Map());
+    let externalProducts: ExternalProduct[] = $state([]);
+    let externalProductPrices: Map<number, ExternalProductPrice[]> = $state(new Map());
 
-    let selectedWebsites = $state(new Set<string>());
-
+    onMount(async () => {
+        try {
+            let websites = await fetchWebsites();
+            websiteMap = new Map(websites.map((website: Website) => [website.id, website]));
+        } catch (error) {
+            console.error('Error fetching websites:', error);
+        }
+    });
+    
     $effect(() => {
-        if (websites.length > 0 && selectedWebsites.size === 0) {
-            selectedWebsites = new Set(websites);
-        }
+        const promises = externalProducts.map(async (externalProduct) => {
+            const { external_product_id } = externalProduct;
+            const prices = await fetchExternalProductPrices(productId, external_product_id);
+            return prices;
+        });
+        Promise.all(promises)
+        .then((prices) => {
+            const productPrices = new Map<number, ExternalProductPrice[]>();
+            externalProducts.forEach((externalProduct, index) => {
+                productPrices.set(externalProduct.external_product_id, prices[index]);
+            });
+            externalProductPrices = productPrices;
+
+            setTimeout(() => {
+                createChart();
+            }, 0);
+        })
+    })
+
+    let latestPrice: Map<number, ExternalProductPrice> = $derived.by(() => {
+        let latestPriceMap = new Map<number, ExternalProductPrice>();
+        externalProductPrices.forEach((prices, externalProductId) => {
+            let latestPrice = prices[0];
+            latestPriceMap.set(externalProductId, latestPrice);
+        });
+        return latestPriceMap;
     });
 
+    let maxPrice = $derived.by(() => {
+        let maxPrice = 0;
+        for (const price of latestPrice.values()) {
+            if (price.price > maxPrice) {
+                maxPrice = price.price;
+            }
+        }
+        return maxPrice;
+    });
+
+    let isAvailable = $derived.by(() => {
+        for (const price of latestPrice.values()) {
+            if (price.is_available) {
+                return true;
+            }
+        }
+        return false;
+    });
 
     let chartCanvas: HTMLCanvasElement;
     let chart: Chart;
 
     function createChart() {
         if (!product || !chartCanvas) return;
-
-        // Group prices by website
-        const pricesByWebsite = new Map<string, WebsitePrice[]>();
-        product.prices.forEach((p) => {
-            if (selectedWebsites.has(p.website)) {
-                if (!pricesByWebsite.has(p.website)) {
-                    pricesByWebsite.set(p.website, [p]);
-                } else {
-                    pricesByWebsite.get(p.website)?.push(p);
-                }
-            }
-        });
         let priceDatasets: any[] = [];
-        pricesByWebsite.forEach((prices, website) => {
+
+        externalProductPrices.forEach((prices, externalProductId) => {
+            const product = externalProducts.find((product) => product.external_product_id === externalProductId);
+            const websiteName = websiteMap.get(product!.website_id)?.name;
             priceDatasets.push({
-                label: website,
+                label: `${websiteName} : ${product!.name}`,
                 data: prices.map((p) => ({
                     x: p.created_at,
                     y: p.price,
                 })),
-                // fill: false,
-                // borderColor: '#2563eb',
-                // tension: 0.1
-            });
+            })
         });
 
         const data = {
@@ -99,7 +120,10 @@
                 },
                 scales: {
                     x: {
-                        type: "timeseries",
+                        type: "time",
+                        time: {
+                            unit: 'day'
+                        }
                     },
                     y: {
                         beginAtZero: false,
@@ -162,37 +186,7 @@
     onMount(async () => {
         try {
             product = await fetchProductPricesById(productId);
-            let productWithWebsites = await fetchProductWebsites(productId);
-            let { websites } = productWithWebsites;
-            let currentPrices = websites.map((website) => {
-                return product?.prices.find(
-                    (price) => price.website === website.website_name,
-                );
-            })
-            let maxCurrentPrice = Math.max(
-                ...currentPrices.map((price) => price?.price || 0),
-            );
-            productWebsites = websites.map((website, index) => {
-                let currentPrice = currentPrices[index];
-                let savedPrice = null;
-                if (currentPrice && currentPrice.price) {
-                    savedPrice = maxCurrentPrice - currentPrice.price;
-                }
-                return {
-                    ...website,
-                    price: currentPrice?.price ? currentPrice.price : null,
-                    is_available: currentPrice
-                        ? currentPrice.is_available
-                        : false,
-                    created_at: currentPrice ? currentPrice.created_at : null,
-                    saved_price: savedPrice,
-                    product_name: currentPrice?.product_name ?? '',
-                };
-            });
-
-            if (product) {
-                setTimeout(createChart, 0);
-            }
+            externalProducts = await fetchExternalProductsByInternalId(productId);
         } catch (error) {
             console.error("Error fetching product:", error);
         }
@@ -257,10 +251,10 @@
     </style>
 
     <div class="details">
-        {#each productWebsites as website}
+        {#each externalProducts as product}
             <div class="price-card">
                 <div class="product-name">
-                    {website.product_name}
+                    {product.name}
                 </div>
                 <div
                     style="display: flex; justify-content: space-between; align-items: start"
@@ -268,28 +262,28 @@
                     <div
                         style="display: flex; align-items: center; gap: 0.5rem"
                     >
-                        {#if website.price !== null}
-                            <div class="price-amount">{website.price}</div>
+                        {#if latestPrice.get(product.external_product_id)?.price != null}
+                            <div class="price-amount">{latestPrice.get(product.external_product_id)?.price}</div>
                         {:else}
                             <div class="price-not-found">Price not found</div>
                         {/if}
-                        {#if website.is_available}
+                        {#if latestPrice.get(product.external_product_id)?.is_available}
                             <div class="availability-dot"></div>
                         {/if}
-                        {#if website.saved_price && website.saved_price > 0}
-                            <div class="savings-badge">Save {website.saved_price.toFixed(2)}</div>
+                        {#if latestPrice.get(product.external_product_id)?.price && latestPrice.get(product.external_product_id)!.price < maxPrice}
+                            <div class="savings-badge">Save {(maxPrice - latestPrice.get(product.external_product_id)!.price).toFixed(2)}</div>
                         {/if}
                     </div>
-                    {#if website.created_at}
+                    {#if latestPrice.get(product.external_product_id)?.created_at}
                         <div class="timestamp">
-                            {new Date(website.created_at).toLocaleDateString()}
+                            {new Date(latestPrice.get(product.external_product_id)!.created_at).toLocaleDateString()}
                         </div>
                     {/if}
                 </div>
                 <div class="store-info">
-                    <span class="store-name">{website.website_name}</span>
+                    <span class="store-name">{websiteMap.get(product.website_id)?.name}</span>
                     <a
-                        href={website.product_url}
+                        href={product.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         class="buy-link"
