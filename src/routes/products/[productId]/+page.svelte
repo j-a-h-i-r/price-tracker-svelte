@@ -95,10 +95,18 @@
         return latestPriceMap;
     });
 
+    let externalProductsSorted = $derived.by(() => {
+        return externalProducts.toSorted((a, b) => {
+            const aPrice = latestPrice.get(a.external_product_id)?.price || +Infinity;
+            const bPrice = latestPrice.get(b.external_product_id)?.price || +Infinity;
+            return aPrice - bPrice;
+        });
+    });
+
     let maxPrice = $derived.by(() => {
         let maxPrice = 0;
         for (const price of latestPrice.values()) {
-            if (price.price > maxPrice) {
+            if (price?.price > maxPrice) {
                 maxPrice = price.price;
             }
         }
@@ -370,7 +378,7 @@
     </style>
 
     <div class="details">
-        {#each externalProducts as product}
+        {#each externalProductsSorted as product}
             <div class="price-card">
                 <div class="product-name">
                     {product.name}
