@@ -5,33 +5,48 @@
 
     let deals: Deal[] = [];
     let selectedDays = 7;
+    let sortBy = 'value';
 
-    async function loadDeals(days: number) {
+    async function loadDeals(days: number, sortBy: string) {
         selectedDays = days;
-        deals = await fetchDeals(days);
+        deals = await fetchDeals(days, sortBy);
     }
 
     onMount(async () => {
-        await loadDeals(selectedDays);
+        await loadDeals(selectedDays, sortBy);
     });
 </script>
 
 <div class="deals-container">
     <div class="deals-header">
         <h1>Current Deals</h1>
-        <div class="time-filters">
-            <button 
-                class:active={selectedDays === 7} 
-                on:click={() => loadDeals(7)}
-            >
-                7 Days
-            </button>
-            <button 
-                class:active={selectedDays === 30} 
-                on:click={() => loadDeals(30)}
-            >
-                30 Days
-            </button>
+        <div class="header-controls">
+            <div class="sort-control">
+                <label for="sort-select">Sort</label>
+                <select 
+                    id="sort-select"
+                    onchange={() => loadDeals(selectedDays, sortBy)} 
+                    bind:value={sortBy} 
+                    class="sort-select"
+                >
+                    <option value="value">Maximum Price Drop</option>
+                    <option value="percentage">Maximum Percentage Drop</option>
+                </select>
+            </div>
+            <div class="time-filters">
+                <button 
+                    class:active={selectedDays === 7} 
+                    onclick={() => loadDeals(7, sortBy)}
+                >
+                    7 Days
+                </button>
+                <button 
+                    class:active={selectedDays === 30} 
+                    onclick={() => loadDeals(30, sortBy)}
+                >
+                    30 Days
+                </button>
+            </div>
         </div>
     </div>
     <div class="deals-grid">
@@ -61,6 +76,43 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+    }
+
+    .header-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .sort-control {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .sort-control label {
+        color: #4b5563;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .sort-select {
+        padding: 0.5rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: white;
+        color: #4b5563;
+        font-size: 0.875rem;
+        cursor: pointer;
+    }
+
+    .sort-select:hover {
+        border-color: #d1d5db;
+    }
+
+    .sort-select:focus {
+        outline: none;
+        border-color: #2563eb;
     }
 
     .time-filters {
