@@ -15,12 +15,47 @@
     import "chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm";
     import { trackedProducts } from "$lib/states/tracked.svelte.js";
     import { fetchWebsites, type Website } from "$lib/api/websites.js";
+    import { userState } from "$lib/shared.svelte.js";
 
     let productId = Number(page.params.productId);
     let product: ProductWithPrice | null = $state(null);
     let websiteMap: Map<number, Website> = $state(new Map());
     let externalProducts: ExternalProduct[] = $state([]);
     let externalProductPrices: Map<number, ExternalProductPrice[]> = $state(new Map());
+    let isEditingMainProduct = $state(false);
+    let editedMainName = $state('');
+
+    async function handleSaveMainProduct() {
+        try {
+            const response = await fetch(`/api/products/${productId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: editedMainName }),
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to update product name');
+            }
+            
+            if (product) {
+                product = { ...product, name: editedMainName };
+            }
+            isEditingMainProduct = false;
+            editedMainName = '';
+        } catch (error) {
+            console.error('Error updating product name:', error);
+            alert('Failed to update product name. Please try again.');
+        }
+    }
+
+    function startEditingMain() {
+        if (product) {
+            isEditingMainProduct = true;
+            editedMainName = product.name;
+        }
+    }
 
     onMount(async () => {
         try {
@@ -201,7 +236,25 @@
 
 <div class="product-details">
     <div class="product-header">
-        <h1>{product?.name}</h1>
+        {#if isEditingMainProduct}
+            <div class="edit-name-container">
+                <input
+                    type="text"
+                    class="product-name-input"
+                    bind:value={editedMainName}
+                    placeholder="Enter product name"
+                />
+                <div class="edit-buttons">
+                    <button class="btn-save" onclick={handleSaveMainProduct}>Save</button>
+                    <button class="btn-cancel" onclick={() => isEditingMainProduct = false}>Cancel</button>
+                </div>
+            </div>
+        {:else}
+            <h1>{product?.name}</h1>
+            {#if userState.isAdmin}
+                <button class="btn-edit" onclick={startEditingMain}>Edit</button>
+            {/if}
+        {/if}
         <div class="flex-spacer"></div>
         <div class="availability-indicator">
             <span class="dot" class:available={isAvailable}></span>
@@ -217,6 +270,72 @@
     </div>
 
     <style>
+        .edit-name-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .product-name-input {
+            padding: 0.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 1.5rem;
+            color: #374151;
+            width: 400px;
+        }
+
+        .btn-edit {
+            padding: 0.25rem 0.5rem;
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            color: #6b7280;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: 0.5rem;
+        }
+
+        .btn-edit:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+        }
+
+        .edit-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-save {
+            padding: 0.25rem 0.5rem;
+            background: #2563eb;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .btn-save:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-cancel {
+            padding: 0.25rem 0.5rem;
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            color: #6b7280;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .btn-cancel:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+        }
+
         .untrack {
             background-color: #dc2626;
         }
@@ -355,10 +474,76 @@
             transform: translateY(-2px);
         }
 
+        .product-name-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
         .product-name {
             color: #6b7280;
             font-size: 0.875rem;
-            margin-bottom: 0.5rem;
+            flex: 1;
+        }
+
+        .product-name-input {
+            flex: 1;
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            color: #374151;
+        }
+
+        .btn-edit {
+            padding: 0.25rem 0.5rem;
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            color: #6b7280;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-edit:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+        }
+
+        .edit-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-save {
+            padding: 0.25rem 0.5rem;
+            background: #2563eb;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .btn-save:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-cancel {
+            padding: 0.25rem 0.5rem;
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            color: #6b7280;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .btn-cancel:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
         }
 
         .price-amount {
