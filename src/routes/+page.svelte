@@ -151,7 +151,7 @@
     <input
         type="text"
         bind:value={searchQuery}
-        placeholder="Search for products..."
+        placeholder="Search for products or paste the URL..."
     />
     {#if isLoading}
         <div class="loading-spinner"></div>
