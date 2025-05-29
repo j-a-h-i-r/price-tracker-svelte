@@ -24,10 +24,16 @@
             totalWebsites = stats.websites ?? 0;
             totalCategories = stats.categories ?? 0;
         }
+    });
+
+    onMount(async () => {
         let categories = await getCategories();
         categories.forEach((category: { id: string; name: string }) => {
             categoryMap[category.id] = category.name;
         });
+    });
+
+    onMount(async () => {
         deals = await fetchDeals();
         deals = deals.slice(0, 10); // Limit to first 10 deals
         startAutoScroll();
