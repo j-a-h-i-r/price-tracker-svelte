@@ -62,7 +62,7 @@
     });
 
     function handleRowClick(row: { name: string }) {
-        goto(`/metadata/${encodeURIComponent(row.name)}`);
+        goto(`metadata/${encodeURIComponent(row.name)}`);
     }
 </script>
 

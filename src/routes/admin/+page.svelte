@@ -14,9 +14,14 @@
     <h1>Admin Dashboard</h1>
     
     <div class="grid">
-        <button on:click={() => goto('/admin/similar')} class="card">
+        <button onclick={() => goto('/admin/similar')} class="card">
             <h2>Similar Products</h2>
             <p>Manage similar products</p>
+        </button>
+
+        <button onclick={() => goto('/admin/metadata')} class="card">
+            <h2>Manage Metadata</h2>
+            <p>Manage medatada parsing</p>
         </button>
     </div>
 </div>
