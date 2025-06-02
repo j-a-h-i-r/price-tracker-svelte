@@ -1,9 +1,9 @@
 import { browser } from '$app/environment';
 import { trackedProducts } from './states/tracked.svelte.js';
-import { type User } from './types/User.js';
+import { type LoggedUser } from './types/User.js';
 
 class UserState {
-    #user: User = $state({email: '', isAdmin: false});
+    #user: LoggedUser = $state({email: '', isAdmin: false});
     constructor() {
         if (browser) {
             const email = localStorage.getItem('userEmail');

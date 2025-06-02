@@ -21,7 +21,12 @@
 
         <button onclick={() => goto('/admin/metadata')} class="card">
             <h2>Manage Metadata</h2>
-            <p>Manage medatada parsing</p>
+            <p>Manage metadata parsing</p>
+        </button>
+
+        <button onclick={() => goto('/admin/users')} class="card">
+            <h2>Manage Users</h2>
+            <p>View and manage user accounts</p>
         </button>
     </div>
 </div>
