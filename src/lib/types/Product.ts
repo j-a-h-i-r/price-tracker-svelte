@@ -89,3 +89,21 @@ export interface ExternalProductPrice {
     created_at: string,
     updated_at: string,
 }
+
+export interface ProductVariant {
+    name: string;
+    values: {
+        value: string;
+        display_text: string;
+    }[];
+    display_text: string;
+    unit: string;
+}
+
+export interface ExternalProductMetadata {
+    name: string;
+    value: string;
+    unit: string;
+    name_display_text: string;
+    value_display_text: string;
+}

@@ -1,4 +1,4 @@
-import type { ExternalProduct, ExternalProductPrice, PotentialProductMatch, Product, ProductWithLastPrice, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
+import type { ExternalProduct, ExternalProductMetadata, ExternalProductPrice, PotentialProductMatch, Product, ProductWithLastPrice, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
 
 export async function fetchProducts(limit?: number): Promise<ProductWithLastPrice[]> {
     let url = '/api/products';
@@ -30,8 +30,14 @@ export async function fetchProductWebsites(productId: string | number): Promise<
     return response.json();
 }
 
-export async function fetchExternalProductsByInternalId(internalId: number): Promise<ExternalProduct[]> {
-    const url = `/api/products/${internalId}/externals`;
+export async function fetchExternalProductsByInternalId(
+    internalId: number, variants?: Record<string, string | number> | null
+): Promise<ExternalProduct[]> {
+    let url = `/api/products/${internalId}/externals`;
+    if (variants) {
+        const variantQs = Object.keys(variants).map(key => `variants[${key}]=${variants[key]}`).join('&');
+        url += `?${variantQs}`;
+    }
     const response = await fetch(url);
     if (!response.ok) {
         throw new Error('Failed to fetch external products');
@@ -65,6 +71,14 @@ export async function fetchPotentiallySimilarProducts(): Promise<PotentialProduc
     const response = await fetch('/api/potentialsimilar');
     if (!response.ok) {
         throw new Error('Failed to fetch products');
+    }
+    return response.json();
+}
+
+export async function fetchExternalProductMetadata(internalId: number, externalId: number): Promise<ExternalProductMetadata[]> {
+    const response = await fetch(`/api/products/${internalId}/externals/${externalId}/metadata`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch external products');
     }
     return response.json();
 }
