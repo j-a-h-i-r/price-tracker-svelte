@@ -146,7 +146,7 @@
 
     let isAvailable = $derived.by(() => {
         for (const price of latestPrice.values()) {
-            if (price.is_available) {
+            if (price?.is_available) {
                 return true;
             }
         }
@@ -318,10 +318,12 @@
                 >{isAvailable ? "Available" : "Unavailable"}</span
             >
         </div>
-        {#if trackedProducts.isTracked(productId)}
-            <button class="track-btn untrack" onclick={handleUntrack}> Untrack </button>
-        {:else}
-            <button class="track-btn" onclick={handleTrack}>Track</button>
+        {#if userState.email}
+            {#if trackedProducts.isTracked(productId)}
+                <button class="track-btn untrack" onclick={handleUntrack}> Untrack </button>
+            {:else}
+                <button class="track-btn" onclick={handleTrack}>Track</button>
+            {/if}
         {/if}
     </div>
 
@@ -676,6 +678,46 @@
             gap: 1rem;
             margin-bottom: 1rem;
             width: 100%;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 640px) {
+            .product-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1.5rem;
+            }
+
+            .product-header > h1,
+            .product-header > .edit-name-container {
+                width: 100%;
+                order: -1;
+            }
+
+            .product-header > .btn-edit {
+                align-self: flex-start;
+            }
+
+            .product-header > .availability-indicator {
+                margin-left: 0;
+                order: 1;
+            }
+
+            .product-header > .track-btn {
+                width: 100%;
+                margin-left: 0;
+                order: 2;
+            }
+
+            .edit-name-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .product-name-input {
+                width: 100%;
+                font-size: 1.25rem;
+            }
         }
 
         .flex-spacer {
@@ -859,10 +901,18 @@
         margin-top: 2rem;
     }
 
-
     h1 {
         font-size: 2rem;
         margin-bottom: 1rem;
+    }
+
+    @media (max-width: 640px) {
+        h1 {
+            font-size: 1.5rem;
+            /* margin-bottom: 1.5rem; */
+            width: 100%;
+            line-height: 1.3;
+        }
     }
 
     .chart-container {

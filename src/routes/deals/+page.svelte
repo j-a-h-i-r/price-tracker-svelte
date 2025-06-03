@@ -70,12 +70,27 @@
 <style>
     .deals-container {
         padding: 2rem;
+        padding-top: 0;
     }
 
     .deals-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 640px) {
+        .deals-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .deals-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
     }
 
     .header-controls {
@@ -84,10 +99,28 @@
         gap: 1rem;
     }
 
+    @media (max-width: 640px) {
+        .header-controls {
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+        }
+    }
+
     .sort-control {
         display: flex;
         align-items: center;
         gap: 0.5rem;
+    }
+
+    @media (max-width: 640px) {
+        .sort-control {
+            width: 100%;
+        }
+
+        .sort-control select {
+            flex: 1;
+        }
     }
 
     .sort-control label {
@@ -118,6 +151,16 @@
     .time-filters {
         display: flex;
         gap: 0.5rem;
+    }
+
+    @media (max-width: 640px) {
+        .time-filters {
+            width: 100%;
+        }
+
+        .time-filters button {
+            flex: 1;
+        }
     }
 
     .time-filters button {
