@@ -181,7 +181,7 @@
                             <span class="badge category-badge">{categoryMap[product.category_id] || '?'}</span>
                             <span class="badge">{product.prices?.length || 0} websites</span>
                         </td>
-                        <td>{product.lowest_available_price ? `৳${product.lowest_available_price.price}` : 'Not Available'}</td>
+                        <td>{product.lowest_available_price ? `৳${product.lowest_available_price}` : 'Not Available'}</td>
                     </tr>
                 {/each}
             </tbody>

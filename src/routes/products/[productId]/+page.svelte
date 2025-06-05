@@ -365,7 +365,7 @@
                             style="display: flex; align-items: center; gap: 0.5rem"
                         >
                             {#if latestPrice.get(product.external_product_id)?.price != null}
-                                <div class="price-amount">{latestPrice.get(product.external_product_id)?.price}</div>
+                                <div class="price-amount">{'৳'} {latestPrice.get(product.external_product_id)?.price}</div>
                             {:else}
                                 <div class="price-not-found">Price not found</div>
                             {/if}

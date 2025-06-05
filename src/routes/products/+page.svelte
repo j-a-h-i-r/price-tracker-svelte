@@ -252,7 +252,7 @@
                         price: price.price,
                         date: new Date(price.created_at).toLocaleDateString()
                     })),
-                    price: `৳ ${p?.lowest_available_price?.price ?? 'N/A'}`,
+                    price: `৳ ${p?.lowest_available_price ?? 'N/A'}`,
                 }))}
                 on:rowClick={e => handleRowClick(e.detail)}
             />
