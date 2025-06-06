@@ -28,6 +28,11 @@
             <h2>Manage Users</h2>
             <p>View and manage user accounts</p>
         </button>
+
+        <button onclick={() => goto('/admin/manufacturers')} class="card">
+            <h2>Manage Manufacturers</h2>
+            <p>View and manage manufacturers</p>
+        </button>
     </div>
 </div>
 
