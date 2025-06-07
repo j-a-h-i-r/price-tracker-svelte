@@ -67,8 +67,8 @@ export async function fetchCategories(): Promise<Category[]> {
     return response.json();
 }
 
-export async function fetchPotentiallySimilarProducts(): Promise<PotentialProductMatch[]> {
-    const response = await fetch('/api/potentialsimilar');
+export async function fetchPotentiallySimilarProducts({minScore}: {minScore: number}): Promise<PotentialProductMatch[]> {
+    const response = await fetch(`/api/potentialsimilar?min_score=${minScore}`);
     if (!response.ok) {
         throw new Error('Failed to fetch products');
     }

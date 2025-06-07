@@ -6,32 +6,37 @@
     import { toasts } from '$lib/states/toast';
     import type { PotentialProductMatch, Product } from '$lib/types/Product.js';
 
-    let products: PotentialProductMatch[] = [];
-    let isLoading = true;
-    let error = '';
-    let showModal = false;
-    let selectedProduct: Product | null = null;
-    let selectedSimilarProduct: Product | null = null;
-
-    const headers = ['ID', 'Name', 'Current Price', 'Target Price', 'Last Updated'];
-    const keys = ['id', 'name', 'currentPrice', 'targetPrice', 'lastUpdated'];
+    let products: PotentialProductMatch[] = $state([]);
+    let isLoading = $state(true);
+    let error = $state('');
+    let showModal = $state(false);
+    let selectedProduct: Product | null = $state(null);
+    let selectedSimilarProduct: Product | null = $state(null);
+    let minScore = $state(0.8); // Default to 0.8
 
     onMount(async () => {
         if (!userState.isAdmin) {
             goto('/');
             return;
         }
+        await fetchProducts();
+    });
 
+    async function fetchProducts() {
+        isLoading = true;
         try {
-            products = await fetchPotentiallySimilarProducts();
-
+            products = await fetchPotentiallySimilarProducts({ minScore });
         } catch (e) {
             error = 'Failed to load products';
             console.error(e);
         } finally {
             isLoading = false;
         }
-    });
+    }
+
+    async function handleScoreChange() {
+        await fetchProducts();
+    }
 
     async function handleMerge(product1Id: number, product2Id: number) {
         try {
@@ -50,7 +55,7 @@
             toasts.success('Products merged successfully');
             closeModal();
             // Refresh the products list
-            products = await fetchPotentiallySimilarProducts();
+            await fetchProducts();
         } catch (error) {
             console.error('Error merging products:', error);
             toasts.error('Failed to merge products. Please try again.');
@@ -74,7 +79,7 @@
             toasts.success('Products marked as not similar');
             closeModal();
             // Refresh the products list
-            products = await fetchPotentiallySimilarProducts();
+            await fetchProducts();
         } catch (error) {
             console.error('Error ignoring product match:', error);
             toasts.error('Failed to ignore product match. Please try again.');
@@ -121,7 +126,21 @@
 
 <div class="container">
     <div class="header">
-        <h1>Products</h1>
+        <div class="header-left">
+            <h1>Products</h1>
+            <div class="score-filter">
+                <label for="min-score">Min. Similarity:</label>
+                <input 
+                    id="min-score"
+                    type="number" 
+                    min="0" 
+                    max="1" 
+                    step="0.1"
+                    bind:value={minScore}
+                    onchange={handleScoreChange}
+                />
+            </div>
+        </div>
         <a href="/admin" class="back-button">← Back to Dashboard</a>
     </div>
 
@@ -147,19 +166,19 @@
                                     <div class="action-buttons">
                                         <button 
                                             class="btn btn-primary"
-                                            on:click={() => handleMerge(product.product_id, similarProduct.product_id)}
+                                            onclick={() => handleMerge(product.product_id, similarProduct.product_id)}
                                         >
                                             Merge
                                         </button>
                                         <button 
                                             class="btn btn-outline"
-                                            on:click={() => handleIgnore(product.product_id, similarProduct.product_id)}
+                                            onclick={() => handleIgnore(product.product_id, similarProduct.product_id)}
                                         >
                                             Ignore
                                         </button>
                                         <button 
                                             class="btn btn-secondary"
-                                            on:click={() => openComparisonModal(product, similarProduct)}
+                                            onclick={() => openComparisonModal(product, similarProduct)}
                                         >
                                             Compare
                                         </button>
@@ -175,12 +194,12 @@
         {#if showModal}
             <!-- svelte-ignore a11y_interactive_supports_focus -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <div class="modal" on:click={closeModal} role="dialog" aria-label="Product Comparison">
+            <div class="modal" onclick={closeModal} role="dialog" aria-label="Product Comparison">
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div class="modal-content" on:click|stopPropagation>
+                <div class="modal-content" onclick={(e) => { e.stopPropagation();}}>
                     <div class="modal-header">
                         <h2>Product Comparison</h2>
-                        <button class="close-btn" on:click={closeModal}>&times;</button>
+                        <button class="close-btn" onclick={closeModal}>&times;</button>
                     </div>
                     <div class="comparison-grid">
                         <div class="metadata-table-container">
@@ -219,13 +238,13 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-primary" on:click={() => handleMerge(selectedProduct?.id ?? 0, selectedSimilarProduct?.id ?? 0)}>
+                        <button class="btn btn-primary" onclick={() => handleMerge(selectedProduct?.id ?? 0, selectedSimilarProduct?.id ?? 0)}>
                             Merge Products
                         </button>
-                        <button class="btn btn-outline" on:click={() => handleIgnore(selectedProduct?.id ?? 0, selectedSimilarProduct?.id ?? 0)}>
+                        <button class="btn btn-outline" onclick={() => handleIgnore(selectedProduct?.id ?? 0, selectedSimilarProduct?.id ?? 0)}>
                             Ignore Match
                         </button>
-                        <button class="btn btn-secondary" on:click={closeModal}>Close</button>
+                        <button class="btn btn-secondary" onclick={closeModal}>Close</button>
                     </div>
                 </div>
             </div>
@@ -381,6 +400,37 @@
         margin-bottom: 2rem;
     }
 
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .score-filter {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .score-filter label {
+        font-size: 0.875rem;
+        color: #4b5563;
+    }
+
+    .score-filter input {
+        width: 5rem;
+        padding: 0.375rem;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        color: #374151;
+    }
+
+    .score-filter input:focus {
+        outline: none;
+        border-color: #2563eb;
+    }
+
     h1 {
         font-size: 2rem;
         font-weight: bold;
@@ -504,5 +554,23 @@
 
     .btn-outline:hover {
         background: #f3f4f6;
+    }
+
+    @media (max-width: 640px) {
+        .header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .header-left {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .comparison-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
