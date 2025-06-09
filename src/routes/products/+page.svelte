@@ -18,6 +18,8 @@
     // Filters
     let categories: Category[] = $state([]);
     let selectedCategory: string | number = $state("all");
+    let manufacturers: any[] = $state([]);
+    let selectedManufacturer: string | number = $state("all");
     let priceRange = $state({ min: 0, max: 2000 });
     let actualPriceRange = $state({ min: 0, max: 0 });
     let showOutOfStock = $state(false);
@@ -34,6 +36,9 @@
                 // Category filter
                 if (selectedCategory !== "all" && p.category_id != selectedCategory) return false;
                 
+                // Manufacturer filter
+                if (selectedManufacturer !== "all" && p.manufacturer_id != selectedManufacturer) return false;
+
                 // Price range filter
                 const productPrice = Math.min(...p.prices.map(price => price.price));
                 if (productPrice < priceRange.min || productPrice > priceRange.max) return false;
@@ -132,7 +137,15 @@
             // Initially fetch 100 products
             products = await fetchProducts(100);
             initialProductsLoaded = true;
-            categories = await fetchCategories();
+            
+            // Fetch categories and manufacturers
+            const [categoriesData, manufacturersData] = await Promise.all([
+                fetchCategories(),
+                fetch('/api/manufacturers').then(res => res.json())
+            ]);
+            
+            categories = categoriesData;
+            manufacturers = manufacturersData;
         } catch (e) {
             console.error("Error fetching data:", e);
             error = e instanceof Error ? e.message : "An error occurred";
@@ -183,6 +196,17 @@
                     <option value="all">All Categories</option>
                     {#each categories as category}
                         <option value={category.id}>{category.name}</option>
+                    {/each}
+                </select>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+
+            <button class="filter-chip" class:active={selectedManufacturer !== "all"}>
+                <span>Manufacturer</span>
+                <select bind:value={selectedManufacturer} class="chip-select">
+                    <option value="all">All Manufacturers</option>
+                    {#each manufacturers as manufacturer}
+                        <option value={manufacturer.id}>{manufacturer.name}</option>
                     {/each}
                 </select>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
