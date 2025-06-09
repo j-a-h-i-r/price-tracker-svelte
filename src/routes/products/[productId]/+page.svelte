@@ -164,7 +164,7 @@
             const product = externalProducts.find((product) => product.external_product_id === externalProductId);
             const websiteName = websiteMap.get(product!.website_id)?.name;
             priceDatasets.push({
-                label: `${websiteName} : ${product!.name}`,
+                label: `[${websiteName}] ${product!.name}`,
                 data: prices.map((p) => ({
                     x: p.created_at,
                     y: p.price,
@@ -186,6 +186,7 @@
             data,
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
                     title: {
                         display: true,
@@ -921,6 +922,14 @@
         padding: 1.5rem;
         margin: 2rem 0;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        height: 60vh;
+        position: relative;
+    }
+
+    @media (max-width: 640px) {
+        .chart-container {
+            height: 40vh;
+        }
     }
 
     .no-products {
