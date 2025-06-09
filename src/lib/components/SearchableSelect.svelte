@@ -1,0 +1,168 @@
+<script lang="ts">
+    export let options: { id: number | string; name: string }[];
+    export let value: string | number;
+    export let placeholder = "Select...";
+    export let allLabel = "All";
+
+    let isOpen = false;
+    let searchQuery = "";
+    let selectedLabel = allLabel;
+
+    $: filteredOptions = options.filter(option => 
+        option.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    $: {
+        if (value === "all") {
+            selectedLabel = allLabel;
+        } else {
+            const selected = options.find(opt => opt.id == value);
+            selectedLabel = selected ? selected.name : allLabel;
+        }
+    }
+
+    function handleSelect(optionId: string | number) {
+        value = optionId;
+        isOpen = false;
+        searchQuery = "";
+    }
+
+    function handleClickOutside(event: MouseEvent) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.searchable-select')) {
+            isOpen = false;
+            searchQuery = "";
+        }
+    }
+</script>
+
+<svelte:window on:click={handleClickOutside} />
+
+<div class="searchable-select">
+    <button 
+        type="button"
+        class="select-button"
+        on:click={() => isOpen = !isOpen}
+    >
+        <span class="selected-text">{selectedLabel}</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+
+    {#if isOpen}
+        <div class="select-dropdown">
+            <div class="search-container">
+                <input
+                    type="text"
+                    placeholder="Search..."
+                    bind:value={searchQuery}
+                    on:click|stopPropagation
+                />
+            </div>
+            <div class="options-list">
+                <button 
+                    class="option"
+                    class:selected={value === "all"}
+                    on:click={() => handleSelect("all")}
+                >
+                    {allLabel}
+                </button>
+                {#each filteredOptions as option}
+                    <button 
+                        class="option"
+                        class:selected={value == option.id}
+                        on:click={() => handleSelect(option.id)}
+                    >
+                        {option.name}
+                    </button>
+                {/each}
+            </div>
+        </div>
+    {/if}
+</div>
+
+<style>
+    .searchable-select {
+        position: relative;
+        width: 100%;
+    }
+
+    .select-button {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        background: transparent;
+        border: none;
+        padding: 0;
+        color: inherit;
+        cursor: pointer;
+        font-size: inherit;
+    }
+
+    .selected-text {
+        margin-right: 0.5rem;
+    }
+
+    .select-dropdown {
+        position: absolute;
+        top: 100%;
+        left: -0.75rem; /* Match parent padding */
+        right: -0.75rem;
+        min-width: 200px;
+        margin-top: 0.5rem;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        z-index: 50;
+        max-height: 300px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .search-container {
+        padding: 0.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .search-container input {
+        width: 100%;
+        padding: 0.375rem 0.5rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        font-size: 0.875rem;
+    }
+
+    .search-container input:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 1px #2563eb;
+    }
+
+    .options-list {
+        overflow-y: auto;
+        max-height: 250px;
+        padding: 0.25rem;
+    }
+
+    .option {
+        width: 100%;
+        text-align: left;
+        padding: 0.5rem;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        color: #374151;
+    }
+
+    .option:hover {
+        background: #f3f4f6;
+    }
+
+    .option.selected {
+        background: #eef2ff;
+        color: #4f46e5;
+    }
+</style>

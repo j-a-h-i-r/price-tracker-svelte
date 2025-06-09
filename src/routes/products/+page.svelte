@@ -6,6 +6,7 @@
     import type { ProductWithLastPrice } from "$lib/types/Product";
     import Table from "$lib/components/Table.svelte";
     import { fetchWebsites, type Website } from "$lib/api/websites.js";
+    import SearchableSelect from "$lib/components/SearchableSelect.svelte";
 
     let initialProductsLoaded = $state(false);
     let products: ProductWithLastPrice[] = $state([]);
@@ -192,24 +193,20 @@
         <div class="inline-filters">
             <button class="filter-chip" class:active={selectedCategory !== "all"}>
                 <span>Category</span>
-                <select bind:value={selectedCategory} class="chip-select">
-                    <option value="all">All Categories</option>
-                    {#each categories as category}
-                        <option value={category.id}>{category.name}</option>
-                    {/each}
-                </select>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                <SearchableSelect
+                    options={categories}
+                    bind:value={selectedCategory}
+                    allLabel="All Categories"
+                />
             </button>
 
             <button class="filter-chip" class:active={selectedManufacturer !== "all"}>
                 <span>Manufacturer</span>
-                <select bind:value={selectedManufacturer} class="chip-select">
-                    <option value="all">All Manufacturers</option>
-                    {#each manufacturers as manufacturer}
-                        <option value={manufacturer.id}>{manufacturer.name}</option>
-                    {/each}
-                </select>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                <SearchableSelect
+                    options={manufacturers}
+                    bind:value={selectedManufacturer}
+                    allLabel="All Manufacturers"
+                />
             </button>
 
             <button class="filter-chip" class:active={priceRange.min !== actualPriceRange.min || priceRange.max !== actualPriceRange.max}>
