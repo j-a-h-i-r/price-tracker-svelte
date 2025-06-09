@@ -382,6 +382,15 @@
         font-size: 0.875rem;
         cursor: pointer;
         transition: all 0.15s ease;
+        flex: 1 1 auto;
+        min-width: calc(50% - 0.25rem); /* account for gap */
+    }
+
+    @media (min-width: 640px) {
+        .filter-chip {
+            flex: 0 1 auto;
+            min-width: auto;
+        }
     }
 
     .filter-chip:hover {
@@ -408,7 +417,9 @@
         font-size: 0.875rem;
         color: inherit;
         cursor: pointer;
-        min-width: 100px;
+        flex: 1;
+        min-width: 0; /* Allow shrinking below content size */
+        width: 100%;
     }
 
     .chip-select:focus {
