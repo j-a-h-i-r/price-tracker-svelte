@@ -4,7 +4,7 @@
         name: string;
     }
 
-    let { options, value = $bindable(), allLabel = 'All' }: { options: Option[]; value: string | number; allLabel: string } = $props();
+    let { options, value = $bindable(), allLabel = 'All', label }: { options: Option[]; value: string | number; allLabel: string; label: string } = $props();
 
     let isOpen = $state(false);
     let searchQuery = $state("");
@@ -38,52 +38,96 @@
 
 <svelte:window onclick={handleClickOutside} />
 
-<div class="searchable-select">
-    <button 
-        type="button"
-        class="select-button"
-        onclick={() => isOpen = !isOpen}
-    >
-        <span class="selected-text">{selectedLabel}</span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-    </button>
-
-    {#if isOpen}
-        <div class="select-dropdown">
-            <div class="search-container">
-                <input
-                    type="text"
-                    placeholder="Search..."
-                    bind:value={searchQuery}
-                    onclick={(e) => { e.stopPropagation();}}
-                />
-            </div>
-            <div class="options-list">
-                <button 
-                    class="option"
-                    class:selected={value === "all"}
-                    onclick={() => handleSelect("all")}
-                >
-                    {allLabel}
-                </button>
-                {#each filteredOptions as option}
+<div class="filter-control" class:active={value !== "all"}>
+    <div class="searchable-select">
+        <button class="select-label" onclick={() => isOpen = !isOpen}>{label}</button>
+        <button 
+            type="button"
+            class="select-button"
+            onclick={() => isOpen = !isOpen}
+        >
+            <span class="selected-text">{selectedLabel}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+    
+        {#if isOpen}
+            <div class="select-dropdown">
+                <div class="search-container">
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        bind:value={searchQuery}
+                        onclick={(e) => { e.stopPropagation();}}
+                    />
+                </div>
+                <div class="options-list">
                     <button 
                         class="option"
-                        class:selected={value == option.id}
-                        onclick={() => handleSelect(option.id)}
+                        class:selected={value === "all"}
+                        onclick={() => handleSelect("all")}
                     >
-                        {option.name}
+                        {allLabel}
                     </button>
-                {/each}
+                    {#each filteredOptions as option}
+                        <button 
+                            class="option"
+                            class:selected={value == option.id}
+                            onclick={() => handleSelect(option.id)}
+                        >
+                            {option.name}
+                        </button>
+                    {/each}
+                </div>
             </div>
-        </div>
-    {/if}
+        {/if}
+    </div>
 </div>
 
 <style>
+    .filter-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.75rem;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        color: #374151;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        flex: 1 1 auto;
+        min-width: calc(50% - 0.25rem); /* account for gap */
+    }
+
+    @media (min-width: 640px) {
+        .filter-control {
+            flex: 0 1 auto;
+            min-width: auto;
+        }
+    }
+
+    .filter-control:hover {
+        border-color: #2563eb;
+        color: #2563eb;
+    }
+
+    .filter-control.active {
+        background: #eef2ff;
+        border-color: #6366f1;
+        color: #4f46e5;
+    }
+
     .searchable-select {
         position: relative;
         width: 100%;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .select-label {
+        font-weight: 500;
+        cursor: pointer;
     }
 
     .select-button {

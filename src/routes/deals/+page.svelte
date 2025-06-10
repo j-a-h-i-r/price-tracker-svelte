@@ -74,23 +74,19 @@
             </button>
         </div>
         <div class="filter-control">
-            <div class="filter-chip" class:active={selectedCategory !== "all"}>
-                <span>Category</span>
-                <SearchableSelect
-                    options={categories}
-                    bind:value={selectedCategory}
-                    allLabel="All Categories"
-                />
-            </div>
+            <SearchableSelect
+                label="Category"
+                options={categories}
+                bind:value={selectedCategory}
+                allLabel="All Categories"
+            />
 
-            <div class="filter-chip" class:active={selectedManufacturer !== "all"}>
-                <span>Brand</span>
-                <SearchableSelect
-                    options={manufacturers}
-                    bind:value={selectedManufacturer}
-                    allLabel="All Brands"
-                />
-            </div>
+            <SearchableSelect
+                label="Brand"
+                options={manufacturers}
+                bind:value={selectedManufacturer}
+                allLabel="All Brands"
+            />
         </div>
 
         <div class="sort-control">
@@ -178,29 +174,6 @@
         .deals-header h2 {
             font-size: 1rem;
         }
-    }
-
-    .filter-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.375rem 0.75rem;
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        color: #374151;
-        font-size: 0.875rem;
-        transition: all 0.15s ease;
-    }
-
-    .filter-chip.active {
-        background: #eef2ff;
-        border-color: #6366f1;
-        color: #4f46e5;
-    }
-
-    .filter-chip span {
-        font-weight: 500;
     }
 
     .sort-control {
@@ -402,11 +375,6 @@
         .filter-control {
             flex-direction: column;
             width: 100%;
-        }
-
-        .filter-chip {
-            width: 100%;
-            justify-content: space-between;
         }
     }
 </style>

@@ -8,6 +8,7 @@
     import { fetchWebsites, type Website } from "$lib/api/websites.js";
     import SearchableSelect from "$lib/components/SearchableSelect.svelte";
     import { formatPrice } from "$lib/util.js";
+    import type { Manufacturer } from "$lib/types/Manufacturer.js";
 
     let initialProductsLoaded = $state(false);
     let products: ProductWithLastPrice[] = $state([]);
@@ -20,7 +21,7 @@
     // Filters
     let categories: Category[] = $state([]);
     let selectedCategory: string | number = $state("all");
-    let manufacturers: any[] = $state([]);
+    let manufacturers: Manufacturer[] = $state([]);
     let selectedManufacturer: string | number = $state("all");
     let priceRange = $state({ min: 0, max: 2000 });
     let actualPriceRange = $state({ min: 0, max: 0 });
@@ -192,23 +193,19 @@
 
         <!-- Inline Filters -->
         <div class="inline-filters">
-            <button class="filter-chip" class:active={selectedCategory !== "all"}>
-                <span>Category</span>
-                <SearchableSelect
-                    options={categories}
-                    bind:value={selectedCategory}
-                    allLabel="All Categories"
-                />
-            </button>
+            <SearchableSelect
+                label="Category"
+                options={categories}
+                bind:value={selectedCategory}
+                allLabel="All Categories"
+            />
 
-            <button class="filter-chip" class:active={selectedManufacturer !== "all"}>
-                <span>Manufacturer</span>
-                <SearchableSelect
-                    options={manufacturers}
-                    bind:value={selectedManufacturer}
-                    allLabel="All Manufacturers"
-                />
-            </button>
+            <SearchableSelect
+                label="Manufacturer"
+                options={manufacturers}
+                bind:value={selectedManufacturer}
+                allLabel="All Manufacturers"
+            />
 
             <button class="filter-chip" class:active={priceRange.min !== actualPriceRange.min || priceRange.max !== actualPriceRange.max}>
                 <span>Price Range</span>
@@ -378,10 +375,6 @@
 
     button:not(:disabled):hover {
         background-color: #f8f9fa;
-    }
-
-    h1 {
-        margin: 0 0 1.5rem 0;
     }
 
     .inline-filters {

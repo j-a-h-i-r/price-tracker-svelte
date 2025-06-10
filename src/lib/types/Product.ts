@@ -12,6 +12,7 @@ export interface Product {
     raw_metadata: Record<string, string>;
     parsed_metadata: Record<string, string | number | boolean>;
     lowest_available_price: number;
+    manufacturer_id: number;
 }
 
 export interface ProductWithLastPrice extends Product {
