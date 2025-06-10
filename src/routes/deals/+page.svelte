@@ -109,10 +109,12 @@
 
     <div class="deals-grid">
         {#await deals}
-            <p>Loading deals...</p>
+            <p class="col-span-full">Loading deals...</p>
         {:then deals}
             {#if deals.length === 0}
-                <NoResult message="No deal found" suggestion="Try different configuration" />
+                <div class="col-span-full">
+                    <NoResult message="No deal found" suggestion="Try different configuration" />
+                </div>
             {:else}
                 {#each deals as deal}
                     <a href="/products/{deal.product_id}" class="deal-card">
@@ -277,6 +279,13 @@
 
     .deals-grid {
         margin-top: 2rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .col-span-full {
+        grid-column: 1 / -1;
     }
 
     .deal-card {

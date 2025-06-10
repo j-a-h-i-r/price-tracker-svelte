@@ -35,7 +35,7 @@
     });
 
     onMount(async () => {
-        deals = await fetchDeals();
+        deals = await fetchDeals({});
         deals = deals.slice(0, 10); // Limit to first 10 deals
         startAutoScroll();
     });

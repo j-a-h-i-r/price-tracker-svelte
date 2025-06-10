@@ -12,8 +12,8 @@ export interface Deal {
 }
 
 export interface DealFilter extends Record<string, string | number | boolean | undefined | null> {
-    days: number;
-    sortby: 'value' | 'percentage';
+    days?: number;
+    sortby?: 'value' | 'percentage';
     manufacturer_id?: number | string;
     category_id?: number | string;
 }
