@@ -360,7 +360,7 @@
     .filter-control {
         display: flex;
         gap: 1rem;
-        flex-wrap: wrap;
+        /* flex-wrap: wrap; */
         flex: 1;
     }
 
