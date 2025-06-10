@@ -358,9 +358,7 @@
                     <div class="product-name">
                         {product.name}
                     </div>
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: start"
-                    >
+                    <div class="price-container">
                         <div
                             style="display: flex; align-items: center; gap: 0.5rem"
                         >
@@ -378,19 +376,18 @@
                         </div>
                         {#if latestPrice.get(product.external_product_id)?.created_at}
                             <div class="timestamp">
-                                {new Date(latestPrice.get(product.external_product_id)!.created_at).toLocaleDateString()}
+                                Updated {new Date(latestPrice.get(product.external_product_id)!.created_at).toLocaleDateString()}
                             </div>
                         {/if}
                     </div>
                     <div class="store-info">
-                        <span class="store-name">{websiteMap.get(product.website_id)?.name}</span>
                         <a
                             href={product.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             class="buy-link"
                         >
-                            Visit Store →
+                            View in <span class="store-name">{websiteMap.get(product.website_id)?.name}</span> →
                         </a>
                     </div>
 
@@ -565,23 +562,19 @@
             margin-bottom: 1rem;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
 
         .price-card:hover {
             transform: translateY(-2px);
         }
 
-        .product-name-container {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-
         .product-name {
             color: #6b7280;
             font-size: 0.875rem;
-            flex: 1;
+            line-height: 1.4;
         }
 
         .product-name-input {
@@ -644,9 +637,15 @@
         }
 
         .price-amount {
-            font-size: 1.75rem;
+            font-size: 1.5rem;
             font-weight: bold;
             color: #2563eb;
+        }
+
+        @media (min-width: 640px) {
+            .price-amount {
+                font-size: 1.75rem;
+            }
         }
 
         .price-not-found {
@@ -654,19 +653,27 @@
             color: #dc2626;
             padding: 0.5rem 1rem;
             border-radius: 6px;
-            font-size: 1rem;
+            font-size: 0.875rem;
             font-weight: 500;
+        }
+
+        @media (min-width: 640px) {
+            .price-not-found {
+                font-size: 1rem;
+            }
         }
 
         .store-info {
             display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
             justify-content: space-between;
             align-items: center;
+            margin-left: auto;
         }
 
         .store-name {
-            color: #4b5563;
-            font-weight: 500;
+            font-weight: 800;
         }
 
         .buy-link {
@@ -852,9 +859,9 @@
             display: flex;
             flex-wrap: wrap;
             gap: 0.5rem;
-            margin-top: 1rem;
             padding-top: 1rem;
             border-top: 1px solid #e5e7eb;
+            margin-top: auto;
         }
 
         .metadata-pill {
@@ -862,19 +869,41 @@
             align-items: center;
             background: #f3f4f6;
             border-radius: 9999px;
-            padding: 0.25rem 0.75rem;
+            padding: 0.375rem 0.75rem;
             font-size: 0.75rem;
-            gap: 0.25rem;
+            gap: 0.375rem;
+            line-height: 1;
         }
 
         .metadata-pill-label {
             color: #6b7280;
             font-weight: 500;
+            white-space: nowrap;
         }
 
         .metadata-pill-value {
             color: #374151;
             font-weight: 600;
+        }
+
+        @media (max-width: 640px) {
+            .store-info {
+                width: 100%;
+            }
+
+            .buy-link {
+                width: 100%;
+                text-align: center;
+                padding: 0.5rem;
+                background-color: #2563eb;
+                color: white;
+                border-radius: 6px;
+            }
+
+            .buy-link:hover {
+                background-color: #1d4ed8;
+                text-decoration: none;
+            }
         }
     </style>
 
@@ -891,6 +920,8 @@
         .timestamp {
             font-size: 0.875rem;
             color: #6b7280;
+            margin-left: auto;
+            font-style: italic;
         }
 
         .availability-dot {
@@ -979,5 +1010,13 @@
         color: #6b7280;
         font-size: 0.875rem;
         font-weight: normal;
+    }
+
+    .price-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        flex-flow: wrap-reverse;
+        gap: 0.5rem;
     }
 </style>
