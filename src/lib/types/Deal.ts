@@ -7,6 +7,8 @@ export interface Deal {
     max_price_last_days: number;
     current_price_date: string;
     is_available: boolean;
+    category_id: number;
+    manufacturer_id: number;
 }
 
 export interface DealFilter extends Record<string, string | number | boolean | undefined | null> {

@@ -6,13 +6,29 @@
     import SearchableSelect from '$lib/components/SearchableSelect.svelte';
     import { fetchCategories, type Category } from '$lib/api/products';
     import NoResult from '$lib/components/NoResult.svelte';
+    import { getManufacturers } from '$lib/api/manufacturers.js';
+    import type { Manufacturer } from '$lib/types/Manufacturer.js';
 
     let selectedDays = $state(7);
     let sortBy = $state<'value' | 'percentage'>('value');
     let categories: Category[] = $state([]);
-    let manufacturers: any[] = $state([]);
+    let manufacturers: Manufacturer[] = $state([]);
     let selectedCategory: string | number = $state("all");
     let selectedManufacturer: string | number = $state("all");
+
+    let categoryMap = $derived.by(() => {
+        return categories.reduce((map, category) => {
+            map[category.id] = category;
+            return map;
+        }, {} as Record<string, Category>);
+    });
+
+    let manufacturerMap = $derived.by(() => {
+        return manufacturers.reduce((map, manufacturer) => {
+            map[manufacturer.id] = manufacturer;
+            return map;
+        }, {} as Record<string, Manufacturer>);
+    });
 
     let deals: Promise<Deal[]> = $derived.by(() => {
         let filters: DealFilter = {
@@ -29,7 +45,7 @@
         // Load initial data
         const [categoriesData, manufacturersData] = await Promise.all([
             fetchCategories(),
-            fetch('/api/manufacturers').then(res => res.json())
+            getManufacturers(),
         ]);
         
         categories = categoriesData;
@@ -110,6 +126,10 @@
                                 {/if}
                             </div>
                         </div>
+                        <div class="info-section">
+                            <span class="manufacturer">{manufacturerMap[deal.manufacturer_id]?.name || 'Unknown Brand'}</span>
+                            <span class="category">{categoryMap[deal.category_id]?.name || 'Uncategorized'}</span>
+                        </div>
                     </a>
                 {/each}
             {/if}
@@ -156,12 +176,6 @@
         .deals-header h2 {
             font-size: 1rem;
         }
-    }
-
-    .header-controls {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
     }
 
     .filter-chip {
@@ -292,6 +306,7 @@
         color: #1f2937;
         display: -webkit-box;
         -webkit-line-clamp: 2;
+        line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
         height: 2.8em;
@@ -341,6 +356,35 @@
         gap: 1rem;
         flex-wrap: wrap;
         flex: 1;
+    }
+
+    .info-section {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+        justify-content: space-between;
+    }
+
+    .info-section > span {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        background: #f3f4f6;
+        color: #4b5563;
+    }
+
+    .info-section > .manufacturer {
+        background: #e0e7ff;
+        color: #4338ca;
+        font-weight: 500;
+    }
+
+    .info-section > .category {
+        background: #f3f4f6;
+        color: #4b5563;
     }
 
     @media (max-width: 768px) {
