@@ -312,7 +312,6 @@
                 <button class="btn-edit" onclick={startEditingMain}>Edit</button>
             {/if}
         {/if}
-        <div class="flex-spacer"></div>
         <div class="availability-indicator">
             <span class="dot" class:available={isAvailable}></span>
             <span class="status-text"
@@ -422,6 +421,13 @@
     {/if}
 
         <style>
+        .variants-header {
+            margin-top: 2rem;
+        }
+        .websites-header {
+            margin-top: 2rem;
+        }
+
         .edit-name-container {
             display: flex;
             align-items: center;
@@ -686,7 +692,11 @@
             .product-header {
                 flex-direction: column;
                 align-items: stretch;
-                gap: 1.5rem;
+                gap: 0.5rem;
+            }
+
+            .product-header > h1 {
+                margin-bottom: 0;
             }
 
             .product-header > h1,
@@ -702,9 +712,11 @@
             .product-header > .availability-indicator {
                 margin-left: 0;
                 order: 1;
+                align-self: flex-end;
             }
 
             .product-header > .track-btn {
+                margin-top: 0.5rem;
                 width: 100%;
                 margin-left: 0;
                 order: 2;
@@ -894,16 +906,16 @@
 <style>
     .product-details {
         max-width: 800px;
-        margin: 2rem auto;
+        margin: 1rem auto;
         padding: 0 1rem;
     }
 
     .details {
-        margin-top: 2rem;
+        margin: 1rem 0;
     }
 
     h1 {
-        font-size: 2rem;
+        font-size: 1.5rem;
         margin-bottom: 1rem;
     }
 
@@ -913,6 +925,10 @@
             /* margin-bottom: 1.5rem; */
             width: 100%;
             line-height: 1.3;
+        }
+
+        .details {
+            margin-top: 1rem;
         }
     }
 

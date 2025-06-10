@@ -66,7 +66,7 @@
 			</div>
 		</div>
 	</nav>
-	<main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+	<main class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
 		{@render children()}
 	</main>
 </div>
