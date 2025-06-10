@@ -1,25 +1,25 @@
 <script lang="ts">
-    export let options: { id: number | string; name: string }[];
-    export let value: string | number;
-    export let placeholder = "Select...";
-    export let allLabel = "All";
+    interface Option {
+        id: string | number;
+        name: string;
+    }
 
-    let isOpen = false;
-    let searchQuery = "";
-    let selectedLabel = allLabel;
+    let { options, value = $bindable(), allLabel = 'All' }: { options: Option[]; value: string | number; allLabel: string } = $props();
 
-    $: filteredOptions = options.filter(option => 
-        option.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    $: {
+    let isOpen = $state(false);
+    let searchQuery = $state("");
+    let selectedLabel = $derived.by(() => {
         if (value === "all") {
-            selectedLabel = allLabel;
+            return allLabel;
         } else {
             const selected = options.find(opt => opt.id == value);
-            selectedLabel = selected ? selected.name : allLabel;
+            return selected ? selected.name : allLabel;
         }
-    }
+    })
+
+    let filteredOptions = $derived(options.filter(option => 
+        option.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ));
 
     function handleSelect(optionId: string | number) {
         value = optionId;
@@ -36,13 +36,13 @@
     }
 </script>
 
-<svelte:window on:click={handleClickOutside} />
+<svelte:window onclick={handleClickOutside} />
 
 <div class="searchable-select">
     <button 
         type="button"
         class="select-button"
-        on:click={() => isOpen = !isOpen}
+        onclick={() => isOpen = !isOpen}
     >
         <span class="selected-text">{selectedLabel}</span>
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
@@ -55,14 +55,14 @@
                     type="text"
                     placeholder="Search..."
                     bind:value={searchQuery}
-                    on:click|stopPropagation
+                    onclick={(e) => { e.stopPropagation();}}
                 />
             </div>
             <div class="options-list">
                 <button 
                     class="option"
                     class:selected={value === "all"}
-                    on:click={() => handleSelect("all")}
+                    onclick={() => handleSelect("all")}
                 >
                     {allLabel}
                 </button>
@@ -70,7 +70,7 @@
                     <button 
                         class="option"
                         class:selected={value == option.id}
-                        on:click={() => handleSelect(option.id)}
+                        onclick={() => handleSelect(option.id)}
                     >
                         {option.name}
                     </button>

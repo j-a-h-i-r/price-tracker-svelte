@@ -1,70 +1,121 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import type { Deal } from '$lib/types/Deal';
+    import type { Deal, DealFilter } from '$lib/types/Deal';
     import { fetchDeals } from '$lib/api/deals.js';
     import { formatPrice } from '$lib/util.js';
+    import SearchableSelect from '$lib/components/SearchableSelect.svelte';
+    import { fetchCategories, type Category } from '$lib/api/products';
+    import NoResult from '$lib/components/NoResult.svelte';
 
-    let deals: Deal[] = [];
-    let selectedDays = 7;
-    let sortBy = 'value';
+    let selectedDays = $state(7);
+    let sortBy = $state<'value' | 'percentage'>('value');
+    let categories: Category[] = $state([]);
+    let manufacturers: any[] = $state([]);
+    let selectedCategory: string | number = $state("all");
+    let selectedManufacturer: string | number = $state("all");
 
-    async function loadDeals(days: number, sortBy: string) {
-        selectedDays = days;
-        deals = await fetchDeals(days, sortBy);
-    }
+    let deals: Promise<Deal[]> = $derived.by(() => {
+        let filters: DealFilter = {
+            sortby: sortBy,
+            days: selectedDays,
+        };
+        if (selectedCategory !== "all") filters.category_id = selectedCategory;
+        if (selectedManufacturer !== "all") filters.manufacturer_id = selectedManufacturer;
+        
+        return fetchDeals(filters);
+    });
 
     onMount(async () => {
-        await loadDeals(selectedDays, sortBy);
+        // Load initial data
+        const [categoriesData, manufacturersData] = await Promise.all([
+            fetchCategories(),
+            fetch('/api/manufacturers').then(res => res.json())
+        ]);
+        
+        categories = categoriesData;
+        manufacturers = manufacturersData;
     });
 </script>
 
 <div class="deals-container">
     <div class="deals-header">
         <h1>Current Deals</h1>
-        <div class="header-controls">
-            <div class="sort-control">
-                <label for="sort-select">Sort</label>
-                <select 
-                    id="sort-select"
-                    onchange={() => loadDeals(selectedDays, sortBy)} 
-                    bind:value={sortBy} 
-                    class="sort-select"
-                >
-                    <option value="value">Maximum Price Drop</option>
-                    <option value="percentage">Maximum Percentage Drop</option>
-                </select>
+        <h2>Check out current deals. Use the filters to grab your perfect deal!</h2>
+    </div>
+    <div class="filter-sort">
+        <div class="time-filters">
+            <button 
+                class:active={selectedDays === 7} 
+                onclick={() => selectedDays = 7}
+            >
+                7 Days
+            </button>
+            <button 
+                class:active={selectedDays === 30} 
+                onclick={() => selectedDays = 30}
+            >
+                30 Days
+            </button>
+        </div>
+        <div class="filter-control">
+            <div class="filter-chip" class:active={selectedCategory !== "all"}>
+                <span>Category</span>
+                <SearchableSelect
+                    options={categories}
+                    bind:value={selectedCategory}
+                    allLabel="All Categories"
+                />
             </div>
-            <div class="time-filters">
-                <button 
-                    class:active={selectedDays === 7} 
-                    onclick={() => loadDeals(7, sortBy)}
-                >
-                    7 Days
-                </button>
-                <button 
-                    class:active={selectedDays === 30} 
-                    onclick={() => loadDeals(30, sortBy)}
-                >
-                    30 Days
-                </button>
+
+            <div class="filter-chip" class:active={selectedManufacturer !== "all"}>
+                <span>Brand</span>
+                <SearchableSelect
+                    options={manufacturers}
+                    bind:value={selectedManufacturer}
+                    allLabel="All Brands"
+                />
             </div>
         </div>
+
+        <div class="sort-control">
+            <label for="sort-select">Sort</label>
+            <select 
+                id="sort-select"
+                bind:value={sortBy} 
+                class="sort-select"
+            >
+                <option value="value">Maximum Price Drop</option>
+                <option value="percentage">Maximum Percentage Drop</option>
+            </select>
+        </div>
+        
     </div>
+
     <div class="deals-grid">
-        {#each deals as deal}
-            <a href="/products/{deal.product_id}" class="deal-card">
-                <div class="deal-content">
-                    <h3>{deal.product_name}</h3>
-                    <div class="price-section">
-                        <span class="current-price">{formatPrice(deal.current_price)}</span>
-                        {#if deal.current_price}
-                            <span class="msrp">{formatPrice(deal.max_price_last_days)}</span>
-                            <span class="discount">-{Math.round((1 - deal.current_price/deal.max_price_last_days) * 100)}%</span>
-                        {/if}
-                    </div>
-                </div>
-            </a>
-        {/each}
+        {#await deals}
+            <p>Loading deals...</p>
+        {:then deals}
+            {#if deals.length === 0}
+                <NoResult message="No deal found" suggestion="Try different configuration" />
+            {:else}
+                {#each deals as deal}
+                    <a href="/products/{deal.product_id}" class="deal-card">
+                        <div class="deal-content">
+                            <h3>{deal.product_name}</h3>
+                            <div class="price-section">
+                                <span class="current-price">{formatPrice(deal.current_price)}</span>
+                                {#if deal.current_price}
+                                    <span class="msrp">{formatPrice(deal.max_price_last_days)}</span>
+                                    <span class="discount">-{Math.round((1 - deal.current_price/deal.max_price_last_days) * 100)}%</span>
+                                {/if}
+                            </div>
+                        </div>
+                    </a>
+                {/each}
+            {/if}
+        {:catch error}
+            <p>Error loading deals: {error.message}</p>
+        {/await}
     </div>
 </div>
 
@@ -76,36 +127,64 @@
 
     .deals-header {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1.5rem;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .deals-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .deals-header h2 {
+        font-size: 1.125rem;
+        font-weight: 400;
+        color: #6b7280;
+        margin: 0;
+        line-height: 1.5;
     }
 
     @media (max-width: 640px) {
-        .deals-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
+        .deals-header h1 {
+            font-size: 1.75rem;
         }
 
-        .deals-header h1 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
+        .deals-header h2 {
+            font-size: 1rem;
         }
     }
 
     .header-controls {
         display: flex;
-        align-items: center;
+        flex-direction: column;
         gap: 1rem;
     }
 
-    @media (max-width: 640px) {
-        .header-controls {
-            flex-direction: column;
-            align-items: stretch;
-            width: 100%;
-        }
+    .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.75rem;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        color: #374151;
+        font-size: 0.875rem;
+        transition: all 0.15s ease;
+    }
+
+    .filter-chip.active {
+        background: #eef2ff;
+        border-color: #6366f1;
+        color: #4f46e5;
+    }
+
+    .filter-chip span {
+        font-weight: 500;
     }
 
     .sort-control {
@@ -165,7 +244,7 @@
     }
 
     .time-filters button {
-        padding: 0.5rem 1rem;
+        padding: 0.375rem 0.75rem;
         border: none;
         border-radius: 8px;
         background: #e5e7eb;
@@ -195,18 +274,27 @@
         border-radius: 12px;
         text-decoration: none;
         color: inherit;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s, box-shadow 0.2s;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
     }
 
     .deal-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 16px rgba(37, 99, 235, 0.1);
+        border-color: #2563eb;
     }
 
     .deal-content h3 {
         margin: 0 0 1rem 0;
         font-size: 1.1rem;
+        line-height: 1.4;
+        color: #1f2937;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        height: 2.8em;
     }
 
     .price-section {
@@ -234,6 +322,42 @@
         background: #fee2e2;
         padding: 0.25rem 0.5rem;
         border-radius: 4px;
+    }
+
+    .filter-sort {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #f9fafb;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .filter-control {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        flex: 1;
+    }
+
+    @media (max-width: 768px) {
+        .filter-sort {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-control {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .filter-chip {
+            width: 100%;
+            justify-content: space-between;
+        }
     }
 </style>
 

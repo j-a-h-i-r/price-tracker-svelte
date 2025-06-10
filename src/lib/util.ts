@@ -10,3 +10,11 @@ export function formatPrice(price: number): string {
         }
     ).format(price)
 }
+
+export function keyValueToQueryString(obj: Record<string, string | number | boolean | undefined | null>): string {
+    return Object.entries(obj)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        .filter(([_, value]) => value !== undefined && value !== null)
+        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+        .join('&');
+}

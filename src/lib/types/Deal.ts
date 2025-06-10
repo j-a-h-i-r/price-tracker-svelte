@@ -8,3 +8,10 @@ export interface Deal {
     current_price_date: string;
     is_available: boolean;
 }
+
+export interface DealFilter extends Record<string, string | number | boolean | undefined | null> {
+    days: number;
+    sortby: 'value' | 'percentage';
+    manufacturer_id?: number | string;
+    category_id?: number | string;
+}
