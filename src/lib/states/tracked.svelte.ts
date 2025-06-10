@@ -18,6 +18,10 @@ class TrackedProducts {
         return this.#trackedProducts.some((product) => product.product_id === Number(productId));
     }
 
+    getProduct(productId: number) {
+        return this.#trackedProducts.find((product) => product.product_id === Number(productId));
+    }
+
     refresh() {
         fetch('/api/user/products')
         .then((response) => {

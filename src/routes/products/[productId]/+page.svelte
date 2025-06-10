@@ -327,6 +327,16 @@
         {/if}
     </div>
 
+    {#if trackedProducts.isTracked(productId)}
+        <div class="tracked-info">
+            <p>
+                You are tracking this product.
+                The target price is {'৳'} {trackedProducts.getProduct(productId)!.target_price}.
+                If the price falls below target price you'll receive an email
+            </p>
+        </div>
+    {/if}
+
     {#if variants.length > 0}
         <div class="variants-header">Select Configuration</div>
         <div class="variants-section">
@@ -1018,5 +1028,11 @@
         align-items: start;
         flex-flow: wrap-reverse;
         gap: 0.5rem;
+    }
+
+    .tracked-info {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-style: italic;
     }
 </style>
