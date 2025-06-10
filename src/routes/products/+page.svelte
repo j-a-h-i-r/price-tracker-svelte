@@ -7,6 +7,7 @@
     import Table from "$lib/components/Table.svelte";
     import { fetchWebsites, type Website } from "$lib/api/websites.js";
     import SearchableSelect from "$lib/components/SearchableSelect.svelte";
+    import { formatPrice } from "$lib/util.js";
 
     let initialProductsLoaded = $state(false);
     let products: ProductWithLastPrice[] = $state([]);
@@ -273,7 +274,7 @@
                         price: price.price,
                         date: new Date(price.created_at).toLocaleDateString()
                     })),
-                    price: `৳ ${p?.lowest_available_price ?? 'N/A'}`,
+                    price: p?.lowest_available_price ? formatPrice(p.lowest_available_price) : 'N/A',
                 }))}
                 on:rowClick={e => handleRowClick(e.detail)}
             />

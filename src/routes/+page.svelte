@@ -3,6 +3,7 @@
     import { fetchDeals } from "$lib/api/deals.js";
     import type { Deal } from "$lib/types/Deal.js";
     import { onMount } from "svelte";
+    import { formatPrice } from "$lib/util.js";
 
     let searchQuery = '';
     let totalProducts = 0;
@@ -140,9 +141,9 @@
                     <div class="deal-content">
                         <h3>{deal.product_name}</h3>
                         <div class="price-section">
-                            <span class="current-price">৳{deal.current_price}</span>
+                            <span class="current-price">{formatPrice(deal.current_price)}</span>
                             {#if deal.current_price}
-                                <span class="msrp">৳{deal.max_price_last_days}</span>
+                                <span class="msrp">{formatPrice(deal.max_price_last_days)}</span>
                                 <span class="discount">-{Math.round((1 - deal.current_price/deal.max_price_last_days) * 100)}%</span>
                             {/if}
                         </div>
@@ -181,7 +182,7 @@
                             <span class="badge category-badge">{categoryMap[product.category_id] || '?'}</span>
                             <span class="badge">{product.prices?.length || 0} websites</span>
                         </td>
-                        <td>{product.lowest_available_price ? `৳${product.lowest_available_price}` : 'Not Available'}</td>
+                        <td>{product.lowest_available_price ? formatPrice(product.lowest_available_price) : 'Not Available'}</td>
                     </tr>
                 {/each}
             </tbody>

@@ -2,6 +2,7 @@
     import { userState } from '$lib/shared.svelte.js';
     import { onMount } from 'svelte';
     import { trackedProducts } from '$lib/states/tracked.svelte.js';
+    import { formatPrice } from '$lib/util.js';
 
     let email = '';
     let message = '';
@@ -90,8 +91,8 @@
                                     Untrack
                                 </button>
                             </div>
-                            <p class="price">Current price: ৳{product.current_price}</p>
-                            <p class="target">Target price: ৳{product.target_price}</p>
+                            <p class="price">Current price: {formatPrice(product.current_price)}</p>
+                            <p class="target">Target price: {formatPrice(product.target_price)}</p>
                         </div>
                     {/each}
                 </div>

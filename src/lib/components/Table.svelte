@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { formatPrice } from "$lib/util.js";
     import { createEventDispatcher } from "svelte";
     
     export let headers: string[] = [];
@@ -65,7 +66,7 @@
                                 {#each row.expandedContent as price}
                                     <div class="price-item">
                                         <div class="price-website">{price.website}</div>
-                                        <div class="price-amount">৳{price.price}</div>
+                                        <div class="price-amount">{formatPrice(price.price)}</div>
                                         <div class="price-date">{price.date}</div>
                                     </div>
                                 {/each}

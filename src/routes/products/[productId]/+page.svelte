@@ -19,6 +19,7 @@
     import { trackedProducts } from "$lib/states/tracked.svelte.js";
     import { fetchWebsites, type Website } from "$lib/api/websites.js";
     import { userState } from "$lib/shared.svelte.js";
+    import { formatPrice } from "$lib/util.js";
 
     let productId = Number(page.params.productId);
     let product: ProductWithPrice | null = $state(null);
@@ -331,7 +332,7 @@
         <div class="tracked-info">
             <p>
                 You are tracking this product.
-                The target price is {'৳'} {trackedProducts.getProduct(productId)!.target_price}.
+                The target price is {formatPrice(trackedProducts.getProduct(productId)!.target_price)}.
                 If the price falls below target price you'll receive an email
             </p>
         </div>
@@ -373,7 +374,7 @@
                             style="display: flex; align-items: center; gap: 0.5rem"
                         >
                             {#if latestPrice.get(product.external_product_id)?.price != null}
-                                <div class="price-amount">{'৳'} {latestPrice.get(product.external_product_id)?.price}</div>
+                                <div class="price-amount">{formatPrice(latestPrice.get(product.external_product_id)!.price)}</div>
                             {:else}
                                 <div class="price-not-found">Price not found</div>
                             {/if}
@@ -381,7 +382,7 @@
                                 <div class="availability-dot"></div>
                             {/if}
                             {#if latestPrice.get(product.external_product_id)?.price && latestPrice.get(product.external_product_id)!.price < maxPrice}
-                                <div class="savings-badge">Save {(maxPrice - latestPrice.get(product.external_product_id)!.price).toFixed(2)}</div>
+                                <div class="savings-badge">Save {formatPrice((maxPrice - latestPrice.get(product.external_product_id)!.price))}</div>
                             {/if}
                         </div>
                         {#if latestPrice.get(product.external_product_id)?.created_at}

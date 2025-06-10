@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import type { Deal } from '$lib/types/Deal';
     import { fetchDeals } from '$lib/api/deals.js';
+    import { formatPrice } from '$lib/util.js';
 
     let deals: Deal[] = [];
     let selectedDays = 7;
@@ -55,9 +56,9 @@
                 <div class="deal-content">
                     <h3>{deal.product_name}</h3>
                     <div class="price-section">
-                        <span class="current-price">৳{deal.current_price}</span>
+                        <span class="current-price">{formatPrice(deal.current_price)}</span>
                         {#if deal.current_price}
-                            <span class="msrp">৳{deal.max_price_last_days}</span>
+                            <span class="msrp">{formatPrice(deal.max_price_last_days)}</span>
                             <span class="discount">-{Math.round((1 - deal.current_price/deal.max_price_last_days) * 100)}%</span>
                         {/if}
                     </div>
@@ -227,8 +228,12 @@
     }
 
     .discount {
-        color: #16a34a;
-        font-weight: 500;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #ef4444;
+        background: #fee2e2;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
     }
 </style>
 
