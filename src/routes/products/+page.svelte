@@ -2,7 +2,6 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { fetchCategories, fetchProducts, type Category } from "$lib/api/products";
-    import { fetchMetadataFilters, type MetadataFilter } from "$lib/api/metadata";
     import type { ProductWithLastPrice } from "$lib/types/Product";
     import Table from "$lib/components/Table.svelte";
     import { fetchWebsites, type Website } from "$lib/api/websites.js";
@@ -11,6 +10,7 @@
     import type { Manufacturer } from "$lib/types/Manufacturer.js";
 
     let initialProductsLoaded = $state(false);
+    let allProductsLoaded = $state(false);
     let products: ProductWithLastPrice[] = $state([]);
     let websitesMap: Record<number, Website> = $state({});
     let loading = $state(true);
@@ -23,8 +23,6 @@
     let selectedCategory: string | number = $state("all");
     let manufacturers: Manufacturer[] = $state([]);
     let selectedManufacturer: string | number = $state("all");
-    let priceRange = $state({ min: 0, max: 2000 });
-    let actualPriceRange = $state({ min: 0, max: 0 });
     let showOutOfStock = $state(false);
     let sortBy = $state("price-asc");
     let searchQuery = $state("");
@@ -94,13 +92,6 @@
         }
     }
 
-    onMount(() => {
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    });
-
     $effect(() => {
         // Prevent body scroll when modal is open
         if (isFilterModalOpen) {
@@ -121,17 +112,25 @@
     $effect(() => {
         // Reset filters when products are loaded
         if (initialProductsLoaded) {
-            fetchProducts().then((p) => products = p);
+            fetchProducts().then((p) => {
+                allProductsLoaded = true;
+                products = p;
+            });
         }
     });
 
-    $effect(() => {
-        // Recalculate price range based on products
+    let actualPriceRange = $derived.by(() => {
         const prices = products
             .flatMap(p => p.prices.map(price => price.price))
             .filter(price => !isNaN(price));
-        actualPriceRange.min = Math.min(...prices);
-        actualPriceRange.max = Math.max(...prices);
+        return {
+            min: Math.min(...prices),
+            max: Math.max(...prices)
+        }
+    });
+
+    let priceRange = $state({min: 0, max: 0});
+    $effect(() => {
         priceRange = { ...actualPriceRange };
     });
 
@@ -156,27 +155,9 @@
             loading = false;
         }
     });
-
-    function resetFilters() {
-        selectedCategory = "all";
-        priceRange = { ...actualPriceRange };
-        showOutOfStock = true;
-        sortBy = "price-asc";
-        searchQuery = "";
-        currentPage = 1;
-
-        // Reset metadata filters
-        // metadataFilters.forEach(filter => {
-        //     if (filter.type === 'boolean') {
-        //         selectedMetadataFilters[filter.key] = false;
-        //     } else if (filter.type === 'range' && filter.range) {
-        //         selectedMetadataFilters[filter.key] = { ...filter.range };
-        //     } else {
-        //         selectedMetadataFilters[filter.key] = '';
-        //     }
-        // });
-    }
 </script>
+
+<svelte:window onmousedown={(e) => handleClickOutside(e)}></svelte:window>
 
 <div class="layout">
     <main class="content">
@@ -210,23 +191,27 @@
             <button class="filter-chip" class:active={priceRange.min !== actualPriceRange.min || priceRange.max !== actualPriceRange.max}>
                 <span>Price Range</span>
                 <div class="chip-inputs">
-                    <input 
-                        type="number" 
-                        bind:value={priceRange.min}
-                        min={actualPriceRange.min}
-                        max={actualPriceRange.max}
-                        placeholder="Min"
-                        class="chip-input"
-                    />
-                    <span class="separator">-</span>
-                    <input 
-                        type="number" 
-                        bind:value={priceRange.max}
-                        min={actualPriceRange.min}
-                        max={actualPriceRange.max}
-                        placeholder="Max"
-                        class="chip-input"
-                    />
+                    {#if allProductsLoaded}
+                        <input 
+                            type="number" 
+                            bind:value={priceRange.min}
+                            min={actualPriceRange.min}
+                            max={actualPriceRange.max}
+                            placeholder="Min"
+                            class="chip-input"
+                        />
+                        <span class="separator">-</span>
+                        <input 
+                            type="number" 
+                            bind:value={priceRange.max}
+                            min={actualPriceRange.min}
+                            max={actualPriceRange.max}
+                            placeholder="Max"
+                            class="chip-input"
+                        />
+                    {:else}
+                        <span class="chip-input">Loading...</span>
+                    {/if}
                 </div>
             </button>
 
