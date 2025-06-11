@@ -82,3 +82,12 @@ export async function fetchExternalProductMetadata(internalId: number, externalI
     }
     return response.json();
 }
+
+export async function unmergeProduct(productId: number): Promise<void> {
+    const response = await fetch(`/api/products/${productId}/merge`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) {
+        throw new Error('Failed to unmerge product');
+    }
+}

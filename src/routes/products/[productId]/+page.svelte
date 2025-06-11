@@ -5,6 +5,7 @@
         fetchExternalProductPrices,
         fetchExternalProductsByInternalId,
         fetchProductPricesById,
+        unmergeProduct,
     } from "$lib/api/products.js";
     import type {
         ExternalProduct,
@@ -31,6 +32,17 @@
     let variants: ProductVariant[] = $state([]);
     let selectedVariants: Record<string, string> = $state({});
     let externalProductMetadatas: Map<number, ExternalProductMetadata[]> = $state(new Map());
+
+    async function handleUnmerge() {
+        try {
+            await unmergeProduct(productId);
+            alert('Product unmerged successfully!');
+            // TODO: Consider redirecting to product list or refreshing data
+        } catch (error) {
+            console.error('Error unmerging product:', error);
+            alert(`Failed to unmerge product. Error: ${error.message}`);
+        }
+    }
 
     async function handleSaveMainProduct() {
         try {
@@ -311,6 +323,7 @@
             <h1>{product?.name}</h1>
             {#if userState.isAdmin}
                 <button class="btn-edit" onclick={startEditingMain}>Edit</button>
+                <button class="btn-unmerge" onclick={handleUnmerge}>Unmerge</button>
             {/if}
         {/if}
         <div class="availability-indicator">
@@ -466,6 +479,23 @@
         .btn-edit:hover {
             background: #f3f4f6;
             border-color: #d1d5db;
+        }
+
+        .btn-unmerge {
+            padding: 0.25rem 0.5rem; /* Similar to btn-edit */
+            background-color: #f87171; /* Tailwind red-400 */
+            border: 1px solid #ef4444; /* Tailwind red-500 */
+            border-radius: 4px; /* Similar to btn-edit */
+            color: white;
+            font-size: 0.875rem; /* Similar to btn-edit */
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: 0.5rem; /* Similar to btn-edit */
+        }
+
+        .btn-unmerge:hover {
+            background-color: #ef4444; /* Tailwind red-500 */
+            border-color: #dc2626; /* Tailwind red-600 */
         }
 
         .edit-buttons {
