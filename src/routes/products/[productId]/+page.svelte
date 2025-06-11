@@ -64,11 +64,11 @@
         }
     }
 
-    async function fetchVariantAttributes() {
+    async function fetchVariantAttributes(productId: number) {
         try {
             const response = await fetch(`/api/products/${productId}/variantattributes`);
             if (!response.ok) throw new Error('Failed to fetch variants');
-            variants = await response.json();
+            return response.json();
         } catch (error) {
             console.error('Error fetching variants:', error);
         }
@@ -262,23 +262,26 @@
 
     onMount(async () => {
         try {
-            product = await fetchProductPricesById(productId);
-            externalProducts = await fetchExternalProductsByInternalId(productId);
-            await fetchVariantAttributes();
+            const [_product, _externals, _variants] = await Promise.all([
+                fetchProductPricesById(productId),
+                fetchExternalProductsByInternalId(productId),
+                fetchVariantAttributes(productId),
+            ])
+            product = _product;
+            externalProducts = _externals;
+            variants = _variants;
         } catch (error) {
             console.error("Error fetching product:", error);
         }
     });
 
     $effect(() => {
-        console.log($state.snapshot(selectedVariants));
         const sanitizedVariants: Record<string, string> = {};
         for (const [key, value] of Object.entries(selectedVariants)) {
             if (value !== 'unselected') {
                 sanitizedVariants[key] = value;
             }
         }
-        console.log("Sanitized Variants:", sanitizedVariants);
         fetchExternalProductsByInternalId(productId, sanitizedVariants)
         .then((products) => {
             externalProducts = products;
