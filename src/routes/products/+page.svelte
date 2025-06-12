@@ -14,6 +14,7 @@
     onMount(() => {
         // This is necessary to make sure it only runs in browser
         queryCategoryId = page.url.searchParams.get('category_id');
+        selectedCategory = queryCategoryId ? queryCategoryId : "all";
     });
 
     let initialProductsLoaded = $state(false);
@@ -27,7 +28,7 @@
 
     // Filters
     let categories: Category[] = $state([]);
-    let selectedCategory: string | number = $state( queryCategoryId ? queryCategoryId : "all");
+    let selectedCategory: string | number = $state("all");
     let manufacturers: Manufacturer[] = $state([]);
     let selectedManufacturer: string | number = $state("all");
     let showOutOfStock = $state(false);
