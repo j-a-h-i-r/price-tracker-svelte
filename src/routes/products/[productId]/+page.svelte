@@ -260,6 +260,36 @@
         }
     }
 
+    async function handleMergeProduct() {
+        const mergeProductIdInput = prompt('Enter the product ID to merge with:');
+        const mergeProductId = parseInt(mergeProductIdInput ?? '');
+        if (isNaN(mergeProductId) || mergeProductId <= 0) {
+            alert('Please enter a valid product ID');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/products/${productId}/merge`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ productIds: [mergeProductId] }),
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to merge product');
+            }
+            
+            alert('Products merged successfully!');
+            // Refresh the page to show updated data
+            window.location.reload();
+        } catch (error) {
+            console.error('Error merging product:', error);
+            alert('Failed to merge product. Please try again.');
+        }
+    }
+
     onMount(async () => {
         try {
             const [_product, _variants] = await Promise.all([
@@ -311,7 +341,10 @@
         {:else}
             <h1>{product?.name}</h1>
             {#if userState.isAdmin}
-                <button class="btn-edit" onclick={startEditingMain}>Edit</button>
+                <div class="admin-actions">
+                    <button class="btn-edit" onclick={startEditingMain}>Edit</button>
+                    <button class="btn-merge" onclick={handleMergeProduct}>Merge</button>
+                </div>
             {/if}
         {/if}
         <div class="availability-indicator">
@@ -469,6 +502,21 @@
             border-color: #d1d5db;
         }
 
+        .btn-merge {
+            padding: 0.25rem 0.5rem;
+            background: #4f46e5;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-merge:hover {
+            background: #4338ca;
+        }
+
         .edit-buttons {
             display: flex;
             gap: 0.5rem;
@@ -612,6 +660,21 @@
         .btn-edit:hover {
             background: #f3f4f6;
             border-color: #d1d5db;
+        }
+
+        .btn-merge {
+            padding: 0.25rem 0.5rem;
+            background: #4f46e5;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-merge:hover {
+            background: #4338ca;
         }
 
         .edit-buttons {
