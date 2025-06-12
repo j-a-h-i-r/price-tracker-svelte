@@ -4,14 +4,14 @@
     fetchExternalProductMetadata,
         fetchExternalProductPrices,
         fetchExternalProductsByInternalId,
-        fetchProductPricesById,
+        fetchProductById,
     } from "$lib/api/products.js";
     import type {
         ExternalProduct,
         ExternalProductPrice,
-        ProductWithPrice,
         ProductVariant,
         ExternalProductMetadata,
+        Product,
     } from "$lib/types/Product.js";
     import { onMount } from "svelte";
     import { Chart } from "chart.js/auto";
@@ -22,7 +22,7 @@
     import { formatPrice } from "$lib/util.js";
 
     let productId = Number(page.params.productId);
-    let product: ProductWithPrice | null = $state(null);
+    let product: Product | null = $state(null);
     let websiteMap: Map<number, Website> = $state(new Map());
     let externalProducts: ExternalProduct[] = $state([]);
     let externalProductPrices: Map<number, ExternalProductPrice[]> = $state(new Map());
@@ -262,13 +262,11 @@
 
     onMount(async () => {
         try {
-            const [_product, _externals, _variants] = await Promise.all([
-                fetchProductPricesById(productId),
-                fetchExternalProductsByInternalId(productId),
+            const [_product, _variants] = await Promise.all([
+                fetchProductById(productId),
                 fetchVariantAttributes(productId),
             ])
             product = _product;
-            externalProducts = _externals;
             variants = _variants;
         } catch (error) {
             console.error("Error fetching product:", error);
