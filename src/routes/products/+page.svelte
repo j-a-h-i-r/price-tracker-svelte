@@ -10,7 +10,11 @@
     import { formatPrice } from "$lib/util.js";
     import type { Manufacturer } from "$lib/types/Manufacturer.js";
 
-    let queryCategoryId = page.url.searchParams.get('category_id');
+    let queryCategoryId: string | null = $state(null);
+    onMount(() => {
+        // This is necessary to make sure it only runs in browser
+        queryCategoryId = page.url.searchParams.get('category_id');
+    });
 
     let initialProductsLoaded = $state(false);
     let allProductsLoaded = $state(false);
