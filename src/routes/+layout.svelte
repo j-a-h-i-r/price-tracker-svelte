@@ -49,7 +49,7 @@
 							<span class="text-sm text-gray-600 hidden sm:inline">{userState.email}</span>
 							<button
 								onclick={gotoAccount}
-								class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+								class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
 							>
 								Account
 							</button>
