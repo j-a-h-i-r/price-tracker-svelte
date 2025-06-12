@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { page } from "$app/state";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { fetchCategories, fetchProducts, type Category } from "$lib/api/products";
@@ -8,6 +9,8 @@
     import SearchableSelect from "$lib/components/SearchableSelect.svelte";
     import { formatPrice } from "$lib/util.js";
     import type { Manufacturer } from "$lib/types/Manufacturer.js";
+
+    let queryCategoryId = page.url.searchParams.get('category_id');
 
     let initialProductsLoaded = $state(false);
     let allProductsLoaded = $state(false);
@@ -20,7 +23,7 @@
 
     // Filters
     let categories: Category[] = $state([]);
-    let selectedCategory: string | number = $state("all");
+    let selectedCategory: string | number = $state( queryCategoryId ? queryCategoryId : "all");
     let manufacturers: Manufacturer[] = $state([]);
     let selectedManufacturer: string | number = $state("all");
     let showOutOfStock = $state(false);

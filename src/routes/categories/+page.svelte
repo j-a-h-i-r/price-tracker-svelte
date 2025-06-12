@@ -37,7 +37,7 @@
                     <p class="product-count">
                         {category.productCount} products
                     </p>
-                    <a href="/categories/{category.id}" class="view-products"
+                    <a href="/products?category_id={category.id}" class="view-products"
                         >View Products</a
                     >
                 </div>
