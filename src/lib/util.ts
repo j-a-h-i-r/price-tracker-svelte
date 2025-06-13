@@ -18,3 +18,16 @@ export function keyValueToQueryString(obj: Record<string, string | number | bool
         .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
         .join('&');
 }
+
+/**
+ * Converts an array of objects with `id` property to a Map with `id` as the key.
+ * @param array 
+ * @returns 
+ */
+export function arrayToPerIdMap<T extends { id: number }>(array: T[]): Map<number, T> {
+    const map = new Map<number, T>();
+    array.forEach(item => {
+        map.set(item.id, item);
+    });
+    return map;
+}

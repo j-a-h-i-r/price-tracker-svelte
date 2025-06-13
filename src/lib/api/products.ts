@@ -55,7 +55,7 @@ export async function fetchExternalProductPrices(internalId: number, externalId:
 }
 
 export interface Category {
-    id: string;
+    id: number;
     name: string;
 }
 

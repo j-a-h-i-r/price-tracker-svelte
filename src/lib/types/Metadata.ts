@@ -1,9 +1,9 @@
 export interface MetadataDetail {
-    id: string;
-    internal_product_id: string;
+    id: number;
+    internal_product_id: number;
     name: string;
-    category_id: string,
-    website_id: string,
+    category_id: number,
+    website_id: number,
     raw_metadata: Record<string, string>,
     external_manufacturer_id: number,
     created_at: string,

@@ -7,6 +7,7 @@
     import Table from "$lib/components/Table.svelte";
     import { goto } from "$app/navigation";
     import { Chart } from "chart.js/auto";
+    import { arrayToPerIdMap } from "$lib/util.js";
 
     let { metadataName } = page.params;
     let metadataDetails: MetadataDetail[] = $state([]);
@@ -16,6 +17,7 @@
     let matchCount = $state(0);
     let showNonMatching = $state(false);
     let categories: Category[] = $state([]);
+    let categoryMap = $derived(arrayToPerIdMap<Category>(categories))
     let selectedCategory = $state('');
     let chartCanvas = $state<HTMLCanvasElement | null>(null);
     let chart: Chart | null = null;
@@ -220,7 +222,7 @@
                 rows={getFilteredRows().map(metadata => ({
                     name: metadata.raw_metadata[metadataName],
                     product: metadata.name,
-                    category: metadata.category_id,
+                    category: categoryMap.get(metadata.category_id)?.name || 'Unknown',
                     product_id: metadata.internal_product_id,
                 }))}
                 highlightPattern={searchPattern}
