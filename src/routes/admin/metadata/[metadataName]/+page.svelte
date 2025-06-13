@@ -6,6 +6,7 @@
     import type { MetadataDetail } from "$lib/types/Metadata";
     import Table from "$lib/components/Table.svelte";
     import { goto } from "$app/navigation";
+    import { Chart } from "chart.js/auto";
 
     let { metadataName } = page.params;
     let metadataDetails: MetadataDetail[] = $state([]);
@@ -16,6 +17,25 @@
     let showNonMatching = $state(false);
     let categories: Category[] = $state([]);
     let selectedCategory = $state('');
+    let chartCanvas = $state<HTMLCanvasElement | null>(null);
+    let chart: Chart | null = null;
+    let showChart = $state(false);
+    
+    // Computed metadata frequency
+    let metadataFrequency = $derived.by(() => {
+        const frequency = new Map<string, number>();
+        metadataDetails.forEach(metadata => {
+            const value = metadata.raw_metadata[metadataName];
+            if (value) {
+                frequency.set(value, (frequency.get(value) || 0) + 1);
+            }
+        });
+        
+        // Sort by frequency (descending) and limit to top 20
+        return Array.from(frequency)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 20);
+    });
     
     $effect(() => {
         if (metadataDetails.length > 0) {
@@ -60,6 +80,68 @@
         }
     });
 
+    // Create chart effect
+    $effect(() => {
+        if (showChart && chartCanvas && metadataFrequency.length > 0) {
+            createChart();
+        }
+    });
+
+    function createChart() {
+        if (chart) {
+            chart.destroy();
+        }
+
+        if (!chartCanvas || metadataFrequency.length === 0) return;
+
+        const ctx = chartCanvas.getContext('2d');
+        if (!ctx) return;
+
+        chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: metadataFrequency.map(([value]) => 
+                    value.length > 30 ? value.substring(0, 30) + '...' : value
+                ),
+                datasets: [{
+                    label: 'Frequency',
+                    data: metadataFrequency.map(([, count]) => count),
+                    backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                    borderColor: 'rgba(37, 99, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: `Top ${metadataFrequency.length} Values for ${metadataName}`
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Count'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Values'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     function handleRowClick(event: CustomEvent<{ product_id: string }>) {
         goto(`/products/${event.detail.product_id}`);
     }
@@ -88,6 +170,22 @@
     {:else if metadataDetails}
         <div class="header">
             <h1>{metadataName}</h1>
+            
+            <div class="controls">
+                <button 
+                    class="chart-toggle"
+                    onclick={() => showChart = !showChart}
+                >
+                    {showChart ? 'Hide Chart' : 'Show Chart'}
+                </button>
+            </div>
+            
+            {#if showChart}
+                <div class="chart-container">
+                    <canvas bind:this={chartCanvas}></canvas>
+                </div>
+            {/if}
+            
             <div class="search-container">
                 <div class="filters">
                     <input
@@ -148,6 +246,35 @@
     h1 {
         color: #1f2937;
         margin-bottom: 0.5rem;
+    }
+
+    .controls {
+        margin: 1rem 0;
+    }
+
+    .chart-toggle {
+        background-color: #2563eb;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+
+    .chart-toggle:hover {
+        background-color: #1d4ed8;
+    }
+
+    .chart-container {
+        margin: 2rem 0;
+        padding: 1rem;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        height: 400px;
     }
 
     .error {

@@ -32,7 +32,7 @@ export function fetchMetadatas({
 }: {
     category_id?: string;
     website_id?: string;
-}): Promise<string[]> {
+}): Promise<{metadata: string; count: number}[]> {
     // Construct the URL with query parameters
     let url = '/api/metadatas';
     const params: string[] = [];

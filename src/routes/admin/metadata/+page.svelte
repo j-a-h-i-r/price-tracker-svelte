@@ -5,8 +5,7 @@
     import Table from "$lib/components/Table.svelte";
     import { goto } from "$app/navigation";
 
-    let metadatas: string[] = $state([]);
-    let filteredMetadatas: string[] = $state([]);
+    let metadatas: {metadata: string; count: number}[] = $state([]);
     let loading = $state(true);
     let error: string | null = $state(null);
     let searchQuery = $state("");
@@ -23,11 +22,11 @@
     let websites: Website[] = $state([]);
     let selectedWebsite: string = $state("");
 
-    $effect(() => {
-        filteredMetadatas = metadatas.filter(metadata => 
+    let filteredMetadatas = $derived(
+        metadatas.filter(({metadata}) => 
             metadata.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    });
+        )
+    )
 
     async function loadMetadata() {
         try {
@@ -107,8 +106,8 @@
             headers={["Metadata Name", "Count"]}
             keys={["name", "count"]}
             rows={filteredMetadatas.map(metadata => ({
-                name: metadata,
-                count: 1
+                name: metadata.metadata,
+                count: metadata.count
             }))}
             on:rowClick={e => handleRowClick(e.detail)}
         />
