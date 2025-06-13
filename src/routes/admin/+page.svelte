@@ -14,6 +14,11 @@
     <h1>Admin Dashboard</h1>
     
     <div class="grid">
+        <button onclick={() => goto('/admin/tasks')} class="card">
+            <h2>Tasks</h2>
+            <p>Run and monitor admin tasks</p>
+        </button>
+
         <button onclick={() => goto('/admin/similar')} class="card">
             <h2>Similar Products</h2>
             <p>Manage similar products</p>
