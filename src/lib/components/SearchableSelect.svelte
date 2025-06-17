@@ -34,6 +34,14 @@
             searchQuery = "";
         }
     }
+
+    // svelte-ignore non_reactive_update
+    let inputElement: HTMLInputElement | null = null;
+    $effect(() => {
+        if (isOpen && inputElement) {
+            inputElement.focus();
+        }
+    });
 </script>
 
 <svelte:window onclick={handleClickOutside} />
@@ -57,6 +65,7 @@
                         type="text"
                         placeholder="Search..."
                         bind:value={searchQuery}
+                        bind:this={inputElement}
                         onclick={(e) => { e.stopPropagation();}}
                     />
                 </div>
