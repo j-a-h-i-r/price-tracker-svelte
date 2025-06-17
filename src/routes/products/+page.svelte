@@ -1,10 +1,8 @@
 <script lang="ts">
     import { page } from "$app/state";
     import { onMount } from "svelte";
-    import { goto } from "$app/navigation";
     import { fetchCategories, fetchProducts, type Category } from "$lib/api/products";
     import type { ProductWithLastPrice } from "$lib/types/Product";
-    import Table from "$lib/components/Table.svelte";
     import { fetchWebsites, type Website } from "$lib/api/websites.js";
     import SearchableSelect from "$lib/components/SearchableSelect.svelte";
     import { formatPrice } from "$lib/util.js";
@@ -90,10 +88,6 @@
         );
     });
 
-    const handleRowClick = (row: ProductWithLastPrice) => {
-        goto(`/products/${row.id}`);
-    };
-
     function handleClickOutside(event: MouseEvent) {
         if (modalNode && !modalNode.contains(event.target as Node)) {
             isFilterModalOpen = false;
@@ -162,6 +156,17 @@
         } finally {
             loading = false;
         }
+    });
+
+    $effect(() => {
+        const filters = {
+            category: selectedCategory,
+            manufacturer: selectedManufacturer,
+            priceRange: priceRange,
+            showOutOfStock: showOutOfStock,
+            searchQuery: searchQuery
+        };
+        currentPage = 1;
     });
 </script>
 
@@ -253,21 +258,30 @@
             <div class="results-header">
                 <p>Showing {paginatedProducts.length} of {filteredProducts.length} products</p>
             </div>
-
-            <Table 
-                headers={["Name", "Lowest Price"]}
-                keys={["name", "price"]}
-                rows={paginatedProducts.map(p => ({
-                    ...p,
-                    expandedContent: p.prices.map(price => ({
-                        website: websitesMap[price.website_id]?.name || "Unknown",
-                        price: price.price,
-                        date: new Date(price.created_at).toLocaleDateString()
-                    })),
-                    price: p?.lowest_available_price ? formatPrice(p.lowest_available_price) : 'N/A',
-                }))}
-                on:rowClick={e => handleRowClick(e.detail)}
-            />
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Lowest Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#each paginatedProducts as product}
+                            <tr>
+                                <td>
+                                    <a href="/products/{product.id}" class="product-link">
+                                        {product.name}
+                                    </a>
+                                </td>
+                                <td>
+                                    {product?.lowest_available_price ? formatPrice(product.lowest_available_price) : 'N/A'}
+                                </td>
+                            </tr>
+                        {/each}
+                    </tbody>
+                </table>
+            </div>
 
             <div class="pagination">
                 <button 
@@ -459,5 +473,34 @@
 
     .separator {
         color: #9ca3af;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+
+    .table-container table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: white;
+    }
+
+    .table-container th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.875rem;
+    }
+
+    .table-container th, td {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .table-container tr:hover {
+        background-color: #f8f9fa;
     }
 </style>
