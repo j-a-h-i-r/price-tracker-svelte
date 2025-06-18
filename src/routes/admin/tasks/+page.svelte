@@ -5,6 +5,8 @@
     
     let isUpdatingMetadata = $state(false);
     let updateStatus = $state('');
+    let isUpdatingSimilarProducts = $state(false);
+    let similarProductsStatus = $state('');
     
     onMount(() => {
         if (!userState.isAdmin) {
@@ -31,6 +33,28 @@
             updateStatus = 'Failed to start metadata update';
         } finally {
             isUpdatingMetadata = false;
+        }
+    }
+    
+    async function updatePotentialSimilarProducts() {
+        isUpdatingSimilarProducts = true;
+        similarProductsStatus = 'Starting potential similar products update...';
+        
+        try {
+            const response = await fetch('/api/potentialsimilar', {
+                method: 'POST',
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to start potential similar products update');
+            }
+            
+            similarProductsStatus = 'Potential similar products update task started successfully';
+        } catch (error) {
+            console.error('Error starting potential similar products update:', error);
+            similarProductsStatus = 'Failed to start potential similar products update';
+        } finally {
+            isUpdatingSimilarProducts = false;
         }
     }
 </script>
@@ -61,6 +85,29 @@
             {#if updateStatus}
                 <div class="status-message" class:error={updateStatus.includes('Failed')}>
                     {updateStatus}
+                </div>
+            {/if}
+        </div>
+        
+        <div class="task-card">
+            <div class="task-header">
+                <h2>Update Potential Similar Products</h2>
+                <p>Update the list of potential similar products for all products in the database</p>
+            </div>
+            
+            <div class="task-actions">
+                <button 
+                    class="run-btn"
+                    disabled={isUpdatingSimilarProducts}
+                    onclick={updatePotentialSimilarProducts}
+                >
+                    {isUpdatingSimilarProducts ? 'Running...' : 'Run Task'}
+                </button>
+            </div>
+            
+            {#if similarProductsStatus}
+                <div class="status-message" class:error={similarProductsStatus.includes('Failed')}>
+                    {similarProductsStatus}
                 </div>
             {/if}
         </div>
