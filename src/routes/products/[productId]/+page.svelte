@@ -154,6 +154,33 @@
         return false;
     });
 
+    let priceStats30Day: Map<number, { high: number; low: number; average: number; count: number }> = $derived.by(() => {
+        const statsMap = new Map();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        externalProductPrices.forEach((prices, externalProductId) => {
+            const recentPrices = prices
+                .filter(price => price.price != null && new Date(price.created_at) >= thirtyDaysAgo)
+                .map(price => price.price);
+            
+            if (recentPrices.length > 0) {
+                const high = Math.max(...recentPrices);
+                const low = Math.min(...recentPrices);
+                const average = Math.ceil(recentPrices.reduce((sum, price) => sum + price, 0) / recentPrices.length);
+                
+                statsMap.set(externalProductId, {
+                    high,
+                    low,
+                    average,
+                    count: recentPrices.length
+                });
+            }
+        });
+        
+        return statsMap;
+    });
+
     let chartCanvas: HTMLCanvasElement | null = $state(null);
     let chart: Chart;
 
@@ -193,6 +220,11 @@
                         display: true,
                         text: "Price History",
                     },
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        align: 'start',
+                    }
                 },
                 scales: {
                     x: {
@@ -205,6 +237,10 @@
                         beginAtZero: false,
                         ticks: {
                             callback: (value) => `${value}`,
+                        },
+                        title: {
+                            display: true,
+                            text: 'Price (৳)',
                         },
                     },
                 },
@@ -435,6 +471,28 @@
                             View in <span class="store-name">{websiteMap.get(product.website_id)?.name}</span> →
                         </a>
                     </div>
+
+                    {#if priceStats30Day.get(product.external_product_id)}
+                        <div class="price-stats">
+                            <div class="price-stats-grid">
+                                <div class="price-stat">
+                                    <span class="price-stat-label">30-Day High</span>
+                                    <span class="price-stat-value price-high">{formatPrice(priceStats30Day.get(product.external_product_id)!.high)}</span>
+                                </div>
+                                <div class="price-stat">
+                                    <span class="price-stat-label">30-Day Avg</span>
+                                    <span class="price-stat-value price-avg">{formatPrice(priceStats30Day.get(product.external_product_id)!.average)}</span>
+                                </div>
+                                <div class="price-stat">
+                                    <span class="price-stat-label">30-Day Low</span>
+                                    <span class="price-stat-value price-low">{formatPrice(priceStats30Day.get(product.external_product_id)!.low)}</span>
+                                </div>
+                            </div>
+                            <div class="price-stats-footer">
+                                Based on {priceStats30Day.get(product.external_product_id)!.count} price points
+                            </div>
+                        </div>
+                    {/if}
 
                     <div class="metadata-pills">
                         {#each externalProductMetadatas.get(product.external_product_id) ?? [] as metadata}
@@ -928,6 +986,78 @@
             color: #1f2937;
             font-size: 1rem;
             font-weight: 500;
+        }
+
+        .price-stats {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .price-stats-header {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.75rem;
+        }
+
+        .price-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .price-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .price-stat-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .price-stat-value {
+            font-size: 0.875rem;
+            font-weight: 700;
+        }
+
+        .price-high {
+            color: #dc2626;
+        }
+
+        .price-avg {
+            color: #374151;
+        }
+
+        .price-low {
+            color: #059669;
+        }
+
+        .price-stats-footer {
+            margin-top: 0.75rem;
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-align: center;
+            font-style: italic;
+        }
+
+        @media (max-width: 640px) {
+            .price-stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.75rem;
+            }
+            
+            .price-stat-value {
+                font-size: 0.75rem;
+            }
         }
 
         .metadata-pills {
