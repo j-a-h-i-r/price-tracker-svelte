@@ -374,9 +374,32 @@
             }));
     }
 
-    $effect(() => {
-        console.log($state.snapshot(selectedVariants));
-    });
+    function handleUnmerge(externalProductId: number) {
+        if (!confirm('Are you sure you want to unmerge this product? This action cannot be undone.')) {
+            return;
+        }
+        
+        fetch(`/api/products/${productId}/unmerge`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ external_product_id: externalProductId }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to unmerge product');
+            }
+            console.log('Product unmerged successfully', response);
+            // Refresh the page to show updated data
+            alert('Product unmerged successfully!');
+            window.location.reload();
+        })
+        .catch(error => {
+            console.error('Error unmerging product:', error);
+            alert('Failed to unmerge product. Please try again.');
+        });
+    }
 </script>
 
 <div class="product-details">
@@ -533,14 +556,22 @@
                         </div>
                     {/if}
 
-                    <div class="metadata-pills">
-                        {#each externalProductMetadatas.get(product.external_product_id) ?? [] as metadata}
-                            <div class="metadata-pill">
-                                <span class="metadata-pill-label">{metadata.name_display_text}</span>
-                                <span class="metadata-pill-value">{metadata.value_display_text}</span>
-                            </div>
-                        {/each}
-                    </div>
+                    {#if (externalProductMetadatas.get(product.external_product_id) ?? []).length > 0}
+                        <div class="metadata-pills">
+                            {#each externalProductMetadatas.get(product.external_product_id) ?? [] as metadata}
+                                <div class="metadata-pill">
+                                    <span class="metadata-pill-label">{metadata.name_display_text}</span>
+                                    <span class="metadata-pill-value">{metadata.value_display_text}</span>
+                                </div>
+                            {/each}
+                        </div> 
+                    {/if}
+
+                    {#if userState.isAdmin}
+                        <div class="admin-actions-product">
+                            <button onclick={() => handleUnmerge(product.external_product_id)}>Unmerge</button>
+                        </div>
+                    {/if}
                 </div>
 
             {/each}
@@ -667,6 +698,38 @@
 
         .track-btn:hover {
             background-color: #1d4ed8;
+        }
+
+        .admin-actions-product {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .admin-actions-product button {
+            background-color: #dc2626;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
+        }
+
+        .admin-actions-product button:hover {
+            background-color: #b91c1c;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+        }
+
+        .admin-actions-product button:active {
+            transform: translateY(0);
         }
 
         .variants-section {
