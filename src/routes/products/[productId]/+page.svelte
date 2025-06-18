@@ -357,6 +357,26 @@
             if (chart) chart.destroy();
         };
     });
+
+    let noConfigurationSelected = $derived.by(() => {
+        return Object.values(selectedVariants)
+            .every(
+                (value) => value === 'unselected'
+            );
+    });
+
+    function getSelectedVariantsFormatted(configs: Record<string, string>) {
+        return variants
+            .filter((variant) => configs[variant.name] !== 'unselected')
+            .map((variant) => ({
+                name: variant.display_text,
+                value: `${configs[variant.name]} ${variant.unit || ''}`,
+            }));
+    }
+
+    $effect(() => {
+        console.log($state.snapshot(selectedVariants));
+    });
 </script>
 
 <div class="product-details">
@@ -432,6 +452,25 @@
     
     {#if externalProductsSorted.length > 0}
         <div class="websites-header">Available retailers</div>
+
+        {#if variants.length > 0}
+        <div>
+            <p class="savings-info">
+                {#if noConfigurationSelected}
+                    The savings are shown for all configurations of this product. Select a configuration
+                    if you want to see savings for a specific configuration.
+                {:else}
+                    The savings are shown for all products with 
+                    {#each getSelectedVariantsFormatted(selectedVariants) as selVar}
+                    <span class="metadata-pill">
+                        <span class="metadata-pill-label">{selVar.name}</span>
+                        <span class="metadata-pill-value">{selVar.value}</span>
+                    </span>
+                    {/each}
+                {/if}
+            </p>
+        </div>
+        {/if}
 
         <div class="details">
             {#each externalProductsSorted as product}
@@ -1229,5 +1268,12 @@
         font-size: 0.875rem;
         color: #6b7280;
         font-style: italic;
+    }
+
+    .savings-info {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-style: italic;
+        padding: 1rem 0.5rem;
     }
 </style>

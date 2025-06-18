@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#fff"/>
+  <!-- Centered "100" -->
+  <text x="32" y="26" font-family="Arial" font-size="24" fill="#888" font-weight="bold" text-anchor="middle" dominant-baseline="middle">100</text>
+  <!-- Diagonal slash cutting through "100" -->
+  <line x1="18" y1="14" x2="48" y2="36" stroke="#f44336" stroke-width="4"/>
+  <!-- Discount "-50%" below -->
+  <text x="32" y="50" font-family="Arial" font-size="18" fill="#388e3c" font-weight="bold" text-anchor="middle">-50%</text>
+</svg>
