@@ -5,6 +5,7 @@
         fetchExternalProductPrices,
         fetchExternalProductsByInternalId,
         fetchProductById,
+        fetchVariantAttributes,
     } from "$lib/api/products.js";
     import type {
         ExternalProduct,
@@ -29,7 +30,8 @@
     let isEditingMainProduct = $state(false);
     let editedMainName = $state('');
     let variants: ProductVariant[] = $state([]);
-    let selectedVariants: Record<string, string> = $state({});
+    let initialVariantsLoaded = $state(false);
+    let selectedVariants: Record<string, string | 'unselected'> = $state({});
     let externalProductMetadatas: Map<number, ExternalProductMetadata[]> = $state(new Map());
 
     async function handleSaveMainProduct() {
@@ -61,16 +63,6 @@
         if (product) {
             isEditingMainProduct = true;
             editedMainName = product.name;
-        }
-    }
-
-    async function fetchVariantAttributes(productId: number) {
-        try {
-            const response = await fetch(`/api/products/${productId}/variantattributes`);
-            if (!response.ok) throw new Error('Failed to fetch variants');
-            return response.json();
-        } catch (error) {
-            console.error('Error fetching variants:', error);
         }
     }
 
@@ -334,12 +326,21 @@
             ])
             product = _product;
             variants = _variants;
+
+            variants.forEach((variant) => {
+                selectedVariants![variant.name] = 'unselected';
+            });
+            initialVariantsLoaded = true;
         } catch (error) {
             console.error("Error fetching product:", error);
         }
     });
 
     $effect(() => {
+        // I don't like this. But without this the external products are fetched
+        // twice during the initial load. And since prices and metadata are fetched
+        // when external products are fetched, it causes those to be fetched twice as well.
+        if (initialVariantsLoaded === false) return;
         const sanitizedVariants: Record<string, string> = {};
         for (const [key, value] of Object.entries(selectedVariants)) {
             if (value !== 'unselected') {

@@ -82,3 +82,13 @@ export async function fetchExternalProductMetadata(internalId: number, externalI
     }
     return response.json();
 }
+
+export async function fetchVariantAttributes(productId: number) {
+    try {
+        const response = await fetch(`/api/products/${productId}/variantattributes`);
+        if (!response.ok) throw new Error('Failed to fetch variants');
+        return response.json();
+    } catch (error) {
+        console.error('Error fetching variants:', error);
+    }
+}
