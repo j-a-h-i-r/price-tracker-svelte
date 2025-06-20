@@ -21,6 +21,7 @@
     import { fetchWebsites, type Website } from "$lib/api/websites.js";
     import { userState } from "$lib/shared.svelte.js";
     import { formatPrice } from "$lib/util.js";
+    import dayjs from "dayjs";
 
     let productId = Number(page.params.productId);
     let product: Product | null = $state(null);
@@ -520,7 +521,7 @@
                         </div>
                         {#if latestPrice.get(product.external_product_id)?.created_at}
                             <div class="timestamp">
-                                Updated {new Date(latestPrice.get(product.external_product_id)!.created_at).toLocaleDateString()}
+                                Updated {dayjs().diff(new Date(latestPrice.get(product.external_product_id)!.created_at), 'day')} days ago
                             </div>
                         {/if}
                     </div>
