@@ -22,6 +22,7 @@
     import { userState } from "$lib/shared.svelte.js";
     import { formatPrice } from "$lib/util.js";
     import dayjs from "dayjs";
+    import type { Attachment } from "svelte/attachments";
 
     let productId = Number(page.params.productId);
     let product: Product | null = $state(null);
@@ -104,10 +105,6 @@
                 productPrices.set(externalProduct.external_product_id, prices[index]);
             });
             externalProductPrices = productPrices;
-
-            setTimeout(() => {
-                createChart();
-            }, 0);
         })
     })
 
@@ -174,71 +171,67 @@
         return statsMap;
     });
 
-    let chartCanvas: HTMLCanvasElement | null = $state(null);
-    let chart: Chart;
+    function attachChart(): Attachment<HTMLCanvasElement> {
+        return (chartCanvas: HTMLCanvasElement) => {
+            if (!chartCanvas) return;
 
-    function createChart() {
-        if (!product || !chartCanvas) return;
-        let priceDatasets: any[] = [];
+            let priceDatasets: {label: string, data: {x: string, y: number}[]}[] = [];
 
-        externalProductPrices.forEach((prices, externalProductId) => {
-            const product = externalProducts.find((product) => product.external_product_id === externalProductId);
-            const websiteName = websiteMap.get(product!.website_id)?.name;
-            priceDatasets.push({
-                label: `[${websiteName}] ${product!.name}`,
-                data: prices.map((p) => ({
-                    x: p.created_at,
-                    y: p.price,
-                })),
-            })
-        });
+            externalProductPrices.forEach((prices, externalProductId) => {
+                const product = externalProducts.find((product) => product.external_product_id === externalProductId);
+                const websiteName = websiteMap.get(product!.website_id)?.name;
+                priceDatasets.push({
+                    label: `[${websiteName}] ${product!.name}`,
+                    data: prices.map((p) => ({
+                        x: p.created_at,
+                        y: p.price,
+                    })),
+                })
+            });
 
-        const data = {
-            datasets: priceDatasets,
-            // labels: product.prices.map(p => new Date(p.created_at).toLocaleDateString())
-        };
+            const data = {
+                datasets: priceDatasets,
+            };
 
-        if (chart) {
-            chart.destroy();
-        }
-
-        chart = new Chart(chartCanvas, {
-            type: "line",
-            data,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: "Price History",
-                    },
-                    legend: {
-                        display: true,
-                        position: 'bottom',
-                        align: 'start',
-                    }
-                },
-                scales: {
-                    x: {
-                        type: "time",
-                        time: {
-                            unit: 'day'
-                        }
-                    },
-                    y: {
-                        beginAtZero: false,
-                        ticks: {
-                            callback: (value) => `${value}`,
-                        },
+            const chart = new Chart(chartCanvas, {
+                type: "line",
+                data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
                         title: {
                             display: true,
-                            text: 'Price (৳)',
+                            text: "Price History",
+                        },
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            align: 'start',
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: "time",
+                            time: {
+                                unit: 'day'
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Price (৳)',
+                            },
                         },
                     },
                 },
-            },
-        });
+            });
+
+            return () => {
+                if (chart) chart.destroy();
+            }
+        };
     }
 
     async function handleUntrack() {
@@ -352,12 +345,6 @@
         .then((products) => {
             externalProducts = products;
         });
-    });
-
-    onMount(() => {
-        return () => {
-            if (chart) chart.destroy();
-        };
     });
 
     let noConfigurationSelected = $derived.by(() => {
@@ -580,7 +567,7 @@
         </div>
 
         <div class="chart-container">
-            <canvas bind:this={chartCanvas}></canvas>
+            <canvas {@attach attachChart()} ></canvas>
         </div>
     {:else}
         <div class="no-products">
