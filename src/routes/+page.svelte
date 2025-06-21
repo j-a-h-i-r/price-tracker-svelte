@@ -137,7 +137,7 @@
             aria-label="Deals carousel"
         >
             {#each deals as deal}
-                <a href="/products/{deal.product_id}" class="deal-card">
+                <a href="/products/{deal.product_id}?highlight_external_product_id={deal.external_product_id}" class="deal-card">
                     <div class="deal-content">
                         <h3>{deal.product_name}</h3>
                         <div class="price-section">

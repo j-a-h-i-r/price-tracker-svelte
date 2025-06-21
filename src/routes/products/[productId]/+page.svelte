@@ -35,6 +35,29 @@
     let initialVariantsLoaded = $state(false);
     let selectedVariants: Record<string, string | 'unselected'> = $state({});
     let externalProductMetadatas: Map<number, ExternalProductMetadata[]> = $state(new Map());
+    let isExternalProductsLoaded = $state(false);
+
+    let externalProductIdToHighlight: number | null = $state(null);
+    onMount(() => {
+        const externalProductId = page.url.searchParams.get('highlight_external_product_id');
+        if (externalProductId) {
+            externalProductIdToHighlight = Number(externalProductId);
+        }
+    })
+
+    function highlightExternalProduct(externalProduct: ExternalProduct): Attachment<HTMLElement> {
+        return (element: HTMLElement) => {
+            if (!element) return;
+
+            if (
+                externalProductIdToHighlight
+                && externalProductIdToHighlight === externalProduct.external_product_id
+            ) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        };
+
+    }
 
     async function handleSaveMainProduct() {
         try {
@@ -344,6 +367,7 @@
         fetchExternalProductsByInternalId(productId, sanitizedVariants)
         .then((products) => {
             externalProducts = products;
+            isExternalProductsLoaded = true;
         });
     });
 
@@ -486,7 +510,9 @@
 
         <div class="details">
             {#each externalProductsSorted as product}
-                <div class="price-card">
+                <div class={["price-card", {highlight: externalProductIdToHighlight === product.external_product_id}]}
+                    {@attach highlightExternalProduct(product)}
+                >
                     <div class="product-name">
                         {product.name}
                     </div>
@@ -570,13 +596,19 @@
             <canvas {@attach attachChart()} ></canvas>
         </div>
     {:else}
-        <div class="no-products">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p>No products available for this configuration.</p>
-            <p class="suggestion">Try selecting different configurations.</p>
-        </div>
+        {#if !isExternalProductsLoaded}
+            <div class="loading-message">
+                Loading products...
+            </div>
+        {:else}
+            <div class="no-products">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p>No products available for this configuration.</p>
+                <p class="suggestion">Try selecting different configurations.</p>
+            </div>
+        {/if}
     {/if}
 
         <style>
@@ -1327,5 +1359,12 @@
         color: #6b7280;
         font-style: italic;
         padding: 1rem 0.5rem;
+    }
+
+    .highlight {
+        border-top-width: 0.5rem;
+        border-color: #2563eb;
+        border-radius: 4px;
+        font-weight: 500;
     }
 </style>

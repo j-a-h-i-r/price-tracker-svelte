@@ -9,6 +9,7 @@ export interface Deal {
     is_available: boolean;
     category_id: number;
     manufacturer_id: number;
+    external_product_id: number;
 }
 
 export interface DealFilter extends Record<string, string | number | boolean | undefined | null> {
