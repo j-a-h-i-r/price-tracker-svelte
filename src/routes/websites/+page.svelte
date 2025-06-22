@@ -99,6 +99,11 @@
     {/if}
 </div>
 
+<svelte:head>
+    <title>Supported Websites for Price Tracking</title>
+    <meta name="description" content="These are the websites currently being tracked to find the best deals and prices." />
+</svelte:head>
+
 <style>
     .websites-container {
         max-width: 1200px;

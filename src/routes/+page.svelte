@@ -192,6 +192,11 @@
     <p class="no-results">No products found</p>
 {/if}
 
+<svelte:head>
+    <title>Track price and deals on Bangladeshi products</title>
+    <meta name="description" content="Track product prices and find deals. Get the best prices from Startech, Techland, Pickaboo and the biggest bangladeshi retailers." />
+</svelte:head>
+
 <style>
     .stats-grid {
         display: grid;

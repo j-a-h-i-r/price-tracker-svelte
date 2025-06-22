@@ -137,6 +137,11 @@
     </div>
 </div>
 
+<svelte:head>
+    <title>Current Deals - Find the hottest deals on Bangladeshi products</title>
+    <meta name="description" content="Discover the best deals available right now on Bangladeshi products. Updated every day" />
+</svelte:head>
+
 <style>
     .deals-container {
         padding: 2rem;

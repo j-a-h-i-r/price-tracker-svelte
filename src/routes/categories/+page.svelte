@@ -46,6 +46,11 @@
     {/if}
 </div>
 
+<svelte:head>
+    <title>Supported Categories for tracking the best prices</title>
+    <meta name="description" content="These are the categories currently being tracked to find the best deals and prices" />
+</svelte:head>
+
 <style>
     .categories-container {
         padding: 2rem 0;
