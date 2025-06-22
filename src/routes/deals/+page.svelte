@@ -8,13 +8,42 @@
     import NoResult from '$lib/components/NoResult.svelte';
     import { getManufacturers } from '$lib/api/manufacturers.js';
     import type { Manufacturer } from '$lib/types/Manufacturer.js';
+    import { page } from '$app/state';
+    import { replaceState } from '$app/navigation';
 
     let selectedDays = $state(7);
     let sortBy = $state<'value' | 'percentage'>('value');
     let categories: Category[] = $state([]);
     let manufacturers: Manufacturer[] = $state([]);
-    let selectedCategory: string | number = $state("all");
-    let selectedManufacturer: string | number = $state("all");
+    let selectedCategoryId: string | number = $state("all");
+    let selectedManufacturerId: string | number = $state("all");
+
+    onMount(() => {
+        const urlCategoryId = page.url.searchParams.get('category_id');
+        const urlManufacturerId = page.url.searchParams.get('manufacturer_id');
+        if (urlCategoryId) {
+            selectedCategoryId = urlCategoryId;
+        }
+        if (urlManufacturerId) {
+            selectedManufacturerId = urlManufacturerId;
+        }
+    });
+
+    $effect(() => {
+        const params = new URLSearchParams();
+        if (selectedCategoryId !== 'all') {
+            params.set('category_id', selectedCategoryId.toString());
+        }
+        if (selectedManufacturerId !== 'all') {
+            params.set('manufacturer_id', selectedManufacturerId.toString());
+        }
+
+        try {
+            replaceState(`?${params.toString()}`, page.state);
+        } catch (error) {
+            console.warn('Error updating URL:', error);
+        }
+    });
 
     let categoryMap = $derived.by(() => {
         return categories.reduce((map, category) => {
@@ -35,8 +64,8 @@
             sortby: sortBy,
             days: selectedDays,
         };
-        if (selectedCategory !== "all") filters.category_id = selectedCategory;
-        if (selectedManufacturer !== "all") filters.manufacturer_id = selectedManufacturer;
+        if (selectedCategoryId !== "all") filters.category_id = selectedCategoryId;
+        if (selectedManufacturerId !== "all") filters.manufacturer_id = selectedManufacturerId;
         
         return fetchDeals(filters);
     });
@@ -77,14 +106,14 @@
             <SearchableSelect
                 label="Category"
                 options={categories}
-                bind:value={selectedCategory}
+                bind:value={selectedCategoryId}
                 allLabel="All Categories"
             />
 
             <SearchableSelect
                 label="Brand"
                 options={manufacturers}
-                bind:value={selectedManufacturer}
+                bind:value={selectedManufacturerId}
                 allLabel="All Brands"
             />
         </div>
