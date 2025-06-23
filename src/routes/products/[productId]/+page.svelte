@@ -436,6 +436,15 @@
             alert('Failed to unmerge product. Please try again.');
         });
     }
+
+    function getLastUpdatedText(updateDate: string | null): string {
+        if (!updateDate) return 'Unknown';
+        const daysAgo = dayjs().diff(dayjs(updateDate), 'day');
+        if (daysAgo === 0) return 'Today';
+        if (daysAgo === 1) return 'Yesterday';
+        return `${daysAgo} days ago`;
+
+    }
 </script>
 
 <div class="product-details">
@@ -557,7 +566,7 @@
                         </div>
                         {#if latestPrice.get(product.external_product_id)?.created_at}
                             <div class="timestamp">
-                                Updated {dayjs().diff(new Date(latestPrice.get(product.external_product_id)!.created_at), 'day')} days ago
+                                Updated  {getLastUpdatedText(latestPrice.get(product.external_product_id)!.created_at)}
                             </div>
                         {/if}
                     </div>
