@@ -36,8 +36,10 @@
     let selectedVariants: Record<string, string | 'unselected'> = $state({});
     let externalProductMetadatas: Map<number, ExternalProductMetadata[]> = $state(new Map());
     let isExternalProductsLoaded = $state(false);
+    let isExternalProductPricesLoaded = $state(false);
 
     let externalProductIdToHighlight: number | null = $state(null);
+    let alreadyScrolledOnce = $state(false);
     onMount(() => {
         const externalProductId = page.url.searchParams.get('highlight_external_product_id');
         if (externalProductId) {
@@ -52,8 +54,12 @@
             if (
                 externalProductIdToHighlight
                 && externalProductIdToHighlight === externalProduct.external_product_id
+                && !alreadyScrolledOnce
             ) {
                 element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (isExternalProductPricesLoaded) {
+                    alreadyScrolledOnce = true;
+                }
             }
         };
 
@@ -128,6 +134,22 @@
                 productPrices.set(externalProduct.external_product_id, prices[index]);
             });
             externalProductPrices = productPrices;
+
+            // This is really bad code. The idea is that the product will be highlighted
+            // on first visit from the deals page. And once the user changes any of the variant
+            // configs, the highlight will not be applied.
+            // I'm using the alreadyScrolledOnce state to check if the scroll has already happened.
+            // The scrolling itself works fine. But since I'm fetching the external products first 
+            // amd then the prices, it takes multiple renders to fully display everything.
+            // Without this check, it scrolls to the correct div. But then product prices are loaded
+            // which causes previous divs to have more content and the scroll position is not accurate
+            // anymore. So to ensure that we need to wait for the prices to be loaded
+
+            // In short external products -> external prices -> mark external prices loaded 
+            // -> scroll is now accurate -> mark scroll as done
+            if (isExternalProductsLoaded) {
+                isExternalProductPricesLoaded = true;
+            }
         })
     })
 
@@ -202,6 +224,7 @@
 
             externalProductPrices.forEach((prices, externalProductId) => {
                 const product = externalProducts.find((product) => product.external_product_id === externalProductId);
+                if (!product) return;
                 const websiteName = websiteMap.get(product!.website_id)?.name;
                 priceDatasets.push({
                     label: `[${websiteName}] ${product!.name}`,
