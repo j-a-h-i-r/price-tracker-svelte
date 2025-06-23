@@ -9,7 +9,7 @@
     import { getManufacturers } from '$lib/api/manufacturers.js';
     import type { Manufacturer } from '$lib/types/Manufacturer.js';
     import { page } from '$app/state';
-    import { replaceState } from '$app/navigation';
+    import { goto } from '$app/navigation';
 
     let selectedDays = $state(7);
     let sortBy = $state<'value' | 'percentage'>('value');
@@ -39,7 +39,7 @@
         }
 
         try {
-            replaceState(`?${params.toString()}`, page.state);
+            goto(`?${params.toString()}`, { keepFocus: true, replaceState: true });
         } catch (error) {
             console.warn('Error updating URL:', error);
         }
