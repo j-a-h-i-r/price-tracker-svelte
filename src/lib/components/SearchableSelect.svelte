@@ -42,6 +42,17 @@
             inputElement.focus();
         }
     });
+
+    // svelte-ignore non_reactive_update
+    let selectedOptionElement: HTMLElement | null = null;
+    $effect(() => {
+        if (isOpen && selectedOptionElement) {
+            // This works but it also moves the page when scrolling
+            // A better solution is to scroll only inside the container
+            // Will do it later if needed
+            selectedOptionElement.scrollIntoView({ behavior: "instant", block: "center" });
+        }
+    });
 </script>
 
 <svelte:window onclick={handleClickOutside} />
@@ -82,6 +93,10 @@
                             class="option"
                             class:selected={value == option.id}
                             onclick={() => handleSelect(option.id)}
+                            bind:this={
+                                () => value == option.id ? selectedOptionElement : null,
+                                (el) => value == option.id ? selectedOptionElement = el : null
+                            }
                         >
                             {option.name}
                         </button>
