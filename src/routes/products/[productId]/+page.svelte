@@ -41,9 +41,9 @@
     let externalProductIdToHighlight: number | null = $state(null);
     let alreadyScrolledOnce = $state(false);
     onMount(() => {
-        const externalProductId = page.url.searchParams.get('highlight_external_product_id');
-        if (externalProductId) {
-            externalProductIdToHighlight = Number(externalProductId);
+        const { highlight_external_product_id } = page.state as any;
+        if (highlight_external_product_id) {
+            externalProductIdToHighlight = Number(highlight_external_product_id);
         }
     })
 

@@ -4,6 +4,7 @@
     import type { Deal } from "$lib/types/Deal.js";
     import { onMount } from "svelte";
     import { formatPrice } from "$lib/util.js";
+    import { goto } from "$app/navigation";
 
     let searchQuery = '';
     let totalProducts = 0;
@@ -130,14 +131,18 @@
         <div 
             class="deals-scroll" 
             bind:this={dealsContainer} 
-            on:mouseenter={handleMouseEnter} 
-            on:mouseleave={handleMouseLeave}
+            onmouseenter={handleMouseEnter} 
+            onmouseleave={handleMouseLeave}
             aria-details="Deals carousel"
             role="region"
             aria-label="Deals carousel"
         >
             {#each deals as deal}
-                <a href="/products/{deal.product_id}?highlight_external_product_id={deal.external_product_id}" class="deal-card">
+                <a 
+                    href="/products/{deal.product_id}"
+                    onclick={() => goto(`/products/${deal.product_id}`, { state: { highlight_external_product_id: deal.external_product_id } })}
+                    class="deal-card"
+                >
                     <div class="deal-content">
                         <h3>{deal.product_name}</h3>
                         <div class="price-section">
