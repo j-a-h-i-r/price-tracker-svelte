@@ -7,6 +7,8 @@
     import { goto } from '$app/navigation';
     import type { Snapshot } from '../$types.js';
     import { formatPrice } from '$lib/util.js';
+    import SearchableSelect from '$lib/components/SearchableSelect.svelte';
+    import RangeInput from '$lib/components/RangeInput.svelte';
     
     let manufacturers: Manufacturer[] = $state([]);
     let categories: Category[] = $state([]);
@@ -15,10 +17,10 @@
     // Filter states
     let selectedBrandId = $state('');
     let selectedCategoryId = $state('');
-    let minPrice = $state('');
-    let maxPrice = $state('');
+    let minPrice = $state(0);
+    let maxPrice = $state(0);
     let selectedMetadata: Record<string, any> = $state({});
-    let metadataRanges: Record<string, {min: string, max: string}> = $state({});
+    let metadataRanges: Record<string, {min: number, max: number}> = $state({});
     let isLoading = $state(false);
     let searchResults: any[] = $state([]);
     let hasSearched = $state(false);
@@ -69,9 +71,9 @@
         }
     }
 
-    function handleRangeChange(metadataName: string, type: 'min' | 'max', value: string) {
+    function handleRangeChange(metadataName: string, type: 'min' | 'max', value: number) {
         if (!metadataRanges[metadataName]) {
-            metadataRanges[metadataName] = { min: '', max: '' };
+            metadataRanges[metadataName] = { min: 0, max: 0 };
         }
         metadataRanges[metadataName][type] = value;
         metadataRanges = { ...metadataRanges };
@@ -95,8 +97,8 @@
     function clearFilters() {
         selectedBrandId = '';
         selectedCategoryId = '';
-        minPrice = '';
-        maxPrice = '';
+        minPrice = 0;
+        maxPrice = 0;
         selectedMetadata = {};
         metadataRanges = {};
     }
@@ -108,8 +110,8 @@
         
         if (selectedBrandId) params.append('manufacturer_id', selectedBrandId);
         if (selectedCategoryId) params.append('category_id', selectedCategoryId);
-        if (minPrice) params.append('price[gt]', minPrice);
-        if (maxPrice) params.append('price[lt]', maxPrice);
+        if (minPrice) params.append('price[gt]', `${minPrice}`);
+        if (maxPrice) params.append('price[lt]', `${maxPrice}`);
         
         // Add metadata filters
         console.log('Selected Metadata:', $state.snapshot(selectedMetadata));
@@ -169,44 +171,32 @@
             <div class="filters-grid">
                 <!-- Brand Filter -->
                 <div class="filter-item">
-                    <label for="brand">Brand</label>
-                    <select id="brand" bind:value={selectedBrandId}>
-                        <option value="">Any Brand</option>
-                        {#each manufacturers as manufacturer}
-                            <option value={manufacturer.id}>{manufacturer.name}</option>
-                        {/each}
-                    </select>
+                    <SearchableSelect
+                        label="Brand"
+                        allLabel="All Brands"
+                        bind:value={selectedBrandId}
+                        options={manufacturers.map(m => ({ id: m.id, name: m.name }))}
+                    />
                 </div>
                 
                 <!-- Category Filter -->
                 <div class="filter-item">
-                    <label for="category">Category</label>
-                    <select id="category" bind:value={selectedCategoryId}>
-                        <option value="">Any Category</option>
-                        {#each categories as category}
-                            <option value={category.id}>{category.name}</option>
-                        {/each}
-                    </select>
+                    <SearchableSelect
+                        label="Category"
+                        allLabel="All Categories"
+                        bind:value={selectedCategoryId}
+                        options={categories.map(m => ({ id: m.id, name: m.name }))}
+                    />
                 </div>
                 
                 <!-- Price Range -->
                 <div class="filter-item">
-                    <label for="min-price">Min Price</label>
-                    <input 
-                        id="min-price" 
-                        type="number" 
-                        placeholder="Min price"
-                        bind:value={minPrice}
-                    />
-                </div>
-                
-                <div class="filter-item">
-                    <label for="max-price">Max Price</label>
-                    <input 
-                        id="max-price" 
-                        type="number" 
-                        placeholder="Max price"
-                        bind:value={maxPrice}
+                    <RangeInput
+                        label="Price Range"
+                        minAllowed={0}
+                        maxAllowed={+Infinity}
+                        bind:minValue={minPrice}
+                        bind:maxValue={maxPrice}
                     />
                 </div>
             </div>
@@ -219,49 +209,33 @@
                 <div class="filters-grid">
                     {#each metadataFilters as metadata}
                         <div class="filter-item">
-                            <label for={metadata.key}>{metadata.display_text}</label>
-                            
                             {#if metadata.type === 'set'}
-                                <!-- Dropdown for string type -->
-                                <select 
-                                    id={metadata.key} 
-                                    value={selectedMetadata[metadata.key] || ''}
-                                    onchange={(e: Event) => handleMetadataChange(metadata.key, (e.target as HTMLSelectElement).value)}
-                                >
-                                    <option value="">Any {metadata.display_text}</option>
-                                    {#each metadata.value as value}
-                                        <option value={value}>{value}</option>
-                                    {/each}
-                                </select>
+                                <SearchableSelect
+                                    label="Category"
+                                    allLabel={`All ${metadata.display_text}`}
+                                    bind:value={
+                                        () => selectedMetadata[metadata.key] || '',
+                                        (value) => handleMetadataChange(metadata.key, value)
+                                    }
+                                    options={metadata.value.map(m => ({ id: m, name: m }))}
+                                />
                                 
                             {:else if metadata.type === 'range'}
                                 <!-- Range inputs for range type -->
-                                <div class="range-inputs">
-                                    <div class="range-input">
-                                        <input 
-                                            type="number" 
-                                            placeholder={`Min ${metadata.unit || ''}`}
-                                            min={metadata.value.min}
-                                            max={metadata.value.max}
-                                            value={metadataRanges[metadata.key]?.min || ''}
-                                            onchange={(e: Event) => handleRangeChange(metadata.key, 'min', (e.target as HTMLInputElement).value)}
-                                        />
-                                        <span class="unit">{metadata.unit || ''}</span>
-                                    </div>
-                                    <span class="range-separator">to</span>
-                                    <div class="range-input">
-                                        <input 
-                                            type="number" 
-                                            placeholder={`Max ${metadata.unit || ''}`}
-                                            min={metadata.value.min}
-                                            max={metadata.value.max}
-                                            value={metadataRanges[metadata.key]?.max || ''}
-                                            onchange={(e: Event) => handleRangeChange(metadata.key, 'max', (e.target as HTMLInputElement).value)}
-                                        />
-                                        <span class="unit">{metadata.unit || ''}</span>
-                                    </div>
-                                </div>
-                                
+                                <RangeInput
+                                    label={metadata.display_text}
+                                    minAllowed={metadata.value.min}
+                                    maxAllowed={metadata.value.max}
+                                    bind:minValue={
+                                        () => metadataRanges[metadata.key]?.min ?? metadata.value.min,
+                                        (value) => handleRangeChange(metadata.key, 'min', value)
+                                    }
+                                    bind:maxValue={
+                                        () => metadataRanges[metadata.key]?.max ?? metadata.value.max,
+                                        (value) => handleRangeChange(metadata.key, 'max', value)
+                                    }
+                                    unit={metadata.unit || ''}
+                                />
                             {:else if metadata.type === 'boolean'}
                                 <!-- Checkbox for boolean type -->
                                 <div class="checkbox-container">
