@@ -37,6 +37,7 @@
     let externalProductMetadatas: Map<number, ExternalProductMetadata[]> = $state(new Map());
     let isExternalProductsLoaded = $state(false);
     let isExternalProductPricesLoaded = $state(false);
+    let showUnavailableProducts = $state(false);
 
     let externalProductIdToHighlight: number | null = $state(null);
     let alreadyScrolledOnce = $state(false);
@@ -163,7 +164,12 @@
     });
 
     let externalProductsSorted = $derived.by(() => {
-        return externalProducts.toSorted((a, b) => {
+        return externalProducts
+        .filter((product) => {
+            const price = latestPrice.get(product.external_product_id);
+            return showUnavailableProducts || (price && price.is_available);
+        })
+        .toSorted((a, b) => {
             const aPrice = latestPrice.get(a.external_product_id)?.price || +Infinity;
             const bPrice = latestPrice.get(b.external_product_id)?.price || +Infinity;
             return aPrice - bPrice;
@@ -178,6 +184,17 @@
             }
         }
         return maxPrice;
+    });
+
+    let unavailableCount = $derived.by(() => {
+        let count = 0;
+        for (const price of latestPrice.values()) {
+            if (!price?.is_available) {
+                count++;
+            }
+        }
+        console.log('Unavailable count:', count);
+        return count;
     });
 
     let isAvailable = $derived.by(() => {
@@ -614,27 +631,35 @@
             </div>
         </div>
     {/if}
+
+    {#if unavailableCount > 0}
+        <div class="toggle-container">
+            <label class="toggle-switch">
+                <input type="checkbox" bind:checked={showUnavailableProducts} />
+                <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">Show unavailable products ({unavailableCount} products)</span>
+        </div>
+    {/if}
     
     {#if externalProductsSorted.length > 0}
-        <div class="websites-header">Available retailers</div>
-
         {#if variants.length > 0}
-        <div>
-            <p class="savings-info">
-                {#if noConfigurationSelected}
-                    The savings are shown for all configurations of this product. Select a configuration
-                    if you want to see savings for a specific configuration.
-                {:else}
-                    The savings are shown for all products with 
-                    {#each getSelectedVariantsFormatted(selectedVariants) as selVar}
-                    <span class="metadata-pill">
-                        <span class="metadata-pill-label">{selVar.name}</span>
-                        <span class="metadata-pill-value">{selVar.value}</span>
-                    </span>
-                    {/each}
-                {/if}
-            </p>
-        </div>
+            <div>
+                <p class="savings-info">
+                    {#if noConfigurationSelected}
+                        The savings are shown for all configurations of this product. Select a configuration
+                        if you want to see savings for a specific configuration.
+                    {:else}
+                        The savings are shown for all products with 
+                        {#each getSelectedVariantsFormatted(selectedVariants) as selVar}
+                        <span class="metadata-pill">
+                            <span class="metadata-pill-label">{selVar.name}</span>
+                            <span class="metadata-pill-value">{selVar.value}</span>
+                        </span>
+                        {/each}
+                    {/if}
+                </p>
+            </div>
         {/if}
 
         <div class="details">
@@ -1490,6 +1515,83 @@
         .buy-link:hover {
             background-color: #1d4ed8;
             text-decoration: none;
+        }
+    }
+
+    /* Toggle Switch Styles */
+    .toggle-container {
+        display: flex;
+        align-items: center;
+        padding: 1rem 0rem;
+        gap: 1rem;
+    }
+
+    .toggle-label {
+        font-size: 0.875rem;
+        color: #374151;
+        font-weight: 500;
+    }
+
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+        cursor: pointer;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #d1d5db;
+        border-radius: 24px;
+        transition: all 0.3s ease;
+    }
+
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+        background-color: #2563eb;
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+        transform: translateX(26px);
+    }
+
+    .toggle-switch input:focus + .toggle-slider {
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    }
+
+    @media (max-width: 640px) {
+        .toggle-container {
+            padding: 0.75rem 1rem;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .toggle-label {
+            font-size: 0.8rem;
         }
     }
 </style>
