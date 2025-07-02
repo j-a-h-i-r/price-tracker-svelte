@@ -47,10 +47,14 @@
     let selectedOptionElement: HTMLElement | null = null;
     $effect(() => {
         if (isOpen && selectedOptionElement) {
-            // This works but it also moves the page when scrolling
-            // A better solution is to scroll only inside the container
-            // Will do it later if needed
-            selectedOptionElement.scrollIntoView({ behavior: "instant", block: "center" });
+            let parent = selectedOptionElement.parentElement;
+            if (parent) {
+                const targetScrollTop = selectedOptionElement.offsetTop - parent.offsetHeight / 2;
+                parent.scrollTo({
+                    top: targetScrollTop,
+                    behavior: 'instant'
+                });
+            }
         }
     });
 </script>
