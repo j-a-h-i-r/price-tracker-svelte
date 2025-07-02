@@ -314,7 +314,12 @@
                             },
                             ticks: {
                                 display: true,
-                                maxTicksLimit: 2,
+                                callback: function(value, index, ticks) {
+                                    if (index === 0 || index === ticks.length - 1) {
+                                        return formatPrice(value);
+                                    }
+                                    return null;
+                                }
                             },
                             grid: {
                                 display: false,
