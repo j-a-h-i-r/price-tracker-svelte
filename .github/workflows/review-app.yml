@@ -1,0 +1,63 @@
+---
+name: 'deploy'
+
+# yamllint disable-line rule:truthy
+on:
+  # onl run this workflow on pull request events
+  pull_request
+
+jobs:
+  create_review_app:
+    runs-on: ubuntu-latest
+    # only run when a pull request is opened
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    steps:
+      - name: Cloning repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create and push the review app
+        uses: dokku/github-action@master
+        with:
+          # create a review app
+          command: review-apps:create
+          git_remote_url: 'ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client'
+          # specify a name for the review app
+          review_app_name: review-price-tracker-client-${{ github.event.pull_request.number }}
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+
+  deploy_review_app:
+    runs-on: ubuntu-latest
+    # only run when a pull request is not opened or closed
+    if: github.event_name == 'pull_request' && github.event.action != 'opened' && github.event.action != 'closed'
+    steps:
+      - name: Cloning repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to dokku
+        uses: dokku/github-action@master
+        with:
+          # create a review app
+          git_remote_url: 'ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client'
+          # specify a name for the review app
+          review_app_name: review-price-tracker-client-${{ github.event.pull_request.number }}
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+  destroy_review_app:
+    runs-on: ubuntu-latest
+    # only run when a pull request is closed
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    steps:
+      - name: Destroy the review app
+        uses: dokku/github-action@master
+        with:
+          # destroy a review app
+          command: review-apps:destroy
+          git_remote_url: 'ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client'
+          # specify a name for the review app
+          review_app_name: review-price-tracker-client-${{ github.event.pull_request.number }}
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
