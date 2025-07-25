@@ -92,3 +92,11 @@ export async function fetchVariantAttributes(productId: number) {
         console.error('Error fetching variants:', error);
     }
 }
+
+export async function fetchTrackedProductPriceHistory(productId: number): Promise<ExternalProductPrice[]> {
+    const response = await fetch(`/api/products/${productId}/price-history`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch price history');
+    }
+    return response.json();
+}
