@@ -6,6 +6,7 @@
         fetchExternalProductsByInternalId,
         fetchProductById,
         fetchVariantAttributes,
+        flagIncorrectGrouping,
     } from "$lib/api/products.js";
     import type {
         ExternalProduct,
@@ -564,6 +565,20 @@
         return `${daysAgo} days ago`;
 
     }
+
+    async function handleFlagIncorrectGrouping(externalProductId: number) {
+        if (!confirm('Flag this product as incorrectly grouped? This will help improve our automatic grouping.')) {
+            return;
+        }
+
+        try {
+            await flagIncorrectGrouping(productId, externalProductId);
+            alert('Thank you! This product has been flagged for review.');
+        } catch (error) {
+            console.error('Error flagging product:', error);
+            alert('Failed to flag product. Please try again.');
+        }
+    }
 </script>
 
 <div class="product-details">
@@ -743,6 +758,19 @@
                             {/each}
                         </div> 
                     {/if}
+
+                    <div class="product-actions">
+                        <button 
+                            class="flag-btn" 
+                            onclick={() => handleFlagIncorrectGrouping(product.external_product_id)}
+                            title="Report if this product doesn't belong in this group"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="flag-icon">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 2H21l-3 6 3 6h-8.5l-1-2H5a2 2 0 00-2 2zm9-13.5V9" />
+                            </svg>
+                            Report incorrect grouping
+                        </button>
+                    </div>
 
                     {#if userState.isAdmin}
                         <div class="admin-actions-product">
@@ -1597,6 +1625,53 @@
 
         .toggle-label {
             font-size: 0.8rem;
+        }
+    }
+
+    /* Flag button styles */
+    .product-actions {
+        padding-top: 1rem;
+        border-top: 1px solid #f3f4f6;
+        margin-top: auto;
+    }
+
+    .flag-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        color: #64748b;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .flag-btn:hover {
+        background-color: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #475569;
+    }
+
+    .flag-icon {
+        width: 1rem;
+        height: 1rem;
+    }
+
+    @media (max-width: 640px) {
+        .flag-btn {
+            font-size: 0.8rem;
+            padding: 0.375rem 0.625rem;
+        }
+        
+        .flag-icon {
+            width: 0.875rem;
+            height: 0.875rem;
         }
     }
 </style>
