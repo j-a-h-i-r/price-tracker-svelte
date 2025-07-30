@@ -21,11 +21,20 @@
     onMount(() => {
         const urlCategoryId = page.url.searchParams.get('category_id');
         const urlManufacturerId = page.url.searchParams.get('manufacturer_id');
+        const urlDays = page.url.searchParams.get('days');
+        const urlSortBy = page.url.searchParams.get('sort');
+        
         if (urlCategoryId) {
             selectedCategoryId = urlCategoryId;
         }
         if (urlManufacturerId) {
             selectedManufacturerId = urlManufacturerId;
+        }
+        if (urlDays && (urlDays === '7' || urlDays === '30')) {
+            selectedDays = parseInt(urlDays);
+        }
+        if (urlSortBy && (urlSortBy === 'value' || urlSortBy === 'percentage')) {
+            sortBy = urlSortBy;
         }
     });
 
@@ -36,6 +45,12 @@
         }
         if (selectedManufacturerId !== 'all') {
             params.set('manufacturer_id', selectedManufacturerId.toString());
+        }
+        if (selectedDays !== 7) {
+            params.set('days', selectedDays.toString());
+        }
+        if (sortBy !== 'value') {
+            params.set('sort', sortBy);
         }
 
         try {

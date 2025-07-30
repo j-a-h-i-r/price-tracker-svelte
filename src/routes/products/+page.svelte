@@ -1,5 +1,6 @@
 <script lang="ts">
     import { page } from "$app/state";
+    import { goto } from "$app/navigation";
     import { onMount } from "svelte";
     import { fetchCategories, fetchProducts, type Category } from "$lib/api/products";
     import type { ProductWithLastPrice } from "$lib/types/Product";
@@ -8,11 +9,55 @@
     import { formatPrice } from "$lib/util.js";
     import type { Manufacturer } from "$lib/types/Manufacturer.js";
 
-    let queryCategoryId: string | null = $state(null);
     onMount(() => {
-        // This is necessary to make sure it only runs in browser
-        queryCategoryId = page.url.searchParams.get('category_id');
-        selectedCategory = queryCategoryId ? queryCategoryId : "all";
+        // Restore state from URL parameters
+        const urlParams = page.url.searchParams;
+        
+        const urlCategoryId = urlParams.get('category_id');
+        const urlManufacturerId = urlParams.get('manufacturer_id');
+        const urlShowOutOfStock = urlParams.get('show_out_of_stock');
+        const urlSortBy = urlParams.get('sort');
+        const urlSearchQuery = urlParams.get('search');
+        const urlPriceMin = urlParams.get('price_min');
+        const urlPriceMax = urlParams.get('price_max');
+        
+        if (urlCategoryId) {
+            selectedCategory = urlCategoryId;
+        }
+        if (urlManufacturerId) {
+            selectedManufacturer = urlManufacturerId;
+        }
+        if (urlShowOutOfStock !== null) {
+            showOutOfStock = urlShowOutOfStock === 'true';
+        }
+        if (urlSortBy && ['price-asc', 'price-desc', 'name-asc', 'name-desc'].includes(urlSortBy)) {
+            sortBy = urlSortBy;
+        }
+        if (urlSearchQuery) {
+            searchQuery = urlSearchQuery;
+        }
+        
+        // Store URL price range to apply after actualPriceRange is available
+        if (urlPriceMin || urlPriceMax) {
+            const urlPriceRange = {
+                min: urlPriceMin ? parseFloat(urlPriceMin) : null,
+                max: urlPriceMax ? parseFloat(urlPriceMax) : null
+            };
+            
+            // Wait for actualPriceRange to be available, then set priceRange
+            const checkPriceRange = () => {
+                if (actualPriceRange.min && actualPriceRange.max) {
+                    priceRange = {
+                        min: urlPriceRange.min ?? actualPriceRange.min,
+                        max: urlPriceRange.max ?? actualPriceRange.max
+                    };
+                } else {
+                    // Retry after a short delay
+                    setTimeout(checkPriceRange, 100);
+                }
+            };
+            setTimeout(checkPriceRange, 100);
+        }
     });
 
     let initialProductsLoaded = $state(false);
@@ -158,14 +203,43 @@
         }
     });
 
+    // Add URL state management effect
     $effect(() => {
-        const filters = {
-            category: selectedCategory,
-            manufacturer: selectedManufacturer,
-            priceRange: priceRange,
-            showOutOfStock: showOutOfStock,
-            searchQuery: searchQuery
-        };
+        const params = new URLSearchParams();
+        
+        if (selectedCategory !== "all") {
+            params.set('category_id', selectedCategory.toString());
+        }
+        if (selectedManufacturer !== "all") {
+            params.set('manufacturer_id', selectedManufacturer.toString());
+        }
+        if (showOutOfStock !== false) {
+            params.set('show_out_of_stock', showOutOfStock.toString());
+        }
+        if (sortBy !== "price-asc") {
+            params.set('sort', sortBy);
+        }
+        if (searchQuery) {
+            params.set('search', searchQuery);
+        }
+        if (actualPriceRange.min && actualPriceRange.max) {
+            if (priceRange.min !== actualPriceRange.min) {
+                params.set('price_min', priceRange.min.toString());
+            }
+            if (priceRange.max !== actualPriceRange.max) {
+                params.set('price_max', priceRange.max.toString());
+            }
+        }
+
+        try {
+            goto(`?${params.toString()}`, { keepFocus: true, replaceState: true });
+        } catch (error) {
+            console.warn('Error updating URL:', error);
+        }
+    });
+
+    $effect(() => {
+        // Reset to first page when filters change
         currentPage = 1;
     });
 </script>
