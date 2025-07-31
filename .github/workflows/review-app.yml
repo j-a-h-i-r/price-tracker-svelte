@@ -2,17 +2,17 @@
 name: 'review-app'
 
 # yamllint disable-line rule:truthy
-on:
-  # onl run this workflow on pull request events
-  push: 
-    branches:
-      - review-app
+on: pull_request
+
+env:
+  APP_NAME: review-${{ github.event.pull_request.number }}
+  GIT_REMOTE_URL: ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client
 
 jobs:
   create_review_app:
     runs-on: ubuntu-latest
     # only run when a pull request is opened
-    # if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
     steps:
       - name: Cloning repo
         uses: actions/checkout@v4
@@ -24,10 +24,14 @@ jobs:
         with:
           # create a review app
           command: review-apps:create
-          git_remote_url: 'ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client'
-          # specify a name for the review app
-          review_app_name: review-app-${{ github.run_id }}
+          git_remote_url: ${{ env.GIT_REMOTE_URL }}
+          review_app_name: ${{ env.APP_NAME }}
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Comment the review app URL in the PR
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: "Review app created: [${{ env.APP_NAME }}](https://${{ env.APP_NAME }}.daam.deals)"
 
 
   deploy_review_app:
@@ -44,9 +48,9 @@ jobs:
         uses: dokku/github-action@master
         with:
           # create a review app
-          git_remote_url: 'ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client'
+          git_remote_url: ${{ env.GIT_REMOTE_URL }}
           # specify a name for the review app
-          review_app_name: review-price-tracker-client-${{ github.event.pull_request.number }}
+          review_app_name: ${{ env.APP_NAME }}
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
   destroy_review_app:
@@ -59,7 +63,7 @@ jobs:
         with:
           # destroy a review app
           command: review-apps:destroy
-          git_remote_url: 'ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client'
+          git_remote_url: ${{ env.GIT_REMOTE_URL }}
           # specify a name for the review app
-          review_app_name: review-price-tracker-client-${{ github.event.pull_request.number }}
+          review_app_name: ${{ env.APP_NAME }}
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
