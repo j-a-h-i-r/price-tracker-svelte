@@ -1,16 +1,18 @@
 ---
-name: 'deploy'
+name: 'review-app'
 
 # yamllint disable-line rule:truthy
 on:
   # onl run this workflow on pull request events
-  pull_request
+  push: 
+    branches:
+      - review-app
 
 jobs:
   create_review_app:
     runs-on: ubuntu-latest
     # only run when a pull request is opened
-    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    # if: github.event_name == 'pull_request' && github.event.action == 'opened'
     steps:
       - name: Cloning repo
         uses: actions/checkout@v4
@@ -24,7 +26,7 @@ jobs:
           command: review-apps:create
           git_remote_url: 'ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client'
           # specify a name for the review app
-          review_app_name: review-price-tracker-client-${{ github.event.pull_request.number }}
+          review_app_name: review-price-tracker-client-${{github.event.head_commit.id}}
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
 
