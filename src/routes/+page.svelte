@@ -5,17 +5,18 @@
     import { onMount } from "svelte";
     import { formatPrice } from "$lib/util.js";
     import { goto } from "$app/navigation";
+    import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
-    let searchQuery = '';
-    let totalProducts = 0;
-    let totalWebsites = 0;
-    let totalCategories = 0;
-    let searchResults: any[] = [];
+    let searchQuery = $state<string>('');
+    let totalProducts = $state<number | undefined>(undefined);
+    let totalWebsites = $state<number | undefined>(undefined);
+    let totalCategories = $state<number | undefined>(undefined);
+    let searchResults: any[] = $state([]);
     let searchTimeout: ReturnType<typeof setTimeout>;
     let categoryMap: { [key: string]: string } = {};
-    let isLoading = false;
-    let deals: Deal[] = [];
-    let dealsContainer: HTMLElement;
+    let isLoading = $state(false);
+    let deals: Deal[] = $state([]);
+    let dealsContainer = $state<HTMLElement | undefined>();
     let autoScrollInterval: ReturnType<typeof setInterval>;
     let isHovering = false;
 
@@ -96,30 +97,40 @@
         }, 300);
     }
 
-    $: if (searchQuery !== undefined && searchQuery !== '') {
-        debouncedSearch();
-    }
+    $effect(() => {
+        if (searchQuery !== undefined && searchQuery !== '') {
+            debouncedSearch();
+        }
+    })
 </script>
 
-<div class="stats-grid">
-    <div class="stat-card">
-        <h3>Total Products</h3>
-        <a href="/products">
-            <p class="number">{totalProducts}</p>
-        </a>
-    </div>
-    <div class="stat-card">
-        <h3>Websites Tracked</h3>
-        <a href="/websites">
-            <p class="number">{totalWebsites}</p>
-        </a>
-    </div>
-    <div class="stat-card">
-        <h3>Categories Tracked</h3>
-        <a href="/categories">
-            <p class="number">{totalCategories}</p>
-        </a>
-    </div>
+<div class="stats-header">
+    <h1>
+        Tracking prices of
+        <span class="highlight-link">
+            {#if totalProducts === undefined}
+                <LoadingSpinner size="sm" inline={true} />
+            {:else}
+                <a href="/products">{totalProducts}</a>
+            {/if}
+        </span>
+        products from 
+        <span class="highlight-link">
+            {#if totalCategories === undefined}
+                <LoadingSpinner size="sm" inline={true} />
+            {:else}
+                <a href="/categories">{totalCategories}</a>
+            {/if}
+        </span>
+        categories across 
+        <span class="highlight-link">
+            {#if totalWebsites === undefined}
+                <LoadingSpinner size="sm" inline={true} />
+            {:else}
+                <a href="/websites">{totalWebsites}</a>
+            {/if}
+        </span> websites 🇧🇩
+    </h1>
 </div>
 
 {#if deals.length > 0}
@@ -166,7 +177,9 @@
         placeholder="Search for products or paste the URL..."
     />
     {#if isLoading}
-        <div class="loading-spinner"></div>
+        <div class="loading-container">
+            <LoadingSpinner size="sm" inline={true} />
+        </div>
     {/if}
 </div>
 
@@ -203,38 +216,64 @@
 </svelte:head>
 
 <style>
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin: 2rem 0;
-    }
-
-    .stat-card {
-        background: #f4f4f4;
-        padding: 1.5rem;
-        border-radius: 8px;
+    .stats-header {
         text-align: center;
+        margin: 1rem 0;
+        padding: 2rem 1rem;
     }
 
-    .number {
-        font-size: 2rem;
-        font-weight: bold;
-        margin: 0.5rem 0;
-        color: #2563eb;
-    }
-
-    h3 {
+    .stats-header h1 {
+        font-size: 1.75rem;
+        color: #1f2937;
+        font-weight: 600;
+        line-height: 1.4;
         margin: 0;
-        color: #4b5563;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        letter-spacing: -0.025em;
+    }
+
+    .highlight-link {
+        color: #2563eb;
+        font-weight: 800;
+        text-decoration: none;
+        position: relative;
+        padding: 0.25rem 0.5rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.15);
+    }
+
+    .highlight-link:hover {
+        color: #1d4ed8;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+    }
+
+    .highlight-link:active {
+        transform: translateY(0);
+    }
+
+    @media (min-width: 768px) {
+        .stats-header {
+            margin: 1rem 0;
+            padding: 3rem 2rem;
+        }
+        
+        .stats-header h1 {
+            font-size: 2.25rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .stats-header h1 {
+            font-size: 2.5rem;
+        }
     }
 
     a {
         text-decoration: none;
-    }
-
-    a:hover .number {
-        color: #1d4ed8;
     }
 
     .search-container {
@@ -258,22 +297,11 @@
         border-color: #2563eb;
     }
 
-    .loading-spinner {
+    .loading-container {
         position: absolute;
         right: 1rem;
         top: 50%;
         transform: translateY(-50%);
-        width: 20px;
-        height: 20px;
-        border: 2px solid #e5e7eb;
-        border-top: 2px solid #2563eb;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        0% { transform: translateY(-50%) rotate(0deg); }
-        100% { transform: translateY(-50%) rotate(360deg); }
     }
 
     .table-container {
