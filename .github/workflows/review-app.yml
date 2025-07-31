@@ -8,6 +8,9 @@ env:
   APP_NAME: review-${{ github.event.pull_request.number }}
   GIT_REMOTE_URL: ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client
 
+permissions:
+  pull-requests: write
+
 jobs:
   create_review_app:
     runs-on: ubuntu-latest
