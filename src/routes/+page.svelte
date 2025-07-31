@@ -105,6 +105,7 @@
 </script>
 
 <div class="stats-header">
+    <h1>This is the review app</h1>
     <h1>
         Tracking prices of
         <span class="highlight-link">
