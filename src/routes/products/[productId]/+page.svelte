@@ -6,6 +6,7 @@
         fetchExternalProductsByInternalId,
         fetchProductById,
         fetchVariantAttributes,
+        flagIncorrectGrouping,
     } from "$lib/api/products.js";
     import type {
         ExternalProduct,
@@ -564,6 +565,16 @@
         return `${daysAgo} days ago`;
 
     }
+
+    async function handleFlagIncorrectGrouping(externalProductId: number) {
+        try {
+            await flagIncorrectGrouping(productId, externalProductId);
+            alert('Thank you! The incorrect grouping has been flagged for review.');
+        } catch (error) {
+            console.error('Error flagging incorrect grouping:', error);
+            alert('Failed to flag incorrect grouping. Please try again.');
+        }
+    }
 </script>
 
 <div class="product-details">
@@ -695,6 +706,17 @@
                 >
                     <div class="product-name">
                         {product.name}
+                        <button 
+                            class="flag-btn" 
+                            onclick={() => handleFlagIncorrectGrouping(product.external_product_id)}
+                            title="Flag as incorrectly grouped"
+                            aria-label="Flag as incorrectly grouped"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                                <line x1="4" y1="22" x2="4" y2="15"/>
+                            </svg>
+                        </button>
                     </div>
                     <div class="price-container">
                         <div
@@ -1162,6 +1184,34 @@
         color: #6b7280;
         font-size: 0.875rem;
         line-height: 1.4;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .flag-btn {
+        background: none;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.7;
+    }
+
+    .flag-btn:hover {
+        color: #dc2626;
+        background-color: #fef2f2;
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    .flag-btn:active {
+        transform: scale(0.95);
     }
 
     .product-name-input {
