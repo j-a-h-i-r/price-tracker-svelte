@@ -47,6 +47,7 @@ jobs:
       - name: Push to dokku
         uses: dokku/github-action@master
         with:
+          branch: main
           git_push_flags: "--force"
           git_remote_url: ${{ env.GIT_REMOTE_URL }}
           review_app_name: ${{ env.APP_NAME }}
