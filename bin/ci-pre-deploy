@@ -4,5 +4,9 @@ if [ "$IS_REVIEW_APP" = "true" ]; then
     echo "Setting domain to $APP_NAME.daam.deals on review app create"
     ssh "$SSH_REMOTE" -- domains:set "$APP_NAME" "$APP_NAME.daam.deals"
     echo "Configured the review app domain"
+
+    echo "Enabling Lets Encrypt for $APP_NAME"
+    ssh "$SSH_REMOTE" -- letsencrypt:enable "$APP_NAME"
+    echo "Enabled Lets Encrypt for the review app"
   fi
 fi
