@@ -6,7 +6,7 @@ on: pull_request
 
 env:
   APP_NAME: review-${{ github.event.pull_request.number }}
-  GIT_REMOTE_URL: ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client
+  GIT_REMOTE_URL: ssh://dokku@${{ secrets.SERVER_IP }}:22/review-${{ github.event.pull_request.number }}
 
 jobs:
   create_review_app:
