@@ -92,3 +92,15 @@ export async function fetchVariantAttributes(productId: number) {
         console.error('Error fetching variants:', error);
     }
 }
+
+export async function flagIncorrectGrouping(internalId: number, externalId: number): Promise<void> {
+    const response = await fetch(`/api/products/${internalId}/externals/${externalId}/flag`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+    if (!response.ok) {
+        throw new Error('Failed to flag incorrect grouping');
+    }
+}
