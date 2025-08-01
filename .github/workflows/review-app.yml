@@ -6,10 +6,8 @@ on: pull_request
 
 env:
   APP_NAME: review-${{ github.event.pull_request.number }}
-  GIT_REMOTE_URL: ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client
-
-permissions:
-  pull-requests: write
+  BASE_GIT_REMOTE_URL: ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client
+  REVIEW_GIT_REMOTE_URL: ssh://dokku@${{ secrets.SERVER_IP }}:22/review-${{ github.event.pull_request.number }}
 
 jobs:
   create_review_app:
@@ -27,7 +25,7 @@ jobs:
         with:
           # create a review app
           command: review-apps:create
-          git_remote_url: ${{ env.GIT_REMOTE_URL }}
+          git_remote_url: ${{ env.BASE_GIT_REMOTE_URL }}
           review_app_name: ${{ env.APP_NAME }}
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
@@ -38,9 +36,10 @@ jobs:
 
 
   deploy_review_app:
+    needs: create_review_app
     runs-on: ubuntu-latest
-    # only run when a pull request is not opened or closed
-    if: github.event_name == 'pull_request' && github.event.action != 'opened' && github.event.action != 'closed'
+    # only run when a pull request is not closed
+    if: ${{ !failure() && github.event_name == 'pull_request' && github.event.action != 'closed' }}
     steps:
       - name: Cloning repo
         uses: actions/checkout@v4
@@ -50,10 +49,9 @@ jobs:
       - name: Push to dokku
         uses: dokku/github-action@master
         with:
-          # create a review app
-          git_remote_url: ${{ env.GIT_REMOTE_URL }}
-          # specify a name for the review app
-          review_app_name: ${{ env.APP_NAME }}
+          branch: main
+          git_push_flags: "--force"
+          git_remote_url: ${{ env.REVIEW_GIT_REMOTE_URL }}
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
   destroy_review_app:
@@ -66,7 +64,7 @@ jobs:
         with:
           # destroy a review app
           command: review-apps:destroy
-          git_remote_url: ${{ env.GIT_REMOTE_URL }}
+          git_remote_url: ${{ env.REVIEW_GIT_REMOTE_URL }}
           # specify a name for the review app
           review_app_name: ${{ env.APP_NAME }}
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
