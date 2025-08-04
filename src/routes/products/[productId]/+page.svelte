@@ -633,15 +633,36 @@
                 {#each variants as variant}
                     <div class="variant-selector">
                         <label for={variant.name}>{variant.display_text}</label>
-                        <select 
-                            id={variant.name}
-                            bind:value={selectedVariants[variant.name]}
-                        >
-                            <option value="unselected"> Choose a value </option>
-                            {#each variant.values as value}
-                                <option value={value.value}>{value.display_text}</option>
-                            {/each}
-                        </select>
+                        {#if variant.values.length <= 3}
+                            <div class="variant-buttons">
+                                <button 
+                                    class="variant-button" 
+                                    class:selected={selectedVariants[variant.name] === 'unselected'}
+                                    onclick={() => selectedVariants[variant.name] = 'unselected'}
+                                >
+                                    Any
+                                </button>
+                                {#each variant.values as value}
+                                    <button 
+                                        class="variant-button" 
+                                        class:selected={selectedVariants[variant.name] === value.value}
+                                        onclick={() => selectedVariants[variant.name] = value.value}
+                                    >
+                                        {value.display_text}
+                                    </button>
+                                {/each}
+                            </div>
+                        {:else}
+                            <select 
+                                id={variant.name}
+                                bind:value={selectedVariants[variant.name]}
+                            >
+                                <option value="unselected"> Choose a value </option>
+                                {#each variant.values as value}
+                                    <option value={value.value}>{value.display_text}</option>
+                                {/each}
+                            </select>
+                        {/if}
                     </div>
                 {/each}
             </div>
@@ -948,7 +969,7 @@
 
     .variants-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1rem;
     }
 
@@ -978,6 +999,42 @@
         border-color: #2563eb;
         ring: 2px solid rgba(37, 99, 235, 0.2);
     }
+
+    .variant-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .variant-button {
+        padding: 0.5rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 6px;
+        background-color: white;
+        color: #374151;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: fit-content;
+    }
+
+    .variant-button:hover {
+        border-color: #2563eb;
+        background-color: #f8fafc;
+    }
+
+    .variant-button.selected {
+        border-color: #2563eb;
+        background-color: #2563eb;
+        color: white;
+    }
+
+    .variant-button:focus {
+        outline: none;
+        ring: 2px solid rgba(37, 99, 235, 0.2);
+    }
+
     .savings-badge {
         background-color: #22c55e;
         color: white;

@@ -4,6 +4,9 @@ name: 'review-app'
 # yamllint disable-line rule:truthy
 on: pull_request
 
+permissions:
+  pull-requests: write
+
 env:
   APP_NAME: review-${{ github.event.pull_request.number }}
   BASE_GIT_REMOTE_URL: ssh://dokku@${{ secrets.SERVER_IP }}:22/price-tracker-client
