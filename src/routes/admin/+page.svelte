@@ -38,6 +38,11 @@
             <h2>Manage Manufacturers</h2>
             <p>View and manage manufacturers</p>
         </button>
+
+        <button onclick={() => goto('/admin/flags')} class="card">
+            <h2>Product Flags</h2>
+            <p>Review and manage flagged products</p>
+        </button>
     </div>
 </div>
 
