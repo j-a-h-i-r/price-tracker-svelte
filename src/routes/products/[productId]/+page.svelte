@@ -24,6 +24,9 @@
     import { formatPrice } from "$lib/util.js";
     import dayjs from "dayjs";
     import type { Attachment } from "svelte/attachments";
+    import type { FlaggingOption } from "$lib/types/Flagging.js";
+    import { getFlaggingOptions } from "$lib/api/flagging.js";
+    import { toasts } from "$lib/states/toast.js";
 
     let productId = Number(page.params.productId);
     let product: Product | null = $state(null);
@@ -39,9 +42,15 @@
     let isExternalProductsLoaded = $state(false);
     let isExternalProductPricesLoaded = $state(false);
     let showUnavailableProducts = $state(false);
+    let showFlagModal = $state(false);
+    let flaggingProductId = $state<number | null>(null);
+    let flaggingProductName = $state('');
+    let selectedFlaggingOptions: string[] = $state([]);
+    let flaggingOptions: FlaggingOption[] = $state([]);
 
     let externalProductIdToHighlight: number | null = $state(null);
     let alreadyScrolledOnce = $state(false);
+
     onMount(() => {
         const { highlight_external_product_id } = page.state as any;
         if (highlight_external_product_id) {
@@ -566,14 +575,36 @@
 
     }
 
+    onMount(async () => {
+        flaggingOptions = await getFlaggingOptions();
+    });
+
     async function handleFlagIncorrectGrouping(externalProductId: number) {
+        const product = externalProducts.find(p => p.external_product_id === externalProductId);
+        flaggingProductId = externalProductId;
+        flaggingProductName = product?.name || 'Unknown Product';
+        showFlagModal = true;
+    }
+
+    async function submitFlag() {
+        if (!flaggingProductId) return;
+        
         try {
-            await flagIncorrectGrouping(productId, externalProductId);
-            alert('Thank you! The incorrect grouping has been flagged for review.');
+            await flagIncorrectGrouping(productId, flaggingProductId, selectedFlaggingOptions);
+            showFlagModal = false;
+            toasts.success('Thank you! The incorrect grouping has been flagged for review.');
         } catch (error) {
-            console.error('Error flagging incorrect grouping:', error);
-            alert('Failed to flag incorrect grouping. Please try again.');
+            toasts.error('Failed to flag incorrect grouping. Please try again.');
+        } finally {
+            flaggingProductId = null;
+            flaggingProductName = '';
         }
+    }
+
+    function closeFlagModal() {
+        showFlagModal = false;
+        flaggingProductId = null;
+        flaggingProductName = '';
     }
 </script>
 
@@ -705,12 +736,14 @@
                     {@attach highlightExternalProduct(product)}
                 >
                     <div class="product-name">
-                        {product.name}
+                        <span>
+                            {product.name}
+                        </span>
                         <button 
                             class="flag-btn" 
                             onclick={() => handleFlagIncorrectGrouping(product.external_product_id)}
-                            title="Flag as incorrectly grouped"
-                            aria-label="Flag as incorrectly grouped"
+                            title="Flag incorrect information"
+                            aria-label="Flag incorrect information"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
@@ -816,6 +849,56 @@
         {/if}
     {/if}
 </div>
+
+<!-- Flag Modal -->
+{#if showFlagModal}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class="modal-overlay" onclick={closeFlagModal} role="dialog" tabindex="-1">
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+            <div class="modal-header">
+                <span class="flag-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                        <line x1="4" y1="22" x2="4" y2="15"/>
+                    </svg>
+                </span>
+                <h3>Report Incorrect Information</h3>
+                <button class="modal-close" onclick={closeFlagModal} aria-label="Close modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="product-info">
+                    <strong>{flaggingProductName}</strong>
+                </div>
+                <p>
+                    You're about to flag this product for having incorrect information. Select the issues that apply,
+                </p>
+                
+                <div class="issues-list">
+                    {#each flaggingOptions as option}
+                        <div>
+                            <label>
+                                <input type="checkbox" name="flaggingOptions" value={option.id} bind:group={selectedFlaggingOptions}>
+                                {option.description}
+                            </label>
+                        </div>
+                    {/each}
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-cancel-modal" onclick={closeFlagModal}>Cancel</button>
+                <button class="btn-submit-flag" onclick={submitFlag}>Submit Flag</button>
+            </div>
+        </div>
+    </div>
+{/if}
 
 <style>
     .variants-header {
@@ -997,7 +1080,6 @@
     .variant-selector select:focus {
         outline: none;
         border-color: #2563eb;
-        ring: 2px solid rgba(37, 99, 235, 0.2);
     }
 
     .variant-buttons {
@@ -1032,7 +1114,6 @@
 
     .variant-button:focus {
         outline: none;
-        ring: 2px solid rgba(37, 99, 235, 0.2);
     }
 
     .savings-badge {
@@ -1201,6 +1282,7 @@
         align-items: center;
         justify-content: center;
         opacity: 0.7;
+        margin-left: auto;
     }
 
     .flag-btn:hover {
@@ -1704,6 +1786,189 @@
 
         .toggle-label {
             font-size: 0.8rem;
+        }
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 0;
+        max-width: 500px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        animation: modalSlideIn 0.2s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95) translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem 1.5rem 0 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .modal-header h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        color: #6b7280;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 6px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: auto;
+    }
+
+    .modal-close:hover {
+        color: #374151;
+        background-color: #f3f4f6;
+    }
+
+    .modal-body {
+        padding: 0 1.5rem;
+        text-align: center;
+    }
+
+    .flag-icon {
+        color: #dc2626;
+        display: flex;
+        justify-content: center;
+    }
+
+    .modal-body h4 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.75rem;
+    }
+
+    .modal-body p {
+        color: #6b7280;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+    }
+
+    .product-info {
+        background-color: #f3f4f6;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+        color: #374151;
+        font-size: 0.875rem;
+    }
+
+    .description {
+        text-align: left;
+        margin-top: 1.5rem;
+    }
+
+    .issues-list {
+        text-align: left;
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin: 0.75rem 0 1.5rem 0;
+        padding-left: 1.25rem;
+    }
+
+    .issues-list li {
+        margin-bottom: 0.25rem;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        padding: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+        margin-top: 1.5rem;
+    }
+
+    .btn-cancel-modal {
+        padding: 0.5rem 1rem;
+        background: transparent;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        color: #374151;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-cancel-modal:hover {
+        background-color: #f3f4f6;
+        border-color: #9ca3af;
+    }
+
+    .btn-submit-flag {
+        padding: 0.5rem 1rem;
+        background: #dc2626;
+        border: none;
+        border-radius: 6px;
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-submit-flag:hover {
+        background: #b91c1c;
+    }
+
+    @media (max-width: 640px) {
+        .modal-content {
+            margin: 1rem;
+            max-width: none;
+        }
+
+        .modal-footer {
+            flex-direction: column;
+        }
+
+        .btn-cancel-modal,
+        .btn-submit-flag {
+            width: 100%;
+            justify-content: center;
         }
     }
 </style>

@@ -93,12 +93,15 @@ export async function fetchVariantAttributes(productId: number) {
     }
 }
 
-export async function flagIncorrectGrouping(internalId: number, externalId: number): Promise<void> {
+export async function flagIncorrectGrouping(internalId: number, externalId: number, flagOptions: string[]): Promise<void> {
     const response = await fetch(`/api/products/${internalId}/externals/${externalId}/flag`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+            flag_option_ids: flagOptions,
+        }),
     });
     if (!response.ok) {
         throw new Error('Failed to flag incorrect grouping');
