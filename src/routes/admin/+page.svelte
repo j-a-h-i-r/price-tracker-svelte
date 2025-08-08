@@ -43,6 +43,11 @@
             <h2>Product Flags</h2>
             <p>Review and manage flagged products</p>
         </button>
+
+        <button onclick={() => goto('/admin/groups')} class="card">
+            <h2>Product Groups</h2>
+            <p>Manage product groups and merge related products</p>
+        </button>
     </div>
 </div>
 
