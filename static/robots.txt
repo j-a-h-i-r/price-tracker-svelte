@@ -1,0 +1,52 @@
+# Robots.txt for daam.deals price tracker
+# This file tells web crawlers which parts of the site they can and cannot access
+
+# Allow all web crawlers to access the site by default
+User-agent: *
+
+# Allow access to main public pages
+Allow: /
+Allow: /products
+Allow: /products/
+Allow: /deals
+Allow: /categories
+Allow: /websites
+
+# Block access to admin pages and API endpoints
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api
+Disallow: /api/
+
+# Block access to user account pages (private/sensitive areas)
+Disallow: /accounts
+Disallow: /accounts/
+
+# Block access to configurator (might be resource-intensive for crawlers)
+Disallow: /configurator
+
+# Allow access to individual product pages (these are valuable for SEO)
+Allow: /products/*
+
+# Block access to SvelteKit internal files
+Disallow: /_app/
+Disallow: /.svelte-kit/
+
+# Common files to block from crawling
+Disallow: /*.json$
+Disallow: /*.js$
+Disallow: /*.css$
+
+# Allow access to static assets like images
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.gif$
+Allow: /*.svg$
+Allow: /*.webp$
+
+# Crawl delay to be respectful to server resources (optional)
+Crawl-delay: 1
+
+# Sitemap location (you may want to create this later)
+# Sitemap: https://yoursite.com/sitemap.xml
