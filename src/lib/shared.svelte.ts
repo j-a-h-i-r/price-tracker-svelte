@@ -35,10 +35,13 @@ class UserState {
     }
 
     signOut() {
-        this.#user.email = '';
-        this.#user.isAdmin = false;
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('userIsAdmin');
+        return fetch('/api/auth/logout', { method: 'POST' })
+        .finally(() => {
+            this.#user.email = '';
+            this.#user.isAdmin = false;
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userIsAdmin');
+        })
     }
 }
 

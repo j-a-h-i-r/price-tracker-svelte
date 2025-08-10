@@ -51,8 +51,7 @@
     }
 
     async function signOut() {
-        await fetch('/api/auth/logout', { method: 'POST' });
-        userState.signOut();
+        await userState.signOut();
         isSignedIn = false;
         trackedProducts.clear();
         email = '';

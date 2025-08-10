@@ -1,4 +1,6 @@
+import { userState } from "$lib/shared.svelte.js";
 import type { TrackedProduct } from "$lib/types/Product.js";
+import { toasts } from "./toast.js";
 
 class TrackedProducts {
     #trackedProducts: TrackedProduct[] = $state([]);
@@ -26,6 +28,10 @@ class TrackedProducts {
         fetch('/api/user/products')
         .then((response) => {
             if (!response.ok) {
+                if (response.status === 401) {
+                    toasts.error('Login expired. Please log in again to view your tracked products');
+                    return userState.signOut();
+                }
                 throw new Error('Network response was not ok');
             }
             return response.json();
