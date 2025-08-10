@@ -7,7 +7,7 @@
     import { goto } from "$app/navigation";
     import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
-    let searchQuery = $state<string>('');
+    let searchQuery = $state<string>("");
     let totalProducts = $state<number | undefined>(undefined);
     let totalWebsites = $state<number | undefined>(undefined);
     let totalCategories = $state<number | undefined>(undefined);
@@ -15,7 +15,9 @@
     let searchTimeout: ReturnType<typeof setTimeout>;
     let categoryMap: { [key: string]: string } = {};
     let isLoading = $state(false);
+    let dealCountToShow = $state<number | undefined>(undefined);
     let deals: Deal[] = $state([]);
+    let dealsLoading = $state(true);
     let dealsContainer = $state<HTMLElement | undefined>();
     let autoScrollInterval: ReturnType<typeof setInterval>;
     let isHovering = false;
@@ -37,9 +39,17 @@
     });
 
     onMount(async () => {
-        deals = await fetchDeals({});
-        deals = deals.slice(0, 10); // Limit to first 10 deals
-        startAutoScroll();
+        dealsLoading = true;
+        try {
+            deals = await fetchDeals({});
+            dealCountToShow = Math.floor(deals.length / 10) * 10;
+            deals = deals.slice(0, 10); // Limit to first 10 deals
+            startAutoScroll();
+        } catch (error) {
+            console.error("Error fetching deals:", error);
+        } finally {
+            dealsLoading = false;
+        }
     });
 
     onMount(() => {
@@ -53,18 +63,24 @@
     function startAutoScroll() {
         autoScrollInterval = setInterval(() => {
             if (!dealsContainer || isHovering) return;
-            
-            const firstCard = dealsContainer.querySelector('.deal-card');
+
+            const firstCard = dealsContainer.querySelector(".deal-card");
             if (!firstCard) return;
 
             const cardWidth = (firstCard as HTMLElement).offsetWidth + 16; // Width + gap
             const newScrollLeft = dealsContainer.scrollLeft + cardWidth;
-            
-            if (newScrollLeft >= dealsContainer.scrollWidth - dealsContainer.offsetWidth) {
+
+            if (
+                newScrollLeft >=
+                dealsContainer.scrollWidth - dealsContainer.offsetWidth
+            ) {
                 // Reset to start when reaching the end
-                dealsContainer.scrollTo({ left: 0, behavior: 'smooth' });
+                dealsContainer.scrollTo({ left: 0, behavior: "smooth" });
             } else {
-                dealsContainer.scrollTo({ left: newScrollLeft, behavior: 'smooth' });
+                dealsContainer.scrollTo({
+                    left: newScrollLeft,
+                    behavior: "smooth",
+                });
             }
         }, 3000); // Scroll every 3 seconds
     }
@@ -78,13 +94,15 @@
     }
 
     async function getCategories() {
-        const response = await fetch('/api/categories');
+        const response = await fetch("/api/categories");
         return await response.json();
     }
 
     async function handleSearch() {
         isLoading = true;
-        const response = await fetch(`/api/products?name=${encodeURIComponent(searchQuery)}`);
+        const response = await fetch(
+            `/api/products?name=${encodeURIComponent(searchQuery)}`,
+        );
         const data = await response.json();
         searchResults = data;
         isLoading = false;
@@ -98,10 +116,10 @@
     }
 
     $effect(() => {
-        if (searchQuery !== undefined && searchQuery !== '') {
+        if (searchQuery !== undefined && searchQuery !== "") {
             debouncedSearch();
         }
-    })
+    });
 </script>
 
 <div class="stats-header">
@@ -114,7 +132,7 @@
                 <a href="/products">{totalProducts}</a>
             {/if}
         </span>
-        products from 
+        products from
         <span class="highlight-link">
             {#if totalCategories === undefined}
                 <LoadingSpinner size="sm" inline={true} />
@@ -122,7 +140,7 @@
                 <a href="/categories">{totalCategories}</a>
             {/if}
         </span>
-        categories across 
+        categories across
         <span class="highlight-link">
             {#if totalWebsites === undefined}
                 <LoadingSpinner size="sm" inline={true} />
@@ -133,42 +151,92 @@
     </h1>
 </div>
 
-{#if deals.length > 0}
-    <div class="deals-section">
-        <div class="deals-header">
-            <h2>Weekly Deals</h2>
-            <a href="/deals" class="view-all">View all →</a>
+<div class="deals-section">
+    <div class="deals-header">
+        <h2>
+            Weekly Deals {dealCountToShow !== undefined
+                ? `(${dealCountToShow}+ deals)`
+                : ""}
+        </h2>
+        <a href="/deals" class="view-all">View all →</a>
+    </div>
+    {#if dealsLoading}
+        <div class="deals-loading">
+            <LoadingSpinner size="md" />
+            <p>Loading the best deals of this week...</p>
         </div>
-        <div 
-            class="deals-scroll" 
-            bind:this={dealsContainer} 
-            onmouseenter={handleMouseEnter} 
+    {:else if deals.length > 0}
+        <div
+            class="deals-scroll"
+            bind:this={dealsContainer}
+            onmouseenter={handleMouseEnter}
             onmouseleave={handleMouseLeave}
             aria-details="Deals carousel"
             role="region"
             aria-label="Deals carousel"
         >
             {#each deals as deal}
-                <a 
+                <a
                     href="/products/{deal.product_id}"
-                    onclick={() => goto(`/products/${deal.product_id}`, { state: { highlight_external_product_id: deal.external_product_id } })}
+                    onclick={() =>
+                        goto(`/products/${deal.product_id}`, {
+                            state: {
+                                highlight_external_product_id:
+                                    deal.external_product_id,
+                            },
+                        })}
                     class="deal-card"
                 >
                     <div class="deal-content">
                         <h3>{deal.product_name}</h3>
                         <div class="price-section">
-                            <span class="current-price">{formatPrice(deal.current_price)}</span>
+                            <span class="current-price"
+                                >{formatPrice(deal.current_price)}</span
+                            >
                             {#if deal.current_price}
-                                <span class="msrp">{formatPrice(deal.max_price_last_days)}</span>
-                                <span class="discount">-{Math.round((1 - deal.current_price/deal.max_price_last_days) * 100)}%</span>
+                                <span class="msrp"
+                                    >{formatPrice(
+                                        deal.max_price_last_days,
+                                    )}</span
+                                >
+                                <span class="discount"
+                                    >-{Math.round(
+                                        (1 -
+                                            deal.current_price /
+                                                deal.max_price_last_days) *
+                                            100,
+                                    )}%</span
+                                >
                             {/if}
                         </div>
                     </div>
                 </a>
             {/each}
         </div>
-    </div>
-{/if}
+    {:else}
+        <div class="no-deals-home">
+            <div class="no-deals-icon">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4" />
+                    <path d="M12 16h.01" />
+                </svg>
+            </div>
+            <p>No deals available right now</p>
+            <span>Check back later for new deals</span>
+        </div>
+    {/if}
+</div>
 
 <div class="search-container">
     <input
@@ -197,10 +265,18 @@
                     <tr>
                         <td>
                             <a href="/products/{product.id}">{product.name}</a>
-                            <span class="badge category-badge">{categoryMap[product.category_id] || '?'}</span>
-                            <span class="badge">{product.prices?.length || 0} websites</span>
+                            <span class="badge category-badge"
+                                >{categoryMap[product.category_id] || "?"}</span
+                            >
+                            <span class="badge"
+                                >{product.prices?.length || 0} websites</span
+                            >
                         </td>
-                        <td>{product.lowest_available_price ? formatPrice(product.lowest_available_price) : 'Not Available'}</td>
+                        <td
+                            >{product.lowest_available_price
+                                ? formatPrice(product.lowest_available_price)
+                                : "Not Available"}</td
+                        >
                     </tr>
                 {/each}
             </tbody>
@@ -212,7 +288,10 @@
 
 <svelte:head>
     <title>Track price and deals on Bangladeshi products</title>
-    <meta name="description" content="Track product prices and find deals. Get the best prices from Startech, Techland, Pickaboo and the biggest bangladeshi retailers." />
+    <meta
+        name="description"
+        content="Track product prices and find deals. Get the best prices from Startech, Techland, Pickaboo and the biggest bangladeshi retailers."
+    />
 </svelte:head>
 
 <style>
@@ -260,7 +339,7 @@
             margin: 1rem 0;
             padding: 3rem 2rem;
         }
-        
+
         .stats-header h1 {
             font-size: 2.25rem;
         }
@@ -317,7 +396,8 @@
         overflow: hidden;
     }
 
-    th, td {
+    th,
+    td {
         padding: 1rem;
         text-align: left;
         border-bottom: 1px solid #e5e7eb;
@@ -370,11 +450,11 @@
         margin: 0 -1rem;
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;  /* Firefox */
+        scrollbar-width: none; /* Firefox */
     }
 
     .deals-scroll::-webkit-scrollbar {
-        display: none;  /* Chrome, Safari, Opera */
+        display: none; /* Chrome, Safari, Opera */
     }
 
     .deal-card {
@@ -385,7 +465,9 @@
         text-decoration: none;
         color: inherit;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition:
+            transform 0.2s,
+            box-shadow 0.2s;
         scroll-snap-align: start;
     }
 
@@ -444,5 +526,66 @@
         background: #dbeafe;
         color: #1e40af;
     }
-</style>
 
+    /* Deals loading styles */
+    .deals-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 2rem;
+        text-align: center;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 2px dashed #e2e8f0;
+    }
+
+    .deals-loading p {
+        margin-top: 1rem;
+        font-size: 1rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    /* No deals on homepage styles */
+    .no-deals-home {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 2rem;
+        text-align: center;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 12px;
+        border: 2px dashed #cbd5e1;
+    }
+
+    .no-deals-home .no-deals-icon {
+        color: #64748b;
+        margin-bottom: 1rem;
+        opacity: 0.8;
+    }
+
+    .no-deals-home p {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #334155;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .no-deals-home span {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    @media (max-width: 640px) {
+        .deals-loading,
+        .no-deals-home {
+            padding: 2rem 1rem;
+        }
+
+        .no-deals-home p {
+            font-size: 1rem;
+        }
+    }
+</style>
