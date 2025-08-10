@@ -89,7 +89,7 @@
             }
 
             // Mark products as selected
-            products.forEach((product) => {
+            products.forEach((product: Product) => {
                 console.log("Checking product:", product);
                 if (
                     product.run_count >= 2 &&
@@ -110,6 +110,39 @@
             selectedProducts.add(productId);
         }
         selectedProducts = new Set(selectedProducts);
+    }
+
+    function toggleSelectAllForGroup(groupId: number) {
+        const group = groups.find((g) => g.id === groupId);
+        if (!group?.products) return;
+
+        const groupProductIds = group.products.map(p => p.external_product_id);
+        const allSelected = groupProductIds.every(id => selectedProducts.has(id));
+
+        if (allSelected) {
+            // Deselect all products in this group
+            groupProductIds.forEach(id => selectedProducts.delete(id));
+        } else {
+            // Select all products in this group
+            groupProductIds.forEach(id => selectedProducts.add(id));
+        }
+        selectedProducts = new Set(selectedProducts);
+    }
+
+    function isAllSelectedInGroup(groupId: number): boolean {
+        const group = groups.find((g) => g.id === groupId);
+        if (!group?.products || group.products.length === 0) return false;
+
+        const groupProductIds = group.products.map(p => p.external_product_id);
+        return groupProductIds.every(id => selectedProducts.has(id));
+    }
+
+    function isSomeSelectedInGroup(groupId: number): boolean {
+        const group = groups.find((g) => g.id === groupId);
+        if (!group?.products) return false;
+
+        const groupProductIds = group.products.map(p => p.external_product_id);
+        return groupProductIds.some(id => selectedProducts.has(id));
     }
 
     function getSelectedProductsInGroup(groupId: number): Product[] {
@@ -224,7 +257,7 @@
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ group_name: editingGroupName.trim() }),
+                body: JSON.stringify({ groupName: editingGroupName.trim() }),
             });
 
             if (!response.ok) {
@@ -436,15 +469,27 @@
                                     >
                                 </div>
                             </div>
-                            <button
-                                class="merge-btn"
-                                onclick={() => openMergeModal(group.id)}
-                                disabled={getSelectedProductsInGroup(group.id)
-                                    .length < 2}
-                            >
-                                Merge ({getSelectedProductsInGroup(group.id)
-                                    .length})
-                            </button>
+                            <div class="group-actions">
+                                <label class="select-all-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={isAllSelectedInGroup(group.id)}
+                                        indeterminate={!isAllSelectedInGroup(group.id) && isSomeSelectedInGroup(group.id)}
+                                        onchange={() => toggleSelectAllForGroup(group.id)}
+                                    />
+                                    <span class="checkmark"></span>
+                                    <span class="checkbox-label">Select All</span>
+                                </label>
+                                <button
+                                    class="merge-btn"
+                                    onclick={() => openMergeModal(group.id)}
+                                    disabled={getSelectedProductsInGroup(group.id)
+                                        .length < 2}
+                                >
+                                    Merge ({getSelectedProductsInGroup(group.id)
+                                        .length})
+                                </button>
+                            </div>
                         </div>
 
                         {#if group.products && group.products.length > 0}
@@ -955,6 +1000,83 @@
         color: white;
         font-size: 12px;
         font-weight: bold;
+    }
+
+    /* Select All checkbox styles */
+    .group-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .select-all-checkbox {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        padding: 0.25rem 0;
+    }
+
+    .select-all-checkbox input {
+        opacity: 0;
+        position: absolute;
+        width: 0;
+        height: 0;
+    }
+
+    .select-all-checkbox .checkmark {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #d1d5db;
+        border-radius: 3px;
+        background: white;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .select-all-checkbox input:checked + .checkmark {
+        background: #2563eb;
+        border-color: #2563eb;
+    }
+
+    .select-all-checkbox input:checked + .checkmark::after {
+        content: "✓";
+        color: white;
+        font-size: 10px;
+        font-weight: bold;
+    }
+
+    .select-all-checkbox input:indeterminate + .checkmark {
+        background: #6b7280;
+        border-color: #6b7280;
+    }
+
+    .select-all-checkbox input:indeterminate + .checkmark::after {
+        content: "—";
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        line-height: 1;
+    }
+
+    .select-all-checkbox:hover .checkmark {
+        border-color: #9ca3af;
+    }
+
+    .select-all-checkbox input:checked:hover + .checkmark,
+    .select-all-checkbox input:indeterminate:hover + .checkmark {
+        opacity: 0.9;
+    }
+
+    .checkbox-label {
+        user-select: none;
     }
 
     .product-info {
