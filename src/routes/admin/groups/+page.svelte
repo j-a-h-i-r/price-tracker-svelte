@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
-    import { userState } from '$lib/shared.svelte.js';
-    import { goto } from '$app/navigation';
+    import { onMount } from "svelte";
+    import { userState } from "$lib/shared.svelte.js";
+    import { goto } from "$app/navigation";
 
     type Product = {
         external_product_id: number;
@@ -31,12 +31,12 @@
     let currentGroupId = $state<number | null>(null);
     let selectedPrimaryProduct = $state<number | null>(null);
     let editingGroupId = $state<number | null>(null);
-    let editingGroupName = $state('');
+    let editingGroupName = $state("");
 
     onMount(async () => {
         // Check if user is admin
         if (!userState.isAdmin) {
-            goto('/');
+            goto("/");
             return;
         }
 
@@ -46,25 +46,27 @@
     async function loadGroups() {
         try {
             isLoading = true;
-            const response = await fetch('/api/groups');
+            const response = await fetch("/api/groups");
             if (!response.ok) {
-                throw new Error('Failed to fetch groups');
+                throw new Error("Failed to fetch groups");
             }
             groups = await response.json();
 
-            console.log('Loaded groups:', groups);
-            
-            // Load products for each group
-            await Promise.all(groups.map(async (group) => {
-                await loadGroupProducts(group.id);
-            }));
+            console.log("Loaded groups:", groups);
 
-            console.log('Selected products:', selectedProducts);
+            // Load products for each group
+            await Promise.all(
+                groups.map(async (group) => {
+                    await loadGroupProducts(group.id);
+                }),
+            );
+
+            console.log("Selected products:", selectedProducts);
 
             selectedProducts = new Set(selectedProducts);
         } catch (err) {
-            console.error('Error fetching groups:', err);
-            error = 'Failed to load product groups';
+            console.error("Error fetching groups:", err);
+            error = "Failed to load product groups";
         } finally {
             isLoading = false;
         }
@@ -74,20 +76,25 @@
         try {
             const response = await fetch(`/api/groups/${groupId}/products`);
             if (!response.ok) {
-                throw new Error(`Failed to fetch products for group ${groupId}`);
+                throw new Error(
+                    `Failed to fetch products for group ${groupId}`,
+                );
             }
             const products = await response.json();
-            
+
             // Update the group with its products
-            const groupIndex = groups.findIndex(g => g.id === groupId);
+            const groupIndex = groups.findIndex((g) => g.id === groupId);
             if (groupIndex !== -1) {
                 groups[groupIndex].products = products;
             }
 
             // Mark products as selected
             products.forEach((product) => {
-                console.log('Checking product:', product);
-                if (product.run_count >= 2 && product.distinct_group_count === 1) {
+                console.log("Checking product:", product);
+                if (
+                    product.run_count >= 2 &&
+                    product.distinct_group_count === 1
+                ) {
                     selectedProducts.add(product.external_product_id);
                 }
             });
@@ -106,19 +113,21 @@
     }
 
     function getSelectedProductsInGroup(groupId: number): Product[] {
-        const group = groups.find(g => g.id === groupId);
+        const group = groups.find((g) => g.id === groupId);
         if (!group?.products) return [];
-        
-        return group.products.filter(product => selectedProducts.has(product.external_product_id));
+
+        return group.products.filter((product) =>
+            selectedProducts.has(product.external_product_id),
+        );
     }
 
     function openMergeModal(groupId: number) {
         const selectedInGroup = getSelectedProductsInGroup(groupId);
         if (selectedInGroup.length < 2) {
-            alert('Please select at least 2 products to merge');
+            alert("Please select at least 2 products to merge");
             return;
         }
-        
+
         currentGroupId = groupId;
         selectedPrimaryProduct = null;
         showMergeModal = true;
@@ -139,38 +148,53 @@
 
     async function performMerge() {
         if (!currentGroupId || !selectedPrimaryProduct) {
-            alert('Please select a primary product');
+            alert("Please select a primary product");
             return;
         }
 
+        const currentGroup = groups.find((g) => g.id === currentGroupId);
         const selectedInGroup = getSelectedProductsInGroup(currentGroupId);
-        const productIdsToMerge = selectedInGroup
-            .filter(p => p.external_product_id !== selectedPrimaryProduct)
-            .map(p => p.external_product_id);
+        const internalProductIdsToMerge = selectedInGroup
+            .filter((p) => p.external_product_id !== selectedPrimaryProduct)
+            .map((p) => p.internal_product_id);
+        const externalProductIdsToMerge = selectedInGroup.map(
+            (p) => p.external_product_id,
+        );
+        const selectPrimaryProductInternalId = selectedInGroup.find(
+            (p) => p.external_product_id === selectedPrimaryProduct,
+        )?.internal_product_id;
 
         try {
-            const response = await fetch(`/api/products/${selectedPrimaryProduct}/merge`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
+            const response = await fetch(
+                `/api/groups/${currentGroupId}/merge`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        productName: currentGroup?.group_name,
+                        primaryInternalProduct: selectPrimaryProductInternalId,
+                        internalProductIds: internalProductIdsToMerge,
+                        externalProductIds: externalProductIdsToMerge,
+                    }),
                 },
-                body: JSON.stringify({ productIds: productIdsToMerge }),
-            });
+            );
 
             if (!response.ok) {
-                throw new Error('Failed to merge products');
+                throw new Error("Failed to merge products");
             }
 
-            alert('Products merged successfully!');
+            alert("Products merged successfully!");
             closeMergeModal();
-            
+
             // Clear selections and reload data
             selectedProducts.clear();
             selectedProducts = new Set();
             await loadGroups();
         } catch (err) {
-            console.error('Error merging products:', err);
-            alert('Failed to merge products. Please try again.');
+            console.error("Error merging products:", err);
+            alert("Failed to merge products. Please try again.");
         }
     }
 
@@ -185,39 +209,39 @@
 
     function cancelEditingGroup() {
         editingGroupId = null;
-        editingGroupName = '';
+        editingGroupName = "";
     }
 
     async function saveGroupName(groupId: number) {
         if (!editingGroupName.trim()) {
-            alert('Group name cannot be empty');
+            alert("Group name cannot be empty");
             return;
         }
 
         try {
             const response = await fetch(`/api/groups/${groupId}`, {
-                method: 'PUT',
+                method: "PUT",
                 headers: {
-                    'Content-Type': 'application/json',
+                    "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ group_name: editingGroupName.trim() }),
             });
 
             if (!response.ok) {
-                throw new Error('Failed to update group name');
+                throw new Error("Failed to update group name");
             }
 
             // Update the group in the local state
-            const groupIndex = groups.findIndex(g => g.id === groupId);
+            const groupIndex = groups.findIndex((g) => g.id === groupId);
             if (groupIndex !== -1) {
                 groups[groupIndex].group_name = editingGroupName.trim();
             }
 
             editingGroupId = null;
-            editingGroupName = '';
+            editingGroupName = "";
         } catch (err) {
-            console.error('Error updating group name:', err);
-            alert('Failed to update group name. Please try again.');
+            console.error("Error updating group name:", err);
+            alert("Failed to update group name. Please try again.");
         }
     }
 
@@ -235,7 +259,8 @@
     <div class="page-header">
         <h1>Product Groups</h1>
         <p class="page-description">
-            Manage product groups and merge related products for better organization.
+            Manage product groups and merge related products for better
+            organization.
         </p>
     </div>
 
@@ -246,10 +271,20 @@
         </div>
     {:else if error}
         <div class="error-container">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="15" y1="9" x2="9" y2="15"/>
-                <line x1="9" y1="9" x2="15" y2="15"/>
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
             </svg>
             <h3>Error Loading Groups</h3>
             <p>{error}</p>
@@ -261,7 +296,12 @@
                 <div class="stat-label">Total Groups</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">{groups.reduce((sum, group) => sum + (group.products?.length || 0), 0)}</div>
+                <div class="stat-number">
+                    {groups.reduce(
+                        (sum, group) => sum + (group.products?.length || 0),
+                        0,
+                    )}
+                </div>
                 <div class="stat-label">Total Products</div>
             </div>
             <div class="stat-card">
@@ -278,68 +318,132 @@
                             <div class="group-info">
                                 {#if editingGroupId === group.id}
                                     <div class="group-name-edit">
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             bind:value={editingGroupName}
                                             class="group-name-input"
                                             placeholder="Enter group name"
                                             onkeydown={(e) => {
-                                                if (e.key === 'Enter') saveGroupName(group.id);
-                                                if (e.key === 'Escape') cancelEditingGroup();
+                                                if (e.key === "Enter")
+                                                    saveGroupName(group.id);
+                                                if (e.key === "Escape")
+                                                    cancelEditingGroup();
                                             }}
                                         />
                                         <div class="edit-actions">
-                                            <button 
+                                            <button
                                                 class="btn-save-edit"
-                                                onclick={() => saveGroupName(group.id)}
+                                                onclick={() =>
+                                                    saveGroupName(group.id)}
                                                 title="Save"
                                                 aria-label="Save group name"
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <polyline points="20,6 9,17 4,12"/>
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="16"
+                                                    height="16"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                >
+                                                    <polyline
+                                                        points="20,6 9,17 4,12"
+                                                    />
                                                 </svg>
                                             </button>
-                                            <button 
+                                            <button
                                                 class="btn-cancel-edit"
                                                 onclick={cancelEditingGroup}
                                                 title="Cancel"
                                                 aria-label="Cancel editing"
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <line x1="18" y1="6" x2="6" y2="18"/>
-                                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="16"
+                                                    height="16"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                >
+                                                    <line
+                                                        x1="18"
+                                                        y1="6"
+                                                        x2="6"
+                                                        y2="18"
+                                                    />
+                                                    <line
+                                                        x1="6"
+                                                        y1="6"
+                                                        x2="18"
+                                                        y2="18"
+                                                    />
                                                 </svg>
                                             </button>
                                         </div>
                                     </div>
                                 {:else}
                                     <div class="group-name-display">
-                                        <h2 class="group-name">{group.group_name}</h2>
-                                        <button 
+                                        <h2 class="group-name">
+                                            {group.group_name}
+                                        </h2>
+                                        <button
                                             class="btn-edit-group"
-                                            onclick={() => startEditingGroup(group.id, group.group_name)}
+                                            onclick={() =>
+                                                startEditingGroup(
+                                                    group.id,
+                                                    group.group_name,
+                                                )}
                                             title="Edit group name"
                                             aria-label="Edit group name"
                                         >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="16"
+                                                height="16"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <path
+                                                    d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                                                />
+                                                <path
+                                                    d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                                                />
                                             </svg>
                                         </button>
                                     </div>
                                 {/if}
                                 <div class="group-meta">
                                     <span>ID: {group.id}</span>
-                                    <span>Created: {formatDate(group.created_at)}</span>
-                                    <span>Products: {group.products?.length || 0}</span>
+                                    <span
+                                        >Created: {formatDate(
+                                            group.created_at,
+                                        )}</span
+                                    >
+                                    <span
+                                        >Products: {group.products?.length ||
+                                            0}</span
+                                    >
                                 </div>
                             </div>
-                            <button 
+                            <button
                                 class="merge-btn"
                                 onclick={() => openMergeModal(group.id)}
-                                disabled={getSelectedProductsInGroup(group.id).length < 2}
+                                disabled={getSelectedProductsInGroup(group.id)
+                                    .length < 2}
                             >
-                                Merge ({getSelectedProductsInGroup(group.id).length})
+                                Merge ({getSelectedProductsInGroup(group.id)
+                                    .length})
                             </button>
                         </div>
 
@@ -348,24 +452,39 @@
                                 {#each group.products as product}
                                     <div class="product-item">
                                         <label class="product-checkbox">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={selectedProducts.has(product.external_product_id)}
-                                                onchange={() => toggleProductSelection(product.external_product_id)}
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedProducts.has(
+                                                    product.external_product_id,
+                                                )}
+                                                onchange={() =>
+                                                    toggleProductSelection(
+                                                        product.external_product_id,
+                                                    )}
                                             />
                                             <span class="checkmark"></span>
                                         </label>
                                         <div class="product-info">
-                                            <div class="product-name">{product.external_product_name}</div>
+                                            <div class="product-name">
+                                                {product.external_product_name}
+                                            </div>
                                             {#if product.internal_product_name != product.external_product_name}
-                                                <div class="product-name" style="font-size: 0.75rem;">{product.internal_product_name}</div>
+                                                <div
+                                                    class="product-name"
+                                                    style="font-size: 0.75rem;"
+                                                >
+                                                    {product.internal_product_name}
+                                                </div>
                                             {/if}
                                             <div class="product-meta">
-                                                ID: {product.external_product_id} • Confidence: {product.confidence_score ? product.confidence_score : 'N/A'} • Group Count: {product.distinct_group_count}
+                                                ID: {product.external_product_id}
+                                                • Confidence: {product.confidence_score
+                                                    ? product.confidence_score
+                                                    : "N/A"} • Group Count: {product.distinct_group_count}
                                             </div>
                                         </div>
-                                        <a 
-                                            href="/products/{product.internal_product_id}" 
+                                        <a
+                                            href="/products/{product.internal_product_id}"
                                             class="view-product-link"
                                             target="_blank"
                                         >
@@ -384,10 +503,20 @@
             </div>
         {:else}
             <div class="empty-state">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                    <circle cx="9" cy="9" r="2"/>
-                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="64"
+                    height="64"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="9" cy="9" r="2" />
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
                 </svg>
                 <h3>No Product Groups</h3>
                 <p>No product groups found in the system.</p>
@@ -398,72 +527,119 @@
 
 <!-- Merge Modal -->
 {#if showMergeModal}
-    <div 
-        class="modal-overlay" 
-        role="dialog" 
+    <div
+        class="modal-overlay"
+        role="dialog"
         aria-modal="true"
         aria-labelledby="merge-modal-title"
         tabindex="-1"
         onclick={handleModalClick}
-        onkeydown={(e) => e.key === 'Escape' && closeMergeModal()}
+        onkeydown={(e) => e.key === "Escape" && closeMergeModal()}
     >
-        <div 
-            class="modal-content" 
-            role="document"
-        >
+        <div class="modal-content" role="document">
             <div class="modal-header">
                 <h3 id="merge-modal-title">Merge Products</h3>
-                <button class="modal-close" onclick={closeMergeModal} aria-label="Close modal">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button
+                    class="modal-close"
+                    onclick={closeMergeModal}
+                    aria-label="Close modal"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                 </button>
             </div>
-            
+
             <div class="modal-body">
                 <div class="merge-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m8 6 4-4 4 4"/>
-                        <path d="M12 2v10.3a4 4 0 0 1-1.172 2.872L4 22"/>
-                        <path d="m20 22-6.928-6.928A4 4 0 0 1 12 12.3V2"/>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="48"
+                        height="48"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="m8 6 4-4 4 4" />
+                        <path d="M12 2v10.3a4 4 0 0 1-1.172 2.872L4 22" />
+                        <path d="m20 22-6.928-6.928A4 4 0 0 1 12 12.3V2" />
                     </svg>
                 </div>
-                
+
                 <h4>Merge Selected Products</h4>
-                <p>You are about to merge {selectedProductsInCurrentGroup.length} products. Please select which product should be the primary product (all others will be merged into this one).</p>
-                
+                <p>
+                    You are about to merge {selectedProductsInCurrentGroup.length}
+                    products. Please select which product should be the primary product
+                    (all others will be merged into this one).
+                </p>
+
                 <div class="products-to-merge">
                     {#each selectedProductsInCurrentGroup as product}
                         <label class="primary-product-option">
-                            <input 
-                                type="radio" 
+                            <input
+                                type="radio"
                                 name="primaryProduct"
                                 value={product.external_product_id}
                                 bind:group={selectedPrimaryProduct}
                             />
                             <div class="product-option-content">
-                                <div class="product-option-name">{product.external_product_name}</div>
-                                <div class="product-option-meta">ID: {product.external_product_id}</div>
+                                <div class="product-option-name">
+                                    {product.external_product_name}
+                                </div>
+                                <div class="product-option-meta">
+                                    ID: {product.external_product_id}
+                                </div>
                             </div>
                         </label>
                     {/each}
                 </div>
-                
+
                 <div class="merge-warning">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                        <path d="M12 9v4"/>
-                        <path d="m12 17 .01 0"/>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path
+                            d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"
+                        />
+                        <path d="M12 9v4" />
+                        <path d="m12 17 .01 0" />
                     </svg>
-                    <span><strong>Warning:</strong> This action cannot be undone. All non-primary products will be merged into the selected primary product.</span>
+                    <span
+                        ><strong>Warning:</strong> This action cannot be undone.
+                        All non-primary products will be merged into the selected
+                        primary product.</span
+                    >
                 </div>
             </div>
-            
+
             <div class="modal-footer">
-                <button class="btn-cancel-modal" onclick={closeMergeModal}>Cancel</button>
-                <button 
-                    class="btn-merge-confirm" 
+                <button class="btn-cancel-modal" onclick={closeMergeModal}
+                    >Cancel</button
+                >
+                <button
+                    class="btn-merge-confirm"
                     onclick={performMerge}
                     disabled={!selectedPrimaryProduct}
                 >
@@ -518,8 +694,12 @@
     }
 
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
     }
 
     .error-container {
@@ -854,7 +1034,9 @@
         width: 100%;
         max-height: 90vh;
         overflow-y: auto;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        box-shadow:
+            0 20px 25px -5px rgba(0, 0, 0, 0.1),
+            0 10px 10px -5px rgba(0, 0, 0, 0.04);
         animation: modalSlideIn 0.2s ease-out;
     }
 
