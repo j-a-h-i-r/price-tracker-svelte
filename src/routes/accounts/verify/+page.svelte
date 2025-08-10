@@ -9,6 +9,14 @@
     let countdown = 5;
     let redirectMessage = '';
 
+    function getRedirectMessage(countdown: number, redirectTo?: string) {
+        if (redirectTo) {
+            return `Redirecting to ${redirectTo} in ${countdown} seconds`;
+        } else {
+            return `Redirecting to the home page in ${countdown} seconds`;
+        }
+    }
+
     onMount(async () => {
         const token = $page.url.searchParams.get('token');
         if (!token) {
@@ -30,15 +38,20 @@
             if (result && result.email) {
                 userState.email = result.email;
                 userState.isAdmin = result.isAdmin || false;
+                const { redirectTo } = result;
                 isLoading = false;
-                redirectMessage = `Redirecting to the home page in ${countdown} seconds`;
+                redirectMessage = getRedirectMessage(countdown, redirectTo);
                 
                 const timer = setInterval(() => {
                     countdown--;
-                    redirectMessage = `Redirecting to the home page in ${countdown} seconds`;
+                    redirectMessage = getRedirectMessage(countdown, redirectTo);
                     if (countdown <= 0) {
                         clearInterval(timer);
-                        goto('/');
+                        if (redirectTo) {
+                            goto(redirectTo);
+                        } else {
+                            goto('/');
+                        }
                     }
                 }, 1000);
             } else {

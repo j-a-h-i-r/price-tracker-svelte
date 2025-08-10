@@ -3,11 +3,13 @@
     import { onMount } from 'svelte';
     import { trackedProducts } from '$lib/states/tracked.svelte.js';
     import { formatPrice } from '$lib/util.js';
+    import { page } from '$app/state';
 
     let email = '';
     let message = '';
     let isLoading = false;
     let isSignedIn = false;
+    let redirectUrlAfterLogin = '';
 
     onMount(async () => {
         if (userState.email) {
@@ -15,6 +17,13 @@
             isSignedIn = true;
         }
     });
+
+    onMount(() => {
+        const { redirectTo } = page.state as { redirectTo: string };
+        if (redirectTo) {
+            redirectUrlAfterLogin = redirectTo;
+        }
+    })
 
     async function handleSignup() {
         isLoading = true;
@@ -24,7 +33,10 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({
+                    email,
+                    redirectTo: redirectUrlAfterLogin,
+                })
             });
             
             const result = await response.json();

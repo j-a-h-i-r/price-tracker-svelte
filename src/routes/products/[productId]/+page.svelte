@@ -27,6 +27,7 @@
     import type { FlaggingOption } from "$lib/types/Flagging.js";
     import { getFlaggingOptions } from "$lib/api/flagging.js";
     import { toasts } from "$lib/states/toast.js";
+    import { goto } from "$app/navigation";
 
     let productId = Number(page.params.productId);
     let product: Product | null = $state(null);
@@ -47,6 +48,11 @@
     let flaggingProductName = $state('');
     let selectedFlaggingOptions: string[] = $state([]);
     let flaggingOptions: FlaggingOption[] = $state([]);
+    
+    // Track modal states
+    let showTrackModal = $state(false);
+    let showLoginModal = $state(false);
+    let targetPriceInput = $state('');
 
     let externalProductIdToHighlight: number | null = $state(null);
     let alreadyScrolledOnce = $state(false);
@@ -429,10 +435,20 @@
     }
 
     async function handleTrack() {
-        const targetPriceInput = prompt('Enter your target price:');
-        const targetPrice = parseFloat(targetPriceInput ?? '');
-        if (isNaN(targetPrice) || targetPrice <= 0) {
-            alert('Please enter a valid target price');
+        if (userState.email) {
+            // User is logged in, show price input modal
+            targetPriceInput = '';
+            showTrackModal = true;
+        } else {
+            // User is not logged in, show login modal
+            showLoginModal = true;
+        }
+    }
+
+    async function submitTrackingPrice() {
+        const targetPrice = parseFloat(targetPriceInput);
+        if (Number.isNaN(targetPrice) || targetPrice <= 0) {
+            toasts.error('Please enter a valid target price');
             return;
         }
 
@@ -449,12 +465,23 @@
                 throw new Error('Failed to track product');
             }
             
-            alert('Product tracking enabled!');
+            toasts.success('Product tracking enabled!');
             await trackedProducts.refresh();
+            showTrackModal = false;
+            targetPriceInput = '';
         } catch (error) {
             console.error('Error tracking product:', error);
-            alert('Failed to track product. Please try again.');
+            toasts.error('Failed to track product. Please try again.');
         }
+    }
+
+    function closeTrackModal() {
+        showTrackModal = false;
+        targetPriceInput = '';
+    }
+
+    function closeLoginModal() {
+        showLoginModal = false;
     }
 
     async function handleMergeProduct() {
@@ -644,6 +671,8 @@
             {:else}
                 <button class="track-btn" onclick={handleTrack}>Track</button>
             {/if}
+        {:else}
+            <button class="track-btn" onclick={handleTrack}>Track</button>
         {/if}
     </div>
 
@@ -895,6 +924,118 @@
             <div class="modal-footer">
                 <button class="btn-cancel-modal" onclick={closeFlagModal}>Cancel</button>
                 <button class="btn-submit-flag" onclick={submitFlag}>Submit Flag</button>
+            </div>
+        </div>
+    </div>
+{/if}
+
+<!-- Track Price Modal (for logged-in users) -->
+{#if showTrackModal}
+    <!-- svelte-ignore a11y_interactive_supports_focus -->
+    <div 
+        class="modal-overlay" 
+        role="dialog" 
+        aria-modal="true"
+        aria-labelledby="track-modal-title"
+        onclick={closeTrackModal}
+        onkeydown={(e) => e.key === 'Escape' && closeTrackModal()}
+    >
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <div 
+            class="modal-content" 
+            role="document"
+            onclick={(e) => e.stopPropagation()}
+            onkeydown={(e) => e.stopPropagation()}
+        >
+            <div class="modal-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="track-icon">
+                    <path d="M9 12l2 2 4-4"/>
+                    <circle cx="12" cy="12" r="10"/>
+                </svg>
+                <h3 id="track-modal-title">Track Product</h3>
+                <button class="modal-close" onclick={closeTrackModal} aria-label="Close modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="product-info">
+                    <strong>{product?.name || 'This Product'}</strong>
+                </div>
+                <p>
+                    This product will be tracked for all of its variants. You'll receive an email notification when the price falls below your target price.
+                </p>
+                
+                <div class="price-input-section">
+                    <label for="targetPrice">Target Price (৳)</label>
+                    <input 
+                        type="number" 
+                        id="targetPrice"
+                        class="price-input"
+                        placeholder="Enter target price"
+                        min="0"
+                        step="0.01"
+                        bind:value={targetPriceInput}
+                    />
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-cancel-modal" onclick={closeTrackModal}>Cancel</button>
+                <button class="btn-submit-track" onclick={submitTrackingPrice}>Start Tracking</button>
+            </div>
+        </div>
+    </div>
+{/if}
+
+<!-- Login Required Modal (for non-logged-in users) -->
+{#if showLoginModal}
+    <!-- svelte-ignore a11y_interactive_supports_focus -->
+    <div 
+        class="modal-overlay" 
+        role="dialog" 
+        aria-modal="true"
+        aria-labelledby="login-modal-title"
+        onclick={closeLoginModal}
+        onkeydown={(e) => e.key === 'Escape' && closeLoginModal()}
+    >
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <div 
+            class="modal-content" 
+            role="document"
+            onclick={(e) => e.stopPropagation()}
+            onkeydown={(e) => e.stopPropagation()}
+        >
+            <div class="modal-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="login-icon">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                    <polyline points="10,17 15,12 10,7"/>
+                    <line x1="15" y1="12" x2="3" y2="12"/>
+                </svg>
+                <h3 id="login-modal-title">Login Required</h3>
+                <button class="modal-close" onclick={closeLoginModal} aria-label="Close modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="product-info">
+                    <strong>{product?.name || 'This Product'}</strong>
+                </div>
+                <p>
+                    Log in to track this product and get price updates when prices drop below your target.
+                </p>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-cancel-modal" onclick={closeLoginModal}>Cancel</button>
+                <button onclick={() => goto('/accounts', { state: { redirectTo: page.url.href } })} class="btn-login">Log In</button>
             </div>
         </div>
     </div>
@@ -1955,6 +2096,84 @@
         background: #b91c1c;
     }
 
+    /* Track and Login Modal Styles */
+    .track-icon {
+        color: #2563eb;
+        display: flex;
+        justify-content: center;
+    }
+
+    .login-icon {
+        color: #059669;
+        display: flex;
+        justify-content: center;
+    }
+
+    .price-input-section {
+        text-align: left;
+        margin: 1.5rem 0;
+    }
+
+    .price-input-section label {
+        display: block;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .price-input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 1rem;
+        color: #374151;
+        background-color: white;
+        transition: border-color 0.2s;
+    }
+
+    .price-input:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .btn-submit-track {
+        padding: 0.5rem 1rem;
+        background: #2563eb;
+        border: none;
+        border-radius: 6px;
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-submit-track:hover {
+        background: #1d4ed8;
+    }
+
+    .btn-login {
+        padding: 0.5rem 1rem;
+        background: #059669;
+        border: none;
+        border-radius: 6px;
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-login:hover {
+        background: #047857;
+        text-decoration: none;
+    }
+
     @media (max-width: 640px) {
         .modal-content {
             margin: 1rem;
@@ -1966,9 +2185,12 @@
         }
 
         .btn-cancel-modal,
-        .btn-submit-flag {
+        .btn-submit-flag,
+        .btn-submit-track,
+        .btn-login {
             width: 100%;
             justify-content: center;
+            text-align: center;
         }
     }
 </style>
