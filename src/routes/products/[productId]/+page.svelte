@@ -635,6 +635,11 @@
     }
 </script>
 
+<svelte:head>
+    <title>{product?.name} - Price History</title>
+    <meta name="description" content={`Best prices for ${product?.name} in Bangladesh. Track price history, get alerts on price drops and grab the best deals.`} />
+</svelte:head>
+
 <div class="product-details">
     <div class="product-header">
         {#if isEditingMainProduct}
