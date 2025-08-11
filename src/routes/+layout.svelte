@@ -1,15 +1,15 @@
 <script lang="ts">
-	import "../app.css";
-	import { page } from "$app/stores";
-	import { userState } from "$lib/shared.svelte.js";
-	import { goto } from "$app/navigation";
-	import Toast from "$lib/components/Toast.svelte";
+	import '../app.css';
+	import { page } from '$app/stores';
+	import { userState } from '$lib/shared.svelte.js';
+	import { goto } from '$app/navigation';
+	import Toast from '$lib/components/Toast.svelte';
 	let { children } = $props();
 
-	let pathname = $derived($page?.url?.pathname || "/");
+	let pathname = $derived($page?.url?.pathname || '/');
 
 	function gotoAccount() {
-		goto("/accounts");
+		goto('/accounts');
 	}
 
 	function toTitleCase(str: string) {
@@ -22,8 +22,8 @@
 	function generateBreadCrumbs(
 		path: string,
 	): Array<{ path: string; url: string }> {
-		const pathArray = path.split("/").filter((p) => p !== "");
-		let urlSoFar = "";
+		const pathArray = path.split('/').filter((p) => p !== '');
+		let urlSoFar = '';
 		return pathArray.map((p) => {
 			urlSoFar += `/${p}`;
 			return { path: p, url: urlSoFar };
@@ -46,8 +46,8 @@
 									: ''}">Home</a
 							>
 						</li>
-						{#if pathname !== "/"}
-							{#each generateBreadCrumbs(pathname.substring(1)) as urlpath, index}
+						{#if pathname !== '/'}
+							{#each generateBreadCrumbs(pathname.substring(1)) as urlpath, index (index)}
 								<li class="breadcrumb-item">
 									<svg
 										class="breadcrumb-separator"
