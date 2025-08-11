@@ -25,7 +25,7 @@ class TrackedProducts {
     }
 
     refresh() {
-        fetch('/api/user/products')
+        return fetch('/api/user/products')
         .then((response) => {
             if (!response.ok) {
                 if (response.status === 401) {
