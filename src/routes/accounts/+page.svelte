@@ -5,18 +5,20 @@
     import { formatPrice } from "$lib/util.js";
     import { page } from "$app/state";
 
-    let email = "";
-    let message = "";
-    let isLoading = false;
-    let isSignedIn = false;
-    let redirectUrlAfterLogin = "";
-    let showConfirmDialog = false;
-    let productToUntrack: { id: number; name: string } | null = null;
+    let email = $state("");
+    let message = $state("");
+    let isLoading = $state(false);
+    let isSignedIn = $state(false);
+    let redirectUrlAfterLogin = $state("");
+    let showConfirmDialog = $state(false);
+    let productToUntrack: { id: number; name: string } | null = $state(null);
 
     onMount(async () => {
         if (userState.email) {
             email = userState.email;
             isSignedIn = true;
+            // Refresh tracked products when user is signed in
+            await trackedProducts.refresh();
         }
     });
 
