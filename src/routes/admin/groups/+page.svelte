@@ -8,11 +8,9 @@
         internal_product_id: number;
         internal_product_name: string;
         external_product_name: string;
-        created_at: string;
-        updated_at: string;
-        confidence_score?: number;
         run_count: number;
-        distinct_group_count: number;
+        avg_confidence: number;
+        distinct_groups: number;
     };
 
     type Group = {
@@ -32,6 +30,10 @@
     let selectedPrimaryProduct = $state<number | null>(null);
     let editingGroupId = $state<number | null>(null);
     let editingGroupName = $state("");
+    let showGroupsModal = $state(false);
+    let currentProductId = $state<number | null>(null);
+    let externalGroups = $state<any[]>([]);
+    let loadingExternalGroups = $state(false);
 
     onMount(async () => {
         // Check if user is admin
@@ -52,16 +54,21 @@
             }
             groups = await response.json();
 
-            console.log("Loaded groups:", groups);
-
-            // Load products for each group
-            await Promise.all(
-                groups.map(async (group) => {
-                    await loadGroupProducts(group.id);
-                }),
-            );
-
-            console.log("Selected products:", selectedProducts);
+            // Since the API now returns products within each group,
+            // we can process them directly without additional API calls
+            groups.forEach((group) => {
+                if (group.products) {
+                    group.products.forEach((product: Product) => {
+                        // Auto-select products based on criteria
+                        if (
+                            product.run_count >= 2 &&
+                            product.distinct_groups === 1
+                        ) {
+                            selectedProducts.add(product.external_product_id);
+                        }
+                    });
+                }
+            });
 
             selectedProducts = new Set(selectedProducts);
         } catch (err) {
@@ -69,37 +76,6 @@
             error = "Failed to load product groups";
         } finally {
             isLoading = false;
-        }
-    }
-
-    async function loadGroupProducts(groupId: number) {
-        try {
-            const response = await fetch(`/api/groups/${groupId}/products`);
-            if (!response.ok) {
-                throw new Error(
-                    `Failed to fetch products for group ${groupId}`,
-                );
-            }
-            const products = await response.json();
-
-            // Update the group with its products
-            const groupIndex = groups.findIndex((g) => g.id === groupId);
-            if (groupIndex !== -1) {
-                groups[groupIndex].products = products;
-            }
-
-            // Mark products as selected
-            products.forEach((product: Product) => {
-                console.log("Checking product:", product);
-                if (
-                    product.run_count >= 2 &&
-                    product.distinct_group_count === 1
-                ) {
-                    selectedProducts.add(product.external_product_id);
-                }
-            });
-        } catch (err) {
-            console.error(`Error fetching products for group ${groupId}:`, err);
         }
     }
 
@@ -116,33 +92,75 @@
         const group = groups.find((g) => g.id === groupId);
         if (!group?.products) return;
 
-        const groupProductIds = group.products.map(p => p.external_product_id);
-        const allSelected = groupProductIds.every(id => selectedProducts.has(id));
+        const groupProductIds = group.products.map(
+            (p) => p.external_product_id,
+        );
+        const allSelected = groupProductIds.every((id) =>
+            selectedProducts.has(id),
+        );
 
         if (allSelected) {
             // Deselect all products in this group
-            groupProductIds.forEach(id => selectedProducts.delete(id));
+            groupProductIds.forEach((id) => selectedProducts.delete(id));
         } else {
             // Select all products in this group
-            groupProductIds.forEach(id => selectedProducts.add(id));
+            groupProductIds.forEach((id) => selectedProducts.add(id));
         }
         selectedProducts = new Set(selectedProducts);
+    }
+
+    async function loadExternalGroups(productId: number) {
+        try {
+            loadingExternalGroups = true;
+            const response = await fetch(`/api/externals/${productId}/groups`);
+            if (!response.ok) {
+                throw new Error("Failed to fetch external groups");
+            }
+            externalGroups = await response.json();
+        } catch (err) {
+            console.error("Error fetching external groups:", err);
+            externalGroups = [];
+        } finally {
+            loadingExternalGroups = false;
+        }
+    }
+
+    async function showExternalGroups(productId: number) {
+        currentProductId = productId;
+        showGroupsModal = true;
+        await loadExternalGroups(productId);
+    }
+
+    function closeGroupsModal() {
+        showGroupsModal = false;
+        currentProductId = null;
+        externalGroups = [];
+    }
+
+    function handleGroupsModalClick(event: MouseEvent) {
+        if (event.target === event.currentTarget) {
+            closeGroupsModal();
+        }
     }
 
     function isAllSelectedInGroup(groupId: number): boolean {
         const group = groups.find((g) => g.id === groupId);
         if (!group?.products || group.products.length === 0) return false;
 
-        const groupProductIds = group.products.map(p => p.external_product_id);
-        return groupProductIds.every(id => selectedProducts.has(id));
+        const groupProductIds = group.products.map(
+            (p) => p.external_product_id,
+        );
+        return groupProductIds.every((id) => selectedProducts.has(id));
     }
 
     function isSomeSelectedInGroup(groupId: number): boolean {
         const group = groups.find((g) => g.id === groupId);
         if (!group?.products) return false;
 
-        const groupProductIds = group.products.map(p => p.external_product_id);
-        return groupProductIds.some(id => selectedProducts.has(id));
+        const groupProductIds = group.products.map(
+            (p) => p.external_product_id,
+        );
+        return groupProductIds.some((id) => selectedProducts.has(id));
     }
 
     function getSelectedProductsInGroup(groupId: number): Product[] {
@@ -187,6 +205,7 @@
 
         const currentGroup = groups.find((g) => g.id === currentGroupId);
         const selectedInGroup = getSelectedProductsInGroup(currentGroupId);
+        console.log(selectedInGroup, selectedPrimaryProduct);
         const internalProductIdsToMerge = selectedInGroup
             .filter((p) => p.external_product_id !== selectedPrimaryProduct)
             .map((p) => p.internal_product_id);
@@ -207,7 +226,8 @@
                     },
                     body: JSON.stringify({
                         productName: currentGroup?.group_name,
-                        primaryInternalProduct: selectPrimaryProductInternalId,
+                        primaryInternalProductId:
+                            selectPrimaryProductInternalId,
                         internalProductIds: internalProductIdsToMerge,
                         externalProductIds: externalProductIdsToMerge,
                     }),
@@ -474,17 +494,23 @@
                                     <input
                                         type="checkbox"
                                         checked={isAllSelectedInGroup(group.id)}
-                                        indeterminate={!isAllSelectedInGroup(group.id) && isSomeSelectedInGroup(group.id)}
-                                        onchange={() => toggleSelectAllForGroup(group.id)}
+                                        indeterminate={!isAllSelectedInGroup(
+                                            group.id,
+                                        ) && isSomeSelectedInGroup(group.id)}
+                                        onchange={() =>
+                                            toggleSelectAllForGroup(group.id)}
                                     />
                                     <span class="checkmark"></span>
-                                    <span class="checkbox-label">Select All</span>
+                                    <span class="checkbox-label"
+                                        >Select All</span
+                                    >
                                 </label>
                                 <button
                                     class="merge-btn"
                                     onclick={() => openMergeModal(group.id)}
-                                    disabled={getSelectedProductsInGroup(group.id)
-                                        .length < 2}
+                                    disabled={getSelectedProductsInGroup(
+                                        group.id,
+                                    ).length < 2}
                                 >
                                     Merge ({getSelectedProductsInGroup(group.id)
                                         .length})
@@ -523,18 +549,30 @@
                                             {/if}
                                             <div class="product-meta">
                                                 ID: {product.external_product_id}
-                                                • Confidence: {product.confidence_score
-                                                    ? product.confidence_score
-                                                    : "N/A"} • Group Count: {product.distinct_group_count}
+                                                • Confidence: {product.avg_confidence
+                                                    ? product.avg_confidence
+                                                    : "N/A"} • Group Count: {product.distinct_groups}
                                             </div>
                                         </div>
-                                        <a
-                                            href="/products/{product.internal_product_id}"
-                                            class="view-product-link"
-                                            target="_blank"
-                                        >
-                                            View
-                                        </a>
+                                        <div class="product-actions">
+                                            <a
+                                                href="/products/{product.internal_product_id}"
+                                                class="view-product-link"
+                                                target="_blank"
+                                            >
+                                                View
+                                            </a>
+                                            <button
+                                                class="groups-button"
+                                                onclick={() =>
+                                                    showExternalGroups(
+                                                        product.external_product_id,
+                                                    )}
+                                                title="View external groups for this product"
+                                            >
+                                                Groups
+                                            </button>
+                                        </div>
                                     </div>
                                 {/each}
                             </div>
@@ -645,6 +683,14 @@
                                 <div class="product-option-name">
                                     {product.external_product_name}
                                 </div>
+                                {#if product.external_product_name !== product.internal_product_name}
+                                    <div
+                                        class="product-option-name"
+                                        style="font-size: 0.75rem;"
+                                    >
+                                        {product.internal_product_name}
+                                    </div>
+                                {/if}
                                 <div class="product-option-meta">
                                     ID: {product.external_product_id}
                                 </div>
@@ -689,6 +735,158 @@
                     disabled={!selectedPrimaryProduct}
                 >
                     Merge Products
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
+
+<!-- External Groups Modal -->
+{#if showGroupsModal}
+    <div
+        class="modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="groups-modal-title"
+        tabindex="-1"
+        onclick={handleGroupsModalClick}
+        onkeydown={(e) => e.key === "Escape" && closeGroupsModal()}
+    >
+        <div class="modal-content" role="document">
+            <div class="modal-header">
+                <h3 id="groups-modal-title">
+                    External Groups for Product #{currentProductId}
+                </h3>
+                <button
+                    class="modal-close"
+                    onclick={closeGroupsModal}
+                    aria-label="Close modal"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                {#if loadingExternalGroups}
+                    <div class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>Loading external groups...</p>
+                    </div>
+                {:else if externalGroups.length > 0}
+                    <div class="external-groups-list">
+                        {#each externalGroups as group}
+                            <div class="external-group-item">
+                                <div class="group-main-info">
+                                    <h4 class="group-name">
+                                        {group.group_name}
+                                    </h4>
+                                    <div class="group-id">
+                                        Group ID: {group.group_id}
+                                    </div>
+                                </div>
+                                <div class="group-details">
+                                    <div class="detail-row">
+                                        <span class="detail-label"
+                                            >Confidence Score:</span
+                                        >
+                                        <span class="detail-value"
+                                            >{group.confidence_score}</span
+                                        >
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Run ID:</span
+                                        >
+                                        <span class="detail-value"
+                                            >{group.run_id}</span
+                                        >
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label"
+                                            >Created:</span
+                                        >
+                                        <span class="detail-value"
+                                            >{new Date(
+                                                group.created_at,
+                                            ).toLocaleDateString()}</span
+                                        >
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label"
+                                            >Updated:</span
+                                        >
+                                        <span class="detail-value"
+                                            >{new Date(
+                                                group.updated_at,
+                                            ).toLocaleDateString()}</span
+                                        >
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label"
+                                            >Admin Verified:</span
+                                        >
+                                        <span class="detail-value">
+                                            {group.admin_verified_at
+                                                ? new Date(
+                                                      group.admin_verified_at,
+                                                  ).toLocaleDateString()
+                                                : "Not verified"}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                {:else}
+                    <div class="empty-groups">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="48"
+                            height="48"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <rect
+                                x="3"
+                                y="3"
+                                width="18"
+                                height="18"
+                                rx="2"
+                                ry="2"
+                            />
+                            <circle cx="9" cy="9" r="2" />
+                            <path
+                                d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"
+                            />
+                        </svg>
+                        <h4>No External Groups</h4>
+                        <p>
+                            This product is not associated with any external
+                            groups.
+                        </p>
+                    </div>
+                {/if}
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-cancel-modal" onclick={closeGroupsModal}>
+                    Close
                 </button>
             </div>
         </div>
@@ -1109,6 +1307,29 @@
         text-decoration: underline;
     }
 
+    .product-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .groups-button {
+        background: #f3f4f6;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .groups-button:hover {
+        background: #e5e7eb;
+        border-color: #9ca3af;
+    }
+
     .empty-products {
         padding: 2rem;
         text-align: center;
@@ -1347,6 +1568,108 @@
         cursor: not-allowed;
     }
 
+    /* External Groups Modal Styles */
+    .external-groups-list {
+        max-height: 60vh;
+        overflow-y: auto;
+        gap: 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .external-group-item {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1rem;
+        background: #f9fafb;
+    }
+
+    .group-main-info {
+        margin-bottom: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 0.75rem;
+    }
+
+    .group-name {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .group-id {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .group-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.875rem;
+    }
+
+    .detail-label {
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .detail-value {
+        color: #1f2937;
+        font-weight: 600;
+    }
+
+    .empty-groups {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 2rem;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    .empty-groups svg {
+        margin-bottom: 1rem;
+    }
+
+    .empty-groups h4 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #374151;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .empty-groups p {
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 2rem;
+        text-align: center;
+    }
+
+    .loading-state .loading-spinner {
+        margin-bottom: 1rem;
+    }
+
+    .loading-state p {
+        color: #6b7280;
+        margin: 0;
+    }
+
     @media (max-width: 768px) {
         .admin-page {
             padding: 1rem;
@@ -1400,6 +1723,25 @@
 
         .group-name-input {
             min-width: unset;
+        }
+
+        .product-actions {
+            flex-direction: column;
+            gap: 0.25rem;
+            align-items: stretch;
+        }
+
+        .groups-button {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .group-details {
+            grid-template-columns: 1fr;
+        }
+
+        .external-groups-list {
+            max-height: 50vh;
         }
     }
 </style>
