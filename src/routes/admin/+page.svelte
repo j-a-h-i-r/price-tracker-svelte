@@ -1,100 +1,73 @@
 <script lang="ts">
-    import { goto } from '$app/navigation';
-    import { onMount } from 'svelte';
-    import { userState } from '$lib/shared.svelte.js';
-
-    onMount(() => {
-        if (!userState.isAdmin) {
-            goto('/');
-        }
-    });
+    // The admin check is now handled in the layout
 </script>
 
 <div class="container">
     <h1>Admin Dashboard</h1>
+    <p class="welcome-text">Welcome to the admin dashboard. Use the sidebar to navigate to different admin functions.</p>
     
-    <div class="grid">
-        <button onclick={() => goto('/admin/tasks')} class="card">
-            <h2>Tasks</h2>
-            <p>Run and monitor admin tasks</p>
-        </button>
-
-        <button onclick={() => goto('/admin/similar')} class="card">
-            <h2>Similar Products</h2>
-            <p>Manage similar products</p>
-        </button>
-
-        <button onclick={() => goto('/admin/metadata')} class="card">
-            <h2>Manage Metadata</h2>
-            <p>Manage metadata parsing</p>
-        </button>
-
-        <button onclick={() => goto('/admin/users')} class="card">
-            <h2>Manage Users</h2>
-            <p>View and manage user accounts</p>
-        </button>
-
-        <button onclick={() => goto('/admin/manufacturers')} class="card">
-            <h2>Manage Manufacturers</h2>
-            <p>View and manage manufacturers</p>
-        </button>
-
-        <button onclick={() => goto('/admin/flags')} class="card">
-            <h2>Product Flags</h2>
-            <p>Review and manage flagged products</p>
-        </button>
-
-        <button onclick={() => goto('/admin/groups')} class="card">
-            <h2>Product Groups</h2>
-            <p>Manage product groups and merge related products</p>
-        </button>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Quick Stats</h3>
+            <p>Overview of system status and metrics will be displayed here.</p>
+        </div>
+        
+        <div class="stat-card">
+            <h3>Recent Activity</h3>
+            <p>Latest admin activities and system events will be shown here.</p>
+        </div>
+        
+        <div class="stat-card">
+            <h3>System Health</h3>
+            <p>Current system health and performance metrics.</p>
+        </div>
     </div>
 </div>
 
 <style>
     .container {
         max-width: 64rem;
-        margin: 2rem auto;
-        padding: 0 1rem;
+        margin: 0;
+        padding: 2rem;
     }
 
     h1 {
         font-size: 2rem;
         font-weight: bold;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
         color: #111827;
     }
 
-    .grid {
+    .welcome-text {
+        color: #6b7280;
+        margin-bottom: 2rem;
+        font-size: 1rem;
+    }
+
+    .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 1.5rem;
     }
 
-    .card {
+    .stat-card {
         padding: 1.5rem;
         background: white;
         border: 1px solid #e5e7eb;
         border-radius: 8px;
-        text-align: left;
-        transition: all 0.2s;
-        cursor: pointer;
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
     }
 
-    .card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    }
-
-    .card h2 {
-        font-size: 1.25rem;
+    .stat-card h3 {
+        font-size: 1.125rem;
         font-weight: 600;
         margin-bottom: 0.5rem;
         color: #111827;
     }
 
-    .card p {
+    .stat-card p {
         color: #6b7280;
         font-size: 0.875rem;
+        line-height: 1.5;
     }
 </style>
