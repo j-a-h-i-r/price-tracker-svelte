@@ -11,7 +11,9 @@ class UserState {
             if (email) {
                 this.#user.email = email;
                 this.#user.isAdmin = isAdmin;
-                trackedProducts.refresh();
+                if (trackedProducts) {
+                    trackedProducts.refresh();
+                }
             }
         }
     }

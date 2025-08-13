@@ -3,10 +3,13 @@
     import { fetchDeals } from '$lib/api/deals.js';
     import type { Deal } from '$lib/types/Deal.js';
     import { onMount } from 'svelte';
+    import { onDestroy } from 'svelte';
     import { formatPrice } from '$lib/util.js';
     import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
     import DealCard from '$lib/components/DealCard.svelte';
     import type { ProductWithPrice } from '$lib/types/Product.js';
+    import { getManufacturers } from '$lib/api/manufacturers.js';
+    import type { Manufacturer } from '$lib/types/Manufacturer.js';
 
     let searchQuery = $state<string>('');
     let totalProducts = $state<number | undefined>(undefined);
@@ -14,7 +17,9 @@
     let totalCategories = $state<number | undefined>(undefined);
     let searchResults: ProductWithPrice[] = $state([]);
     let searchTimeout: ReturnType<typeof setTimeout>;
+    let searchAbortController: AbortController | null = null;
     let categoryMap: { [key: string]: string } = {};
+    let manufacturerMap: { [key: string]: string } = {};
     let isLoading = $state(false);
     let dealCountToShow = $state<number | undefined>(undefined);
     let deals: Deal[] = $state([]);
@@ -36,6 +41,13 @@
         let categories = await getCategories();
         categories.forEach((category: { id: string; name: string }) => {
             categoryMap[category.id] = category.name;
+        });
+    });
+
+    onMount(async () => {
+        const manufacturers = await getManufacturers();
+        manufacturers.forEach((manufacturer: Manufacturer) => {
+            manufacturerMap[manufacturer.id] = manufacturer.name;
         });
     });
 
@@ -100,17 +112,50 @@
     }
 
     async function handleSearch() {
+        // Cancel any previous in-flight request
+        if (searchAbortController) {
+            searchAbortController.abort();
+        }
+
+        // Create new AbortController for this request
+        searchAbortController = new AbortController();
+        
         isLoading = true;
-        const response = await fetch(
-            `/api/products?name=${encodeURIComponent(searchQuery)}`,
-        );
-        const data = await response.json();
-        searchResults = data;
-        isLoading = false;
+        
+        try {
+            const response = await fetch(
+                `/api/products?name=${encodeURIComponent(searchQuery)}`,
+                { signal: searchAbortController.signal }
+            );
+            
+            // Only process response if request wasn't aborted
+            if (!searchAbortController.signal.aborted) {
+                const data = await response.json();
+                searchResults = data;
+            }
+        } catch (error) {
+            // Don't show error if request was intentionally aborted
+            if (error instanceof Error && error.name !== 'AbortError') {
+                console.error('Search error:', error);
+            }
+        } finally {
+            // Only hide loading if this request wasn't aborted
+            if (searchAbortController && !searchAbortController.signal.aborted) {
+                isLoading = false;
+            }
+        }
     }
 
     function debouncedSearch() {
+        // Cancel previous timeout
         clearTimeout(searchTimeout);
+        
+        // Cancel any in-flight request when starting a new debounced search
+        if (searchAbortController) {
+            searchAbortController.abort();
+            searchAbortController = null;
+        }
+        
         searchTimeout = setTimeout(() => {
             handleSearch();
         }, 300);
@@ -119,7 +164,25 @@
     $effect(() => {
         if (searchQuery !== undefined && searchQuery !== '') {
             debouncedSearch();
+        } else {
+            // Clear search results and cancel any pending requests when search is cleared
+            clearTimeout(searchTimeout);
+            if (searchAbortController) {
+                searchAbortController.abort();
+                searchAbortController = null;
+            }
+            searchResults = [];
+            isLoading = false;
         }
+    });
+
+    onDestroy(() => {
+        // Clean up any pending requests and timeouts when component is destroyed
+        clearTimeout(searchTimeout);
+        if (searchAbortController) {
+            searchAbortController.abort();
+        }
+        clearInterval(autoScrollInterval);
     });
 </script>
 
@@ -219,35 +282,30 @@
 </div>
 
 {#if searchResults.length > 0}
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Lowest Price</th>
-                </tr>
-            </thead>
-            <tbody>
-                {#each searchResults as product (product.id)}
-                    <tr>
-                        <td>
-                            <a href="/products/{product.id}">{product.name}</a>
-                            <span class="badge category-badge"
-                                >{categoryMap[product.category_id] || '?'}</span
-                            >
-                            <span class="badge"
-                                >{product.prices?.length || 0} websites</span
-                            >
-                        </td>
-                        <td
-                            >{product.lowest_available_price
-                                ? formatPrice(product.lowest_available_price)
-                                : 'Not Available'}</td
-                        >
-                    </tr>
-                {/each}
-            </tbody>
-        </table>
+    <div class="search-results-section">
+        <div class="search-results-header">
+            <h2>Found {searchResults.length} matching product{searchResults.length === 1 ? '' : 's'}</h2>
+        </div>
+        <div class="search-results">
+            {#each searchResults as product (product.id)}
+                <a href="/products/{product.id}" class="search-result-row">
+                    <div class="result-content">
+                        <div class="first-line">
+                            <h3 class="product-name">{product.name}</h3>
+                            <span class="current-price">
+                                {product.lowest_available_price
+                                    ? formatPrice(product.lowest_available_price)
+                                    : 'Not Available'}
+                            </span>
+                        </div>
+                        <div class="second-line">
+                            <span class="category">{categoryMap[product.category_id] || 'Unknown Category'}</span>
+                            <span class="brand">{manufacturerMap[product.manufacturer_id] || 'Unknown Brand'}</span>
+                        </div>
+                    </div>
+                </a>
+            {/each}
+        </div>
     </div>
 {:else if searchQuery}
     <p class="no-results">No products found</p>
@@ -350,40 +408,126 @@
         transform: translateY(-50%);
     }
 
-    .table-container {
+    .search-results-section {
         margin: 2rem 0;
-        overflow-x: auto;
     }
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        background: white;
-        border-radius: 8px;
-        overflow: hidden;
+    .search-results-header {
+        margin-bottom: 1.5rem;
     }
 
-    th,
-    td {
-        padding: 1rem;
-        text-align: left;
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-    th {
-        background: #f4f4f4;
+    .search-results-header h2 {
+        font-size: 1rem;
         font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .search-results {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .search-result-row {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .search-result-row:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(37, 99, 235, 0.1);
+        border-color: #2563eb;
+    }
+
+    .result-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .first-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .product-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+        line-height: 1.4;
+        flex: 1;
+    }
+
+    .current-price {
+        font-size: 1.25rem;
+        font-weight: bold;
+        color: #2563eb;
+        white-space: nowrap;
+    }
+
+    .second-line {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .category,
+    .brand {
+        font-size: 0.875rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-weight: 500;
+    }
+
+    .category {
+        background: #f3f4f6;
         color: #4b5563;
     }
 
-    tr:hover {
-        background: #f8fafc;
+    .brand {
+        background: #e0e7ff;
+        color: #4338ca;
     }
 
     .no-results {
         text-align: center;
         color: #6b7280;
         margin: 2rem 0;
+    }
+
+    @media (max-width: 640px) {
+        .first-line {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .product-name {
+            font-size: 1rem;
+        }
+
+        .current-price {
+            font-size: 1.125rem;
+        }
+
+        .second-line {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .search-result-row {
+            padding: 1rem;
+        }
     }
 
     .deals-section {
@@ -422,22 +566,6 @@
 
     .deals-scroll::-webkit-scrollbar {
         display: none; /* Chrome, Safari, Opera */
-    }
-
-    .badge {
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: #4b5563;
-        background: #e5e7eb;
-        padding: 0.25rem 0.5rem;
-        border-radius: 9999px;
-        margin-left: 0.5rem;
-        display: inline-block;
-    }
-
-    .category-badge {
-        background: #dbeafe;
-        color: #1e40af;
     }
 
     /* Deals loading styles */
