@@ -1,17 +1,18 @@
 <script lang="ts">
-    import { fetchStats } from "$lib/api/stats.js";
-    import { fetchDeals } from "$lib/api/deals.js";
-    import type { Deal } from "$lib/types/Deal.js";
-    import { onMount } from "svelte";
-    import { formatPrice } from "$lib/util.js";
-    import { goto } from "$app/navigation";
-    import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
+    import { fetchStats } from '$lib/api/stats.js';
+    import { fetchDeals } from '$lib/api/deals.js';
+    import type { Deal } from '$lib/types/Deal.js';
+    import { onMount } from 'svelte';
+    import { formatPrice } from '$lib/util.js';
+    import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+    import DealCard from '$lib/components/DealCard.svelte';
+    import type { ProductWithPrice } from '$lib/types/Product.js';
 
-    let searchQuery = $state<string>("");
+    let searchQuery = $state<string>('');
     let totalProducts = $state<number | undefined>(undefined);
     let totalWebsites = $state<number | undefined>(undefined);
     let totalCategories = $state<number | undefined>(undefined);
-    let searchResults: any[] = $state([]);
+    let searchResults: ProductWithPrice[] = $state([]);
     let searchTimeout: ReturnType<typeof setTimeout>;
     let categoryMap: { [key: string]: string } = {};
     let isLoading = $state(false);
@@ -46,7 +47,7 @@
             deals = deals.slice(0, 10); // Limit to first 10 deals
             startAutoScroll();
         } catch (error) {
-            console.error("Error fetching deals:", error);
+            console.error('Error fetching deals:', error);
         } finally {
             dealsLoading = false;
         }
@@ -64,7 +65,7 @@
         autoScrollInterval = setInterval(() => {
             if (!dealsContainer || isHovering) return;
 
-            const firstCard = dealsContainer.querySelector(".deal-card");
+            const firstCard = dealsContainer.querySelector('a');
             if (!firstCard) return;
 
             const cardWidth = (firstCard as HTMLElement).offsetWidth + 16; // Width + gap
@@ -75,11 +76,11 @@
                 dealsContainer.scrollWidth - dealsContainer.offsetWidth
             ) {
                 // Reset to start when reaching the end
-                dealsContainer.scrollTo({ left: 0, behavior: "smooth" });
+                dealsContainer.scrollTo({ left: 0, behavior: 'smooth' });
             } else {
                 dealsContainer.scrollTo({
                     left: newScrollLeft,
-                    behavior: "smooth",
+                    behavior: 'smooth',
                 });
             }
         }, 3000); // Scroll every 3 seconds
@@ -94,7 +95,7 @@
     }
 
     async function getCategories() {
-        const response = await fetch("/api/categories");
+        const response = await fetch('/api/categories');
         return await response.json();
     }
 
@@ -116,7 +117,7 @@
     }
 
     $effect(() => {
-        if (searchQuery !== undefined && searchQuery !== "") {
+        if (searchQuery !== undefined && searchQuery !== '') {
             debouncedSearch();
         }
     });
@@ -156,7 +157,7 @@
         <h2>
             Weekly Deals {dealCountToShow !== undefined
                 ? `(${dealCountToShow}+ deals)`
-                : ""}
+                : ''}
         </h2>
         <a href="/deals" class="view-all">View all →</a>
     </div>
@@ -175,42 +176,8 @@
             role="region"
             aria-label="Deals carousel"
         >
-            {#each deals as deal}
-                <a
-                    href="/products/{deal.product_id}"
-                    onclick={() =>
-                        goto(`/products/${deal.product_id}`, {
-                            state: {
-                                highlight_external_product_id:
-                                    deal.external_product_id,
-                            },
-                        })}
-                    class="deal-card"
-                >
-                    <div class="deal-content">
-                        <h3>{deal.product_name}</h3>
-                        <div class="price-section">
-                            <span class="current-price"
-                                >{formatPrice(deal.current_price)}</span
-                            >
-                            {#if deal.current_price}
-                                <span class="msrp"
-                                    >{formatPrice(
-                                        deal.max_price_last_days,
-                                    )}</span
-                                >
-                                <span class="discount"
-                                    >-{Math.round(
-                                        (1 -
-                                            deal.current_price /
-                                                deal.max_price_last_days) *
-                                            100,
-                                    )}%</span
-                                >
-                            {/if}
-                        </div>
-                    </div>
-                </a>
+            {#each deals as deal (deal.external_product_id)}
+                <DealCard {deal} />
             {/each}
         </div>
     {:else}
@@ -261,12 +228,12 @@
                 </tr>
             </thead>
             <tbody>
-                {#each searchResults as product}
+                {#each searchResults as product (product.id)}
                     <tr>
                         <td>
                             <a href="/products/{product.id}">{product.name}</a>
                             <span class="badge category-badge"
-                                >{categoryMap[product.category_id] || "?"}</span
+                                >{categoryMap[product.category_id] || '?'}</span
                             >
                             <span class="badge"
                                 >{product.prices?.length || 0} websites</span
@@ -275,7 +242,7 @@
                         <td
                             >{product.lowest_available_price
                                 ? formatPrice(product.lowest_available_price)
-                                : "Not Available"}</td
+                                : 'Not Available'}</td
                         >
                     </tr>
                 {/each}
@@ -298,7 +265,7 @@
     .stats-header {
         text-align: center;
         margin: 1rem 0;
-        padding: 2rem 1rem;
+        padding: 0rem 1rem;
     }
 
     .stats-header h1 {
@@ -337,7 +304,7 @@
     @media (min-width: 768px) {
         .stats-header {
             margin: 1rem 0;
-            padding: 3rem 2rem;
+            padding: 0rem 2rem;
         }
 
         .stats-header h1 {
@@ -455,60 +422,6 @@
 
     .deals-scroll::-webkit-scrollbar {
         display: none; /* Chrome, Safari, Opera */
-    }
-
-    .deal-card {
-        flex: 0 0 280px;
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        text-decoration: none;
-        color: inherit;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        transition:
-            transform 0.2s,
-            box-shadow 0.2s;
-        scroll-snap-align: start;
-    }
-
-    .deal-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    .deal-content h3 {
-        margin: 0 0 1rem 0;
-        font-size: 1.1rem;
-        color: #1f2937;
-        line-height: 1.4;
-    }
-
-    .price-section {
-        display: flex;
-        align-items: baseline;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-    }
-
-    .current-price {
-        font-size: 1.4rem;
-        font-weight: 600;
-        color: #16a34a;
-    }
-
-    .msrp {
-        font-size: 1rem;
-        text-decoration: line-through;
-        color: #6b7280;
-    }
-
-    .discount {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #ef4444;
-        background: #fee2e2;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
     }
 
     .badge {

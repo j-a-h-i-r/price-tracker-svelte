@@ -149,7 +149,6 @@
 		list-style: none;
 		padding: 0;
 		margin: 0;
-		gap: 0.25rem;
 	}
 
 	.breadcrumb-item {

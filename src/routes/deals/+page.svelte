@@ -2,11 +2,11 @@
     import { onMount } from 'svelte';
     import type { Deal, DealFilter } from '$lib/types/Deal';
     import { fetchDeals } from '$lib/api/deals.js';
-    import { formatPrice } from '$lib/util.js';
     import SearchableSelect from '$lib/components/SearchableSelect.svelte';
     import { fetchCategories, type Category } from '$lib/api/products';
     import NoResult from '$lib/components/NoResult.svelte';
     import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+    import DealCard from '$lib/components/DealCard.svelte';
     import { getManufacturers } from '$lib/api/manufacturers.js';
     import type { Manufacturer } from '$lib/types/Manufacturer.js';
     import { page } from '$app/state';
@@ -16,8 +16,8 @@
     let sortBy = $state<'value' | 'percentage'>('value');
     let categories: Category[] = $state([]);
     let manufacturers: Manufacturer[] = $state([]);
-    let selectedCategoryId: string | number = $state("all");
-    let selectedManufacturerId: string | number = $state("all");
+    let selectedCategoryId: string | number = $state('all');
+    let selectedManufacturerId: string | number = $state('all');
 
     onMount(() => {
         const urlCategoryId = page.url.searchParams.get('category_id');
@@ -65,8 +65,8 @@
             sortby: sortBy,
             days: selectedDays,
         };
-        if (selectedCategoryId !== "all") filters.category_id = selectedCategoryId;
-        if (selectedManufacturerId !== "all") filters.manufacturer_id = selectedManufacturerId;
+        if (selectedCategoryId !== 'all') filters.category_id = selectedCategoryId;
+        if (selectedManufacturerId !== 'all') filters.manufacturer_id = selectedManufacturerId;
         
         return fetchDeals(filters);
     });
@@ -148,23 +148,8 @@
                     <NoResult message="No deal found" suggestion="Try different configuration" />
                 </div>
             {:else}
-                {#each deals as deal}
-                    <a href="/products/{deal.product_id}" onclick={() => goto(`/products/${deal.product_id}`, { state: { highlight_external_product_id: deal.external_product_id } })} class="deal-card">
-                        <div class="deal-content">
-                            <h3>{deal.product_name}</h3>
-                            <div class="price-section">
-                                <span class="current-price">{formatPrice(deal.current_price)}</span>
-                                {#if deal.current_price}
-                                    <span class="msrp">{formatPrice(deal.max_price_last_days)}</span>
-                                    <span class="discount">-{Math.round((1 - deal.current_price/deal.max_price_last_days) * 100)}%</span>
-                                {/if}
-                            </div>
-                        </div>
-                        <div class="info-section">
-                            <span class="manufacturer">{manufacturerMap[deal.manufacturer_id]?.name || 'Unknown Brand'}</span>
-                            <span class="category">{categoryMap[deal.category_id]?.name || 'Uncategorized'}</span>
-                        </div>
-                    </a>
+                {#each deals as deal (deal.external_product_id)}
+                    <DealCard {deal} {manufacturerMap} {categoryMap} showFullProductName={true} />
                 {/each}
             {/if}
         {:catch error}
@@ -302,63 +287,6 @@
         grid-column: 1 / -1;
     }
 
-    .deal-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        text-decoration: none;
-        color: inherit;
-        border: 1px solid #e5e7eb;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        transition: all 0.2s ease;
-    }
-
-    .deal-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(37, 99, 235, 0.1);
-        border-color: #2563eb;
-    }
-
-    .deal-content h3 {
-        margin: 0 0 1rem 0;
-        font-size: 1.1rem;
-        line-height: 1.4;
-        color: #1f2937;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        height: 2.8em;
-    }
-
-    .price-section {
-        display: flex;
-        align-items: baseline;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-
-    .current-price {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #2563eb;
-    }
-
-    .msrp {
-        text-decoration: line-through;
-        color: #6b7280;
-    }
-
-    .discount {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #ef4444;
-        background: #fee2e2;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-    }
-
     .filter-sort {
         display: flex;
         flex-wrap: wrap;
@@ -376,35 +304,6 @@
         gap: 1rem;
         /* flex-wrap: wrap; */
         flex: 1;
-    }
-
-    .info-section {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: 1rem;
-        flex-wrap: wrap;
-        padding-top: 1rem;
-        border-top: 1px solid #e5e7eb;
-        justify-content: space-between;
-    }
-
-    .info-section > span {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
-        background: #f3f4f6;
-        color: #4b5563;
-    }
-
-    .info-section > .manufacturer {
-        background: #e0e7ff;
-        color: #4338ca;
-        font-weight: 500;
-    }
-
-    .info-section > .category {
-        background: #f3f4f6;
-        color: #4b5563;
     }
 
     @media (max-width: 768px) {
