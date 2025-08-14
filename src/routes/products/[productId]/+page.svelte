@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { page } from "$app/state";
+    import { page } from '$app/state';
     import {
     fetchExternalProductMetadata,
         fetchExternalProductPrices,
@@ -7,27 +7,27 @@
         fetchProductById,
         fetchVariantAttributes,
         flagIncorrectGrouping,
-    } from "$lib/api/products.js";
+    } from '$lib/api/products.js';
     import type {
         ExternalProduct,
         ExternalProductPrice,
         ProductVariant,
         ExternalProductMetadata,
         Product,
-    } from "$lib/types/Product.js";
-    import { onMount } from "svelte";
-    import { Chart } from "chart.js/auto";
-    import "chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm";
-    import { trackedProducts } from "$lib/states/tracked.svelte.js";
-    import { fetchWebsites, type Website } from "$lib/api/websites.js";
-    import { userState } from "$lib/shared.svelte.js";
-    import { formatPrice } from "$lib/util.js";
-    import dayjs from "dayjs";
-    import type { Attachment } from "svelte/attachments";
-    import type { FlaggingOption } from "$lib/types/Flagging.js";
-    import { getFlaggingOptions } from "$lib/api/flagging.js";
-    import { toasts } from "$lib/states/toast.js";
-    import { goto } from "$app/navigation";
+    } from '$lib/types/Product.js';
+    import { onMount } from 'svelte';
+    import { Chart } from 'chart.js/auto';
+    import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
+    import { trackedProducts } from '$lib/states/tracked.svelte.js';
+    import { fetchWebsites, type Website } from '$lib/api/websites.js';
+    import { userState } from '$lib/shared.svelte.js';
+    import { formatPrice } from '$lib/util.js';
+    import dayjs from 'dayjs';
+    import type { Attachment } from 'svelte/attachments';
+    import type { FlaggingOption } from '$lib/types/Flagging.js';
+    import { getFlaggingOptions } from '$lib/api/flagging.js';
+    import { toasts } from '$lib/states/toast.js';
+    import { goto } from '$app/navigation';
 
     let productId = Number(page.params.productId);
     let product: Product | null = $state(null);
@@ -56,9 +56,10 @@
 
     let externalProductIdToHighlight: number | null = $state(null);
     let alreadyScrolledOnce = $state(false);
+    let productNotFound = $state(false);
 
     onMount(() => {
-        const { highlight_external_product_id } = page.state as any;
+        const { highlight_external_product_id } = page.state as { highlight_external_product_id: number | null };
         if (highlight_external_product_id) {
             externalProductIdToHighlight = Number(highlight_external_product_id);
         }
@@ -273,7 +274,7 @@
             };
 
             const chart = new Chart(chartCanvas, {
-                type: "line",
+                type: 'line',
                 data,
                 options: {
                     elements: {
@@ -301,7 +302,7 @@
                                 display: false,
                             },
                             display: true,
-                            type: "time",
+                            type: 'time',
                             time: {
                                 unit: 'day'
                             },
@@ -375,7 +376,7 @@
             };
 
             const chart = new Chart(chartCanvas, {
-                type: "line",
+                type: 'line',
                 data,
                 options: {
                     responsive: true,
@@ -383,7 +384,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: "Price History",
+                            text: 'Price History',
                         },
                         legend: {
                             display: true,
@@ -393,7 +394,7 @@
                     },
                     scales: {
                         x: {
-                            type: "time",
+                            type: 'time',
                             time: {
                                 unit: 'day'
                             }
@@ -527,8 +528,11 @@
                 selectedVariants![variant.name] = 'unselected';
             });
             initialVariantsLoaded = true;
-        } catch (error) {
-            console.error("Error fetching product:", error);
+        } catch (error: unknown) {
+            console.error('Error fetching product:', error);
+            if (error instanceof Error && 'status' in error && (error as { status: number }).status === 404) {
+                productNotFound = true;
+            }
         }
     });
 
@@ -641,6 +645,34 @@
 </svelte:head>
 
 <div class="product-details">
+    {#if productNotFound}
+        <div class="product-not-found">
+            <div class="not-found-icon-container">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="not-found-icon">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M16 16s-1.5-2-4-2-4 2-4 2"/>
+                    <line x1="9" y1="9" x2="9.01" y2="9"/>
+                    <line x1="15" y1="9" x2="15.01" y2="9"/>
+                </svg>
+            </div>
+            <h1>Product Not Found</h1>
+            <p class="not-found-description">
+                The product you're looking for doesn't exist or may have been removed. This could happen if:
+            </p>
+            <ul class="not-found-reasons">
+                <li>The product ID is incorrect</li>
+                <li>The product has been discontinued</li>
+                <li>The product has been merged with another product</li>
+            </ul>
+            <p class="not-found-suggestion">
+                You can browse other products or go back to the home page.
+            </p>
+            <div class="not-found-actions">
+                <button onclick={() => goto('/')} class="btn-go-home">Go to Home</button>
+                <button onclick={() => goto('/products')} class="btn-browse-products">Browse Products</button>
+            </div>
+        </div>
+    {:else}
     <div class="product-header">
         {#if isEditingMainProduct}
             <div class="edit-name-container">
@@ -667,7 +699,7 @@
         <div class="availability-indicator">
             <span class="dot" class:available={isAvailable}></span>
             <span class="status-text"
-                >{isAvailable ? "Available" : "Unavailable"}</span
+                >{isAvailable ? 'Available' : 'Unavailable'}</span
             >
         </div>
         {#if userState.email}
@@ -695,7 +727,7 @@
         <div class="variants-header">Select Configuration</div>
         <div class="variants-section">
             <div class="variants-grid">
-                {#each variants as variant}
+                {#each variants as variant (variant.name)}
                     <div class="variant-selector">
                         <label for={variant.name}>{variant.display_text}</label>
                         {#if variant.values.length <= 3}
@@ -707,7 +739,7 @@
                                 >
                                     Any
                                 </button>
-                                {#each variant.values as value}
+                                {#each variant.values as value, idx (idx)}
                                     <button 
                                         class="variant-button" 
                                         class:selected={selectedVariants[variant.name] === value.value}
@@ -723,7 +755,7 @@
                                 bind:value={selectedVariants[variant.name]}
                             >
                                 <option value="unselected"> Choose a value </option>
-                                {#each variant.values as value}
+                                {#each variant.values as value, idx (idx)}
                                     <option value={value.value}>{value.display_text}</option>
                                 {/each}
                             </select>
@@ -753,7 +785,7 @@
                         if you want to see savings for a specific configuration.
                     {:else}
                         The savings are shown for all products with 
-                        {#each getSelectedVariantsFormatted(selectedVariants) as selVar}
+                        {#each getSelectedVariantsFormatted(selectedVariants) as selVar (selVar.name)}
                         <span class="metadata-pill">
                             <span class="metadata-pill-label">{selVar.name}</span>
                             <span class="metadata-pill-value">{selVar.value}</span>
@@ -765,8 +797,8 @@
         {/if}
 
         <div class="details">
-            {#each externalProductsSorted as product}
-                <div class={["price-card", {highlight: externalProductIdToHighlight === product.external_product_id}]}
+            {#each externalProductsSorted as product (product.external_product_id)}
+                <div class={['price-card', {highlight: externalProductIdToHighlight === product.external_product_id}]}
                     {@attach highlightExternalProduct(product)}
                 >
                     <div class="product-name">
@@ -845,7 +877,7 @@
 
                     {#if (externalProductMetadatas.get(product.external_product_id) ?? []).length > 0}
                         <div class="metadata-pills">
-                            {#each externalProductMetadatas.get(product.external_product_id) ?? [] as metadata}
+                            {#each externalProductMetadatas.get(product.external_product_id) ?? [] as metadata (metadata.name)}
                                 <div class="metadata-pill">
                                     <span class="metadata-pill-label">{metadata.name_display_text}</span>
                                     <span class="metadata-pill-value">{metadata.value_display_text}</span>
@@ -882,6 +914,7 @@
             </div>
         {/if}
     {/if}
+    {/if}
 </div>
 
 <!-- Flag Modal -->
@@ -915,7 +948,7 @@
                 </p>
                 
                 <div class="issues-list">
-                    {#each flaggingOptions as option}
+                    {#each flaggingOptions as option (option.id)}
                         <div>
                             <label>
                                 <input type="checkbox" name="flaggingOptions" value={option.id} bind:group={selectedFlaggingOptions}>
@@ -1052,6 +1085,129 @@
     }
     .websites-header {
         margin-top: 2rem;
+    }
+
+    /* Product Not Found Styles */
+    .product-not-found {
+        max-width: 600px;
+        margin: 0rem auto;
+        padding: 3rem 2rem;
+        text-align: center;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .not-found-icon-container {
+        margin-bottom: 2rem;
+    }
+
+    .not-found-icon {
+        color: #dc2626;
+        margin: 0 auto;
+    }
+
+    .product-not-found h1 {
+        color: #1f2937;
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .not-found-description {
+        color: #6b7280;
+        font-size: 1.125rem;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+
+    .not-found-reasons {
+        text-align: left;
+        color: #6b7280;
+        font-size: 1rem;
+        margin: 1.5rem auto;
+        padding-left: 1.5rem;
+        max-width: 400px;
+    }
+
+    .not-found-reasons li {
+        margin-bottom: 0.75rem;
+        line-height: 1.5;
+    }
+
+    .not-found-suggestion {
+        color: #6b7280;
+        font-size: 1.125rem;
+        margin: 1.5rem 0 2rem 0;
+        line-height: 1.6;
+    }
+
+    .not-found-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn-go-home {
+        padding: 0.75rem 1.5rem;
+        background: #6b7280;
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-go-home:hover {
+        background: #4b5563;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-browse-products {
+        padding: 0.75rem 1.5rem;
+        background: #2563eb;
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-browse-products:hover {
+        background: #1d4ed8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    @media (max-width: 640px) {
+        .product-not-found {
+            padding: 2rem 1.5rem;
+        }
+
+        .product-not-found h1 {
+            font-size: 1.75rem;
+        }
+
+        .not-found-actions {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .btn-go-home,
+        .btn-browse-products {
+            width: 100%;
+            max-width: 200px;
+        }
     }
 
     .edit-name-container {
@@ -2112,6 +2268,43 @@
         color: #059669;
         display: flex;
         justify-content: center;
+    }
+
+    .not-found-icon {
+        color: #dc2626;
+        display: flex;
+        justify-content: center;
+    }
+
+    .not-found-reasons {
+        text-align: left;
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin: 1rem 0;
+        padding-left: 1.25rem;
+    }
+
+    .not-found-reasons li {
+        margin-bottom: 0.5rem;
+    }
+
+    .btn-browse-products {
+        padding: 0.5rem 1rem;
+        background: #2563eb;
+        border: none;
+        border-radius: 6px;
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-browse-products:hover {
+        background: #1d4ed8;
+        text-decoration: none;
     }
 
     .price-input-section {

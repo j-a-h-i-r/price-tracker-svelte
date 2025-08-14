@@ -14,7 +14,11 @@ export async function fetchProducts(limit?: number): Promise<ProductWithLastPric
 
 export async function fetchProductById(id: string | number): Promise<Product> {
     const response = await fetch(`/api/products/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch product');
+    if (!response.ok) {
+        const error = new Error('Failed to fetch product');
+        (error as any).status = response.status;
+        throw error;
+    }
     return response.json();
 }
 
@@ -84,13 +88,13 @@ export async function fetchExternalProductMetadata(internalId: number, externalI
 }
 
 export async function fetchVariantAttributes(productId: number) {
-    try {
-        const response = await fetch(`/api/products/${productId}/variantattributes`);
-        if (!response.ok) throw new Error('Failed to fetch variants');
-        return response.json();
-    } catch (error) {
-        console.error('Error fetching variants:', error);
+    const response = await fetch(`/api/products/${productId}/variantattributes`);
+    if (!response.ok) {
+        const error = new Error('Failed to fetch variants');
+        (error as any).status = response.status;
+        throw error;
     }
+    return response.json();
 }
 
 export async function flagIncorrectGrouping(internalId: number, externalId: number, flagOptions: string[]): Promise<void> {
