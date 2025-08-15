@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { userState } from "$lib/shared.svelte.js";
-    import { goto } from "$app/navigation";
+    import { onMount } from 'svelte';
+    import { userState } from '$lib/shared.svelte.js';
+    import { goto } from '$app/navigation';
 
     type Product = {
         external_product_id: number;
@@ -29,16 +29,17 @@
     let currentGroupId = $state<number | null>(null);
     let selectedPrimaryProduct = $state<number | null>(null);
     let editingGroupId = $state<number | null>(null);
-    let editingGroupName = $state("");
+    let editingGroupName = $state('');
     let showGroupsModal = $state(false);
     let currentProductId = $state<number | null>(null);
     let externalGroups = $state<any[]>([]);
     let loadingExternalGroups = $state(false);
+    let deletingProducts: Set<string> = $state(new Set());
 
     onMount(async () => {
         // Check if user is admin
         if (!userState.isAdmin) {
-            goto("/");
+            goto('/');
             return;
         }
 
@@ -48,9 +49,9 @@
     async function loadGroups() {
         try {
             isLoading = true;
-            const response = await fetch("/api/groups");
+            const response = await fetch('/api/groups');
             if (!response.ok) {
-                throw new Error("Failed to fetch groups");
+                throw new Error('Failed to fetch groups');
             }
             groups = await response.json();
 
@@ -72,8 +73,8 @@
 
             selectedProducts = new Set(selectedProducts);
         } catch (err) {
-            console.error("Error fetching groups:", err);
-            error = "Failed to load product groups";
+            console.error('Error fetching groups:', err);
+            error = 'Failed to load product groups';
         } finally {
             isLoading = false;
         }
@@ -114,11 +115,11 @@
             loadingExternalGroups = true;
             const response = await fetch(`/api/externals/${productId}/groups`);
             if (!response.ok) {
-                throw new Error("Failed to fetch external groups");
+                throw new Error('Failed to fetch external groups');
             }
             externalGroups = await response.json();
         } catch (err) {
-            console.error("Error fetching external groups:", err);
+            console.error('Error fetching external groups:', err);
             externalGroups = [];
         } finally {
             loadingExternalGroups = false;
@@ -135,6 +136,52 @@
         showGroupsModal = false;
         currentProductId = null;
         externalGroups = [];
+    }
+
+    async function deleteProductFromGroup(
+        externalProductId: number,
+        groupId: number,
+    ) {
+        const key = `${groupId}:${externalProductId}`;
+        if (!confirm('Remove this product from the group?')) return;
+
+        try {
+            deletingProducts.add(key);
+            deletingProducts = new Set(deletingProducts);
+
+            const response = await fetch(
+                `/api/externals/${externalProductId}/groups/${groupId}`,
+                {
+                    method: 'DELETE',
+                },
+            );
+            if (!response.ok) {
+                throw new Error('Failed to remove product from group');
+            }
+
+            // Update local state
+            const gIdx = groups.findIndex((g) => g.id === groupId);
+            if (gIdx !== -1 && groups[gIdx].products) {
+                groups[gIdx].products = groups[gIdx].products!.filter(
+                    (p) => p.external_product_id !== externalProductId,
+                );
+            }
+
+            // Remove selection if present
+            if (selectedProducts.has(externalProductId)) {
+                selectedProducts.delete(externalProductId);
+                selectedProducts = new Set(selectedProducts);
+            }
+
+            // Trigger reactivity for groups
+            groups = [...groups];
+        } catch (err) {
+            console.error('Error removing product from group:', err);
+            alert('Failed to remove product. Please try again.');
+        } finally {
+            deletingProducts.delete(key);
+            deletingProducts = new Set(deletingProducts);
+        }
     }
 
     function handleGroupsModalClick(event: MouseEvent) {
@@ -175,7 +222,7 @@
     function openMergeModal(groupId: number) {
         const selectedInGroup = getSelectedProductsInGroup(groupId);
         if (selectedInGroup.length < 2) {
-            alert("Please select at least 2 products to merge");
+            alert('Please select at least 2 products to merge');
             return;
         }
 
@@ -199,7 +246,7 @@
 
     async function performMerge() {
         if (!currentGroupId || !selectedPrimaryProduct) {
-            alert("Please select a primary product");
+            alert('Please select a primary product');
             return;
         }
 
@@ -220,9 +267,9 @@
             const response = await fetch(
                 `/api/groups/${currentGroupId}/merge`,
                 {
-                    method: "PUT",
+                    method: 'PUT',
                     headers: {
-                        "Content-Type": "application/json",
+                        'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         productName: currentGroup?.group_name,
@@ -235,10 +282,10 @@
             );
 
             if (!response.ok) {
-                throw new Error("Failed to merge products");
+                throw new Error('Failed to merge products');
             }
 
-            alert("Products merged successfully!");
+            alert('Products merged successfully!');
             closeMergeModal();
 
             // Clear selections and reload data
@@ -246,8 +293,8 @@
             selectedProducts = new Set();
             await loadGroups();
         } catch (err) {
-            console.error("Error merging products:", err);
-            alert("Failed to merge products. Please try again.");
+            console.error('Error merging products:', err);
+            alert('Failed to merge products. Please try again.');
         }
     }
 
@@ -262,26 +309,26 @@
 
     function cancelEditingGroup() {
         editingGroupId = null;
-        editingGroupName = "";
+        editingGroupName = '';
     }
 
     async function saveGroupName(groupId: number) {
         if (!editingGroupName.trim()) {
-            alert("Group name cannot be empty");
+            alert('Group name cannot be empty');
             return;
         }
 
         try {
             const response = await fetch(`/api/groups/${groupId}`, {
-                method: "PUT",
+                method: 'PUT',
                 headers: {
-                    "Content-Type": "application/json",
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ groupName: editingGroupName.trim() }),
             });
 
             if (!response.ok) {
-                throw new Error("Failed to update group name");
+                throw new Error('Failed to update group name');
             }
 
             // Update the group in the local state
@@ -291,10 +338,10 @@
             }
 
             editingGroupId = null;
-            editingGroupName = "";
+            editingGroupName = '';
         } catch (err) {
-            console.error("Error updating group name:", err);
-            alert("Failed to update group name. Please try again.");
+            console.error('Error updating group name:', err);
+            alert('Failed to update group name. Please try again.');
         }
     }
 
@@ -377,9 +424,9 @@
                                             class="group-name-input"
                                             placeholder="Enter group name"
                                             onkeydown={(e) => {
-                                                if (e.key === "Enter")
+                                                if (e.key === 'Enter')
                                                     saveGroupName(group.id);
-                                                if (e.key === "Escape")
+                                                if (e.key === 'Escape')
                                                     cancelEditingGroup();
                                             }}
                                         />
@@ -551,7 +598,7 @@
                                                 ID: {product.external_product_id}
                                                 • Confidence: {product.avg_confidence
                                                     ? product.avg_confidence
-                                                    : "N/A"} • Group Count: {product.distinct_groups}
+                                                    : 'N/A'} • Group Count: {product.distinct_groups}
                                             </div>
                                         </div>
                                         <div class="product-actions">
@@ -571,6 +618,24 @@
                                                 title="View external groups for this product"
                                             >
                                                 Groups
+                                            </button>
+                                            <button
+                                                class="delete-button"
+                                                onclick={() =>
+                                                    deleteProductFromGroup(
+                                                        product.external_product_id,
+                                                        group.id,
+                                                    )}
+                                                disabled={deletingProducts.has(
+                                                    `${group.id}:${product.external_product_id}`,
+                                                )}
+                                                title="Remove this product from the group"
+                                            >
+                                                {deletingProducts.has(
+                                                    `${group.id}:${product.external_product_id}`,
+                                                )
+                                                    ? 'Removing...'
+                                                    : 'Remove'}
                                             </button>
                                         </div>
                                     </div>
@@ -617,7 +682,7 @@
         aria-labelledby="merge-modal-title"
         tabindex="-1"
         onclick={handleModalClick}
-        onkeydown={(e) => e.key === "Escape" && closeMergeModal()}
+        onkeydown={(e) => e.key === 'Escape' && closeMergeModal()}
     >
         <div class="modal-content" role="document">
             <div class="modal-header">
@@ -750,7 +815,7 @@
         aria-labelledby="groups-modal-title"
         tabindex="-1"
         onclick={handleGroupsModalClick}
-        onkeydown={(e) => e.key === "Escape" && closeGroupsModal()}
+        onkeydown={(e) => e.key === 'Escape' && closeGroupsModal()}
     >
         <div class="modal-content" role="document">
             <div class="modal-header">
@@ -842,7 +907,7 @@
                                                 ? new Date(
                                                       group.admin_verified_at,
                                                   ).toLocaleDateString()
-                                                : "Not verified"}
+                                                : 'Not verified'}
                                         </span>
                                     </div>
                                 </div>
@@ -1328,6 +1393,28 @@
     .groups-button:hover {
         background: #e5e7eb;
         border-color: #9ca3af;
+    }
+
+    .delete-button {
+        background: #fee2e2;
+        color: #b91c1c;
+        border: 1px solid #fca5a5;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .delete-button:hover:not(:disabled) {
+        background: #fecaca;
+        border-color: #f87171;
+    }
+
+    .delete-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 
     .empty-products {
