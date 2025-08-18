@@ -841,7 +841,7 @@
                     </div>
                     <div class="store-info">
                         <a
-                            href={product.url}
+                            href={`${product.url}${product.url.includes('?') ? '&' : '?'}utm_source=daam.deals`}
                             target="_blank"
                             rel="noopener noreferrer"
                             class="buy-link"
