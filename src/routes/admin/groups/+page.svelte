@@ -21,6 +21,20 @@
         products?: Product[];
     };
 
+    type GroupRun = {
+        created_at: string;
+        updated_at: string;
+        confidence_score: number;
+        run_id: number;
+        admin_verified_at: string | null;
+    };
+
+    type ExternalGroup = {
+        group_id: number;
+        group_name: string;
+        runs: GroupRun[];
+    };
+
     let groups: Group[] = $state([]);
     let isLoading = $state(true);
     let error = $state<string | null>(null);
@@ -32,7 +46,7 @@
     let editingGroupName = $state('');
     let showGroupsModal = $state(false);
     let currentProductId = $state<number | null>(null);
-    let externalGroups = $state<any[]>([]);
+    let externalGroups = $state<ExternalGroup[]>([]);
     let loadingExternalGroups = $state(false);
     let deletingProducts: Set<string> = $state(new Set());
 
@@ -412,7 +426,7 @@
 
         {#if groups.length > 0}
             <div class="groups-container">
-                {#each groups as group}
+                {#each groups as group (group.id)}
                     <div class="group-card">
                         <div class="group-header">
                             <div class="group-info">
@@ -567,7 +581,7 @@
 
                         {#if group.products && group.products.length > 0}
                             <div class="products-list">
-                                {#each group.products as product}
+                                {#each group.products as product (product.external_product_id)}
                                     <div class="product-item">
                                         <label class="product-checkbox">
                                             <input
@@ -736,7 +750,7 @@
                 </p>
 
                 <div class="products-to-merge">
-                    {#each selectedProductsInCurrentGroup as product}
+                    {#each selectedProductsInCurrentGroup as product (product.external_product_id)}
                         <label class="primary-product-option">
                             <input
                                 type="radio"
@@ -852,65 +866,49 @@
                     </div>
                 {:else if externalGroups.length > 0}
                     <div class="external-groups-list">
-                        {#each externalGroups as group}
+                        {#each externalGroups as group (group.group_id)}
                             <div class="external-group-item">
                                 <div class="group-main-info">
                                     <h4 class="group-name">
                                         {group.group_name}
                                     </h4>
                                     <div class="group-id">
-                                        Group ID: {group.group_id}
+                                        Group ID: {group.group_id} ({group.runs.length} runs)
                                     </div>
                                 </div>
-                                <div class="group-details">
-                                    <div class="detail-row">
-                                        <span class="detail-label"
-                                            >Confidence Score:</span
-                                        >
-                                        <span class="detail-value"
-                                            >{group.confidence_score}</span
-                                        >
+                                
+                                {#if group.runs && group.runs.length > 0}
+                                    <div class="runs-section">
+                                        {#each group.runs as run (run.run_id)}
+                                            <div class="run-item">
+                                                <div class="run-header">
+                                                    <span class="run-id">Run #{run.run_id}</span>
+                                                    <span class="confidence-score confidence-{Math.floor(run.confidence_score * 10)}">
+                                                        {(run.confidence_score * 100).toFixed(1)}%
+                                                    </span>
+                                                </div>
+                                                <div class="run-details">
+                                                    <div class="detail-row">
+                                                        <span class="detail-label">Created:</span>
+                                                        <span class="detail-value">
+                                                            {new Date(run.created_at).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                    <div class="detail-row">
+                                                        <span class="detail-label">Updated:</span>
+                                                        <span class="detail-value">
+                                                            {new Date(run.updated_at).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {/each}
                                     </div>
-                                    <div class="detail-row">
-                                        <span class="detail-label">Run ID:</span
-                                        >
-                                        <span class="detail-value"
-                                            >{group.run_id}</span
-                                        >
+                                {:else}
+                                    <div class="no-runs">
+                                        <p>No runs available for this group</p>
                                     </div>
-                                    <div class="detail-row">
-                                        <span class="detail-label"
-                                            >Created:</span
-                                        >
-                                        <span class="detail-value"
-                                            >{new Date(
-                                                group.created_at,
-                                            ).toLocaleDateString()}</span
-                                        >
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="detail-label"
-                                            >Updated:</span
-                                        >
-                                        <span class="detail-value"
-                                            >{new Date(
-                                                group.updated_at,
-                                            ).toLocaleDateString()}</span
-                                        >
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="detail-label"
-                                            >Admin Verified:</span
-                                        >
-                                        <span class="detail-value">
-                                            {group.admin_verified_at
-                                                ? new Date(
-                                                      group.admin_verified_at,
-                                                  ).toLocaleDateString()
-                                                : 'Not verified'}
-                                        </span>
-                                    </div>
-                                </div>
+                                {/if}
                             </div>
                         {/each}
                     </div>
@@ -1757,6 +1755,85 @@
         margin: 0;
     }
 
+    /* Runs Section Styles */
+    .runs-section {
+        margin-top: 1rem;
+        padding-top: 1rem;
+    }
+
+    .runs-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #374151;
+        margin: 0 0 0.75rem 0;
+    }
+
+    .run-item {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .run-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .run-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .run-id {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 0.875rem;
+    }
+
+    .confidence-score {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .confidence-10 { background-color: #059669; }
+    .confidence-9 { background-color: #10b981; }
+    .confidence-8 { background-color: #34d399; }
+    .confidence-7 { background-color: #6ee7b7; color: #1f2937; }
+    .confidence-6 { background-color: #fbbf24; color: #1f2937; }
+    .confidence-5 { background-color: #f59e0b; color: white; }
+    .confidence-4 { background-color: #f97316; color: white; }
+    .confidence-3 { background-color: #ea580c; color: white; }
+    .confidence-2 { background-color: #dc2626; color: white; }
+    .confidence-1 { background-color: #b91c1c; color: white; }
+    .confidence-0 { background-color: #7f1d1d; color: white; }
+
+    .run-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .no-runs {
+        margin-top: 1rem;
+        padding: 1rem;
+        text-align: center;
+        color: #6b7280;
+        font-style: italic;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .no-runs p {
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
     @media (max-width: 768px) {
         .admin-page {
             padding: 1rem;
@@ -1829,6 +1906,17 @@
 
         .external-groups-list {
             max-height: 50vh;
+        }
+
+        .run-details {
+            grid-template-columns: 1fr;
+            gap: 0.25rem;
+        }
+
+        .run-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.25rem;
         }
     }
 </style>
