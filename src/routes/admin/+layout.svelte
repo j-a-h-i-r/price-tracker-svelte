@@ -65,7 +65,7 @@
 
 	let currentPath = $derived($page?.url?.pathname || '/admin');
 	let isSidebarOpen = $state(false);
-	let isHovered = $state(false);
+	let isHovered = $state(true);
 </script>
 
 <div class="admin-layout">

@@ -15,8 +15,8 @@
     let metadataFilters: MetadataFilter[] = $state([]);
     
     // Filter states
-    let selectedBrandId = $state('');
-    let selectedCategoryId = $state('');
+    let selectedBrandId = $state('all');
+    let selectedCategoryId = $state('all');
     let minPrice = $state(0);
     let maxPrice = $state(0);
     let selectedMetadata: Record<string, any> = $state({});
@@ -108,8 +108,8 @@
         
         const params = new URLSearchParams();
         
-        if (selectedBrandId) params.append('manufacturer_id', selectedBrandId);
-        if (selectedCategoryId) params.append('category_id', selectedCategoryId);
+        if (selectedBrandId && selectedBrandId !== 'all') params.append('manufacturer_id', selectedBrandId);
+        if (selectedCategoryId && selectedCategoryId !== 'all') params.append('category_id', selectedCategoryId);
         if (minPrice) params.append('price[gt]', `${minPrice}`);
         if (maxPrice) params.append('price[lt]', `${maxPrice}`);
         
@@ -123,7 +123,7 @@
                 if (value.max) {
                     params.append(`metadata[${key}][lt]`, value.max);
                 }
-            } else {
+            } else if (value && value !== 'all') {
                 params.append(`metadata[${key}]`, value);
             }
         });
@@ -207,14 +207,14 @@
             <div class="filter-group">
                 <h2>Specifications</h2>
                 <div class="filters-grid">
-                    {#each metadataFilters as metadata}
+                    {#each metadataFilters as metadata (metadata.key)}
                         <div class="filter-item">
                             {#if metadata.type === 'set'}
                                 <SearchableSelect
-                                    label="Category"
+                                    label={metadata.display_text}
                                     allLabel={`All ${metadata.display_text}`}
                                     bind:value={
-                                        () => selectedMetadata[metadata.key] || '',
+                                        () => selectedMetadata[metadata.key] || 'all',
                                         (value) => handleMetadataChange(metadata.key, value)
                                     }
                                     options={metadata.value.map(m => ({ id: m, name: m }))}
@@ -245,7 +245,7 @@
                                             checked={selectedMetadata[metadata.key] || false}
                                             onchange={(e: Event) => handleMetadataChange(metadata.key, (e.target as HTMLInputElement).checked)}
                                         />
-                                        <span class="checkbox-text">Enable {metadata.display_text}</span>
+                                        <span class="checkbox-text">{metadata.display_text}</span>
                                     </label>
                                 </div>
                             {/if}
@@ -285,7 +285,7 @@
                 
                 {#if searchResults.length > 0}
                     <div class="results-grid">
-                        {#each searchResults as product}
+                        {#each searchResults as product (product.id)}
                             <div class="product-card">
                                 <div class="product-header">
                                     <h3 class="product-name">{product.name}</h3>
@@ -314,7 +314,7 @@
                                 {#if product.metadata && Object.keys(product.metadata).length > 0}
                                     <div class="metadata-section">
                                         <div class="metadata-items">
-                                            {#each Object.entries(product.metadata) as [key, value]}
+                                            {#each Object.entries(product.metadata) as [key, value], idx (idx)}
                                                 <div class="metadata-item">
                                                     <span class="metadata-key">{key.replace(/_/g, ' ')}</span>
                                                     <span class="metadata-value">{value}</span>
@@ -355,13 +355,13 @@
 <style>
     .configurator-container {
         max-width: 64rem;
-        margin: 2rem auto;
+        margin: 0 auto;
         padding: 0 1rem;
     }
     
     .header {
         text-align: center;
-        margin-bottom: 3rem;
+        margin-bottom: 1rem;
     }
     
     .header h1 {
