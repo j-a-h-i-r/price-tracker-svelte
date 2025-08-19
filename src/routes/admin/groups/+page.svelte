@@ -363,6 +363,55 @@
         if (!currentGroupId) return [];
         return getSelectedProductsInGroup(currentGroupId);
     });
+
+    // Function to get border color for contiguous groups with same internal_product_id
+    function getContiguousGroupColors(products: Product[]): Map<number, string> {
+        const colorMap = new Map<number, string>();
+        const colors = [
+            '#ef4444', // red-500
+            '#3b82f6', // blue-500
+            '#10b981', // emerald-500
+            '#f59e0b', // amber-500
+            '#8b5cf6', // violet-500
+            '#ec4899', // pink-500
+            '#06b6d4', // cyan-500
+            '#84cc16', // lime-500
+        ];
+        let colorIndex = 0;
+        
+        let currentInternalId: number | null = null;
+        let groupStart = 0;
+        
+        for (let i = 0; i < products.length; i++) {
+            const product = products[i];
+            
+            // Check if we're starting a new group
+            if (product.internal_product_id !== currentInternalId) {
+                // Process the previous group if it had 2+ products
+                if (currentInternalId !== null && i - groupStart > 1) {
+                    const color = colors[colorIndex % colors.length];
+                    for (let j = groupStart; j < i; j++) {
+                        colorMap.set(j, color);
+                    }
+                    colorIndex++;
+                }
+                
+                // Start new group
+                currentInternalId = product.internal_product_id;
+                groupStart = i;
+            }
+        }
+        
+        // Process the last group if it has 2+ products
+        if (currentInternalId !== null && products.length - groupStart > 1) {
+            const color = colors[colorIndex % colors.length];
+            for (let j = groupStart; j < products.length; j++) {
+                colorMap.set(j, color);
+            }
+        }
+        
+        return colorMap;
+    }
 </script>
 
 <svelte:head>
@@ -580,9 +629,16 @@
                         </div>
 
                         {#if group.products && group.products.length > 0}
+                            {@const groupColorMap = getContiguousGroupColors(group.products)}
                             <div class="products-list">
-                                {#each group.products as product (product.external_product_id)}
-                                    <div class="product-item">
+                                {#each group.products as product, index (product.external_product_id)}
+                                    <div 
+                                        class="product-item"
+                                        style:border-left={groupColorMap.has(index) ? 
+                                            `4px solid ${groupColorMap.get(index)}` : 
+                                            'none'
+                                        }
+                                    >
                                         <label class="product-checkbox">
                                             <input
                                                 type="checkbox"
@@ -610,6 +666,7 @@
                                             {/if}
                                             <div class="product-meta">
                                                 ID: {product.external_product_id}
+                                                • Internal ID: {product.internal_product_id}
                                                 • Confidence: {product.avg_confidence
                                                     ? product.avg_confidence
                                                     : 'N/A'} • Group Count: {product.distinct_groups}
