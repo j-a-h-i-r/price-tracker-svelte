@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import { userState } from '$lib/shared.svelte.js';
     import { goto } from '$app/navigation';
+    import SearchableSelect from '$lib/components/SearchableSelect.svelte';
 
     type Product = {
         external_product_id: number;
@@ -35,7 +36,19 @@
         runs: GroupRun[];
     };
 
+    type Category = {
+        id: number;
+        name: string;
+    };
+
+    type Manufacturer = {
+        id: number;
+        name: string;
+    };
+
     let groups: Group[] = $state([]);
+    let categories: Category[] = $state([]);
+    let manufacturers: Manufacturer[] = $state([]);
     let isLoading = $state(true);
     let error = $state<string | null>(null);
     let selectedProducts: Set<number> = $state(new Set());
@@ -49,6 +62,10 @@
     let externalGroups = $state<ExternalGroup[]>([]);
     let loadingExternalGroups = $state(false);
     let deletingProducts: Set<string> = $state(new Set());
+    
+    // Filter states
+    let selectedCategoryId = $state<string | number>('all');
+    let selectedManufacturerId = $state<string | number>('all');
 
     onMount(async () => {
         // Check if user is admin
@@ -57,17 +74,31 @@
             return;
         }
 
-        await loadGroups();
+        await Promise.all([loadGroups(), loadCategories(), loadManufacturers()]);
     });
 
     async function loadGroups() {
         try {
             isLoading = true;
-            const response = await fetch('/api/groups');
+            const params = new URLSearchParams();
+            
+            if (selectedCategoryId && selectedCategoryId !== 'all') {
+                params.set('category_id', selectedCategoryId.toString());
+            }
+            
+            if (selectedManufacturerId && selectedManufacturerId !== 'all') {
+                params.set('manufacturer_id', selectedManufacturerId.toString());
+            }
+
+            const url = `/api/groups${params.toString() ? `?${params.toString()}` : ''}`;
+            const response = await fetch(url);
             if (!response.ok) {
                 throw new Error('Failed to fetch groups');
             }
             groups = await response.json();
+
+            // Reset selections when groups change
+            selectedProducts.clear();
 
             // Since the API now returns products within each group,
             // we can process them directly without additional API calls
@@ -92,6 +123,42 @@
         } finally {
             isLoading = false;
         }
+    }
+
+    async function loadCategories() {
+        try {
+            const response = await fetch('/api/categories');
+            if (!response.ok) {
+                throw new Error('Failed to fetch categories');
+            }
+            categories = await response.json();
+        } catch (err) {
+            console.error('Error fetching categories:', err);
+        }
+    }
+
+    async function loadManufacturers() {
+        try {
+            const response = await fetch('/api/manufacturers');
+            if (!response.ok) {
+                throw new Error('Failed to fetch manufacturers');
+            }
+            manufacturers = await response.json();
+        } catch (err) {
+            console.error('Error fetching manufacturers:', err);
+        }
+    }
+
+    // Reactive effect to reload groups when filters change
+    $effect(() => {
+        if (categories.length > 0 && manufacturers.length > 0) {
+            loadGroups();
+        }
+    });
+
+    function clearFilters() {
+        selectedCategoryId = 'all';
+        selectedManufacturerId = 'all';
     }
 
     function toggleProductSelection(productId: number) {
@@ -427,6 +494,32 @@
         </p>
     </div>
 
+    <!-- Filters Section -->
+    <div class="filters-section">
+        <div class="filters-header">
+            <h3>Filters</h3>
+            {#if selectedCategoryId !== 'all' || selectedManufacturerId !== 'all'}
+                <button class="clear-filters-btn" onclick={clearFilters}>
+                    Clear Filters
+                </button>
+            {/if}
+        </div>
+        <div class="filters-grid">
+            <SearchableSelect 
+                options={categories}
+                bind:value={selectedCategoryId}
+                allLabel="All Categories"
+                label="Category"
+            />
+            <SearchableSelect 
+                options={manufacturers}
+                bind:value={selectedManufacturerId}
+                allLabel="All Manufacturers"
+                label="Manufacturer"
+            />
+        </div>
+    </div>
+
     {#if isLoading}
         <div class="loading-container">
             <div class="loading-spinner"></div>
@@ -738,7 +831,13 @@
                     <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
                 </svg>
                 <h3>No Product Groups</h3>
-                <p>No product groups found in the system.</p>
+                <p>
+                    {#if selectedCategoryId !== 'all' || selectedManufacturerId !== 'all'}
+                        No product groups found matching the selected filters.
+                    {:else}
+                        No product groups found in the system.
+                    {/if}
+                </p>
             </div>
         {/if}
     {/if}
@@ -1035,6 +1134,78 @@
         color: #6b7280;
         font-size: 1rem;
         line-height: 1.5;
+    }
+
+    .filters-section {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .filters-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .filters-header h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .clear-filters-btn {
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 0.375rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .clear-filters-btn:hover {
+        background: #dc2626;
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .filter-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    .filter-select {
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        color: #1f2937;
+        transition: border-color 0.2s;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
     .loading-container {
