@@ -54,7 +54,7 @@
     let selectedProducts: Set<number> = $state(new Set());
     let showMergeModal = $state(false);
     let currentGroupId = $state<number | null>(null);
-    let selectedPrimaryProduct = $state<number | null>(null);
+    let selectedPrimaryProductsExternalId = $state<number | null>(null);
     let editingGroupId = $state<number | null>(null);
     let editingGroupName = $state('');
     let showGroupsModal = $state(false);
@@ -308,14 +308,16 @@
         }
 
         currentGroupId = groupId;
-        selectedPrimaryProduct = null;
+        selectedPrimaryProductsExternalId = selectedInGroup.sort((a, b) =>
+            a.external_product_id < b.external_product_id ? -1 : 1
+        )[0].external_product_id;
         showMergeModal = true;
     }
 
     function closeMergeModal() {
         showMergeModal = false;
         currentGroupId = null;
-        selectedPrimaryProduct = null;
+        selectedPrimaryProductsExternalId = null;
     }
 
     function handleModalClick(event: MouseEvent) {
@@ -326,22 +328,22 @@
     }
 
     async function performMerge() {
-        if (!currentGroupId || !selectedPrimaryProduct) {
+        if (!currentGroupId || !selectedPrimaryProductsExternalId) {
             alert('Please select a primary product');
             return;
         }
 
         const currentGroup = groups.find((g) => g.id === currentGroupId);
         const selectedInGroup = getSelectedProductsInGroup(currentGroupId);
-        console.log(selectedInGroup, selectedPrimaryProduct);
+        console.log(selectedInGroup, selectedPrimaryProductsExternalId);
         const internalProductIdsToMerge = selectedInGroup
-            .filter((p) => p.external_product_id !== selectedPrimaryProduct)
+            .filter((p) => p.external_product_id !== selectedPrimaryProductsExternalId)
             .map((p) => p.internal_product_id);
         const externalProductIdsToMerge = selectedInGroup.map(
             (p) => p.external_product_id,
         );
         const selectPrimaryProductInternalId = selectedInGroup.find(
-            (p) => p.external_product_id === selectedPrimaryProduct,
+            (p) => p.external_product_id === selectedPrimaryProductsExternalId,
         )?.internal_product_id;
 
         try {
@@ -428,7 +430,10 @@
 
     let selectedProductsInCurrentGroup = $derived.by(() => {
         if (!currentGroupId) return [];
-        return getSelectedProductsInGroup(currentGroupId);
+        return getSelectedProductsInGroup(currentGroupId)
+        .sort((a, b) =>
+            a.external_product_id < b.external_product_id ? -1 : 1
+        );
     });
 
     // Function to get border color for contiguous groups with same internal_product_id
@@ -912,7 +917,7 @@
                                 type="radio"
                                 name="primaryProduct"
                                 value={product.external_product_id}
-                                bind:group={selectedPrimaryProduct}
+                                bind:group={selectedPrimaryProductsExternalId}
                             />
                             <div class="product-option-content">
                                 <div class="product-option-name">
@@ -927,7 +932,7 @@
                                     </div>
                                 {/if}
                                 <div class="product-option-meta">
-                                    ID: {product.external_product_id}
+                                    ID: {product.external_product_id} • Internal ID: {product.internal_product_id}
                                 </div>
                             </div>
                         </label>
@@ -967,7 +972,7 @@
                 <button
                     class="btn-merge-confirm"
                     onclick={performMerge}
-                    disabled={!selectedPrimaryProduct}
+                    disabled={!selectedPrimaryProductsExternalId}
                 >
                     Merge Products
                 </button>

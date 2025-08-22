@@ -7,7 +7,7 @@
     import { formatPrice } from '$lib/util.js';
     import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
     import DealCard from '$lib/components/DealCard.svelte';
-    import type { ProductWithPrice } from '$lib/types/Product.js';
+    import type { Product } from '$lib/types/Product.js';
     import { getManufacturers } from '$lib/api/manufacturers.js';
     import type { Manufacturer } from '$lib/types/Manufacturer.js';
 
@@ -15,7 +15,7 @@
     let totalProducts = $state<number | undefined>(undefined);
     let totalWebsites = $state<number | undefined>(undefined);
     let totalCategories = $state<number | undefined>(undefined);
-    let searchResults: ProductWithPrice[] = $state([]);
+    let searchResults: Product[] = $state([]);
     let searchTimeout: ReturnType<typeof setTimeout>;
     let searchAbortController: AbortController | null = null;
     let categoryMap: { [key: string]: string } = {};
