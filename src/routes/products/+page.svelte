@@ -1,24 +1,22 @@
 <script lang="ts">
-    import { page } from "$app/state";
-    import { onMount } from "svelte";
-    import { fetchCategories, fetchProducts, type Category } from "$lib/api/products";
-    import type { ProductWithLastPrice } from "$lib/types/Product";
-    import { fetchWebsites, type Website } from "$lib/api/websites.js";
-    import SearchableSelect from "$lib/components/SearchableSelect.svelte";
-    import { formatPrice } from "$lib/util.js";
-    import type { Manufacturer } from "$lib/types/Manufacturer.js";
+    import { page } from '$app/state';
+    import { onMount } from 'svelte';
+    import { fetchCategories, fetchProducts, type Category } from '$lib/api/products';
+    import type { ProductWithLastPrice } from '$lib/types/Product';
+    import SearchableSelect from '$lib/components/SearchableSelect.svelte';
+    import { formatPrice } from '$lib/util.js';
+    import type { Manufacturer } from '$lib/types/Manufacturer.js';
 
     let queryCategoryId: string | null = $state(null);
     onMount(() => {
         // This is necessary to make sure it only runs in browser
         queryCategoryId = page.url.searchParams.get('category_id');
-        selectedCategory = queryCategoryId ? queryCategoryId : "all";
+        selectedCategory = queryCategoryId ? queryCategoryId : 'all';
     });
 
     let initialProductsLoaded = $state(false);
     let allProductsLoaded = $state(false);
     let products: ProductWithLastPrice[] = $state([]);
-    let websitesMap: Record<number, Website> = $state({});
     let loading = $state(true);
     let error: string | null = $state(null);
     let isFilterModalOpen = $state(false);
@@ -26,12 +24,12 @@
 
     // Filters
     let categories: Category[] = $state([]);
-    let selectedCategory: string | number = $state("all");
+    let selectedCategory: string | number = $state('all');
     let manufacturers: Manufacturer[] = $state([]);
-    let selectedManufacturer: string | number = $state("all");
+    let selectedManufacturer: string | number = $state('all');
     let showOutOfStock = $state(false);
-    let sortBy = $state("price-asc");
-    let searchQuery = $state("");
+    let sortBy = $state('price-asc');
+    let searchQuery = $state('');
 
     // Pagination
     let currentPage = $state(1);
@@ -41,10 +39,10 @@
         return products
             .filter(p => {
                 // Category filter
-                if (selectedCategory !== "all" && p.category_id != selectedCategory) return false;
+                if (selectedCategory !== 'all' && p.category_id != selectedCategory) return false;
                 
                 // Manufacturer filter
-                if (selectedManufacturer !== "all" && p.manufacturer_id != selectedManufacturer) return false;
+                if (selectedManufacturer !== 'all' && p.manufacturer_id != selectedManufacturer) return false;
 
                 // Price range filter
                 const productPrice = Math.min(...p.prices.map(price => price.price));
@@ -66,13 +64,13 @@
                 const priceB = Math.min(...b.prices.filter(p => p.price !== null).map(p => p.price));
                 
                 switch (sortBy) {
-                    case "price-asc":
+                    case 'price-asc':
                         return priceA - priceB;
-                    case "price-desc":
+                    case 'price-desc':
                         return priceB - priceA;
-                    case "name-asc":
+                    case 'name-asc':
                         return a.name.localeCompare(b.name);
-                    case "name-desc":
+                    case 'name-desc':
                         return b.name.localeCompare(a.name);
                     default:
                         return 0;
@@ -103,18 +101,10 @@
         }
     });
 
-    onMount(async () => {
-        let websites = await fetchWebsites();
-        websitesMap = websites.reduce((acc, website) => {
-            acc[website.id] = website;
-            return acc;
-        }, {} as Record<number, Website>);
-    });
-
     $effect(() => {
         // Reset filters when products are loaded
         if (initialProductsLoaded) {
-            fetchProducts().then((p) => {
+            fetchProducts({include_prices: true}).then((p) => {
                 allProductsLoaded = true;
                 products = p;
             });
@@ -131,6 +121,7 @@
         }
     });
 
+    // eslint-disable-next-line svelte/prefer-writable-derived
     let priceRange = $state({min: 0, max: 0});
     $effect(() => {
         priceRange = { ...actualPriceRange };
@@ -139,7 +130,7 @@
     onMount(async () => {
         try {
             // Initially fetch 100 products
-            products = await fetchProducts(100);
+            products = await fetchProducts({limit: 100, include_prices: true});
             initialProductsLoaded = true;
             
             // Fetch categories and manufacturers
@@ -151,22 +142,11 @@
             categories = categoriesData;
             manufacturers = manufacturersData;
         } catch (e) {
-            console.error("Error fetching data:", e);
-            error = e instanceof Error ? e.message : "An error occurred";
+            console.error('Error fetching data:', e);
+            error = e instanceof Error ? e.message : 'An error occurred';
         } finally {
             loading = false;
         }
-    });
-
-    $effect(() => {
-        const filters = {
-            category: selectedCategory,
-            manufacturer: selectedManufacturer,
-            priceRange: priceRange,
-            showOutOfStock: showOutOfStock,
-            searchQuery: searchQuery
-        };
-        currentPage = 1;
     });
 </script>
 
@@ -237,7 +217,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             </button>
 
-            <button class="filter-chip" class:active={sortBy !== "price-asc"}>
+            <button class="filter-chip" class:active={sortBy !== 'price-asc'}>
                 <span>Sort by</span>
                 <select bind:value={sortBy} class="chip-select">
                     <option value="price-asc">Price: Low to High</option>
@@ -267,7 +247,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {#each paginatedProducts as product}
+                        {#each paginatedProducts as product (product.id)}
                             <tr>
                                 <td>
                                     <a href="/products/{product.id}" class="product-link">

@@ -1,10 +1,24 @@
 import type { ExternalProduct, ExternalProductMetadata, ExternalProductPrice, PotentialProductMatch, Product, ProductWithLastPrice, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
 
-export async function fetchProducts(limit?: number): Promise<ProductWithLastPrice[]> {
+export async function fetchProducts(
+    options: {
+        limit?: number;
+        include_prices?: boolean;
+    } = {}
+): Promise<ProductWithLastPrice[]> {
     let url = '/api/products';
+    const { limit, include_prices } = options;
+    const queryParams: URLSearchParams = new URLSearchParams();
     if (limit) {
-        url += `?limit=${limit}`;
+        queryParams.set('limit', limit.toString());
     }
+    if (include_prices) {
+        queryParams.set('include_prices', 'true');
+    }
+    if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`;
+    }
+
     const response = await fetch(url);
     if (!response.ok) {
         throw new Error('Failed to fetch products');
