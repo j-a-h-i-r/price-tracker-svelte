@@ -8,6 +8,13 @@ events {
 }
 
 http {
+  gzip on;
+  gzip_min_length   2048;
+  gzip_buffers      4 32k;
+  gzip_types        text/css text/javascript text/xml text/plain text/x-component application/javascript application/x-javascript application/wasm application/json application/xml application/rss+xml font/truetype application/x-font-ttf font/opentype application/vnd.ms-fontobject image/svg+xml;
+  gzip_vary         on;
+  gzip_comp_level   6;
+
   types_hash_max_size 2048;
   include mime.types;
   charset UTF-8;
