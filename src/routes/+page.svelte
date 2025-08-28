@@ -315,7 +315,7 @@
     <title>Track price and deals on Bangladeshi products</title>
     <meta
         name="description"
-        content="Track product prices and find deals. Get the best prices from Startech, Techland, Pickaboo and the biggest bangladeshi retailers."
+        content="Best price comparison website in Bangladesh. Track product prices and find deals. Get the best prices from Startech, Techland, Pickaboo and the biggest bangladeshi retailers."
     />
 </svelte:head>
 
