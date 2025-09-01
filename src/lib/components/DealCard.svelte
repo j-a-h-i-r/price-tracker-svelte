@@ -32,7 +32,7 @@
                     <polyline points="17 18 23 18 23 12"></polyline>
                 </svg>
                 Save <span class="font-bold">{formatPrice(deal.max_price_last_days - deal.current_price)}</span>
-                (-{Math.round((1 - deal.current_price / deal.max_price_last_days) * 100)}%)
+                <span class="percentage-pill">-{Math.round((1 - deal.current_price / deal.max_price_last_days) * 100)}%</span>
             </span>
         {/if}
         <h3 class={showFullProductName ? '' : 'clamp-text'}>{deal.product_name}</h3>
@@ -153,6 +153,16 @@
 
     .font-bold {
         font-weight: 700;
+    }
+
+    .percentage-pill {
+        background: #16a34a;
+        color: white;
+        padding: 0.125rem 0.375rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 0.25rem;
     }
 
     .info-section {
