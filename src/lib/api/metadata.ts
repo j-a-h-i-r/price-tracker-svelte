@@ -59,7 +59,7 @@ export function fetchMetadatas({
 }
 
 export function fetchMetadataDetail(name: string, category_id?: string): Promise<MetadataDetail[]> {
-    let url = `/api/metadatas/${encodeURIComponent(name)}`;
+    let url = `/api/metadatas/${encodeURIComponent(name)}/products`;
     if (category_id) {
         url += `?category_id=${category_id}`;
     }

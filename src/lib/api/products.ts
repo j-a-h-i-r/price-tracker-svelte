@@ -63,8 +63,8 @@ export async function fetchExternalProductsByInternalId(
     return response.json();
 }
 
-export async function fetchExternalProductPrices(internalId: number, externalId: number): Promise<ExternalProductPrice[]> {
-    const url = `/api/products/${internalId}/externals/${externalId}/prices`;
+export async function fetchExternalProductPrices(externalId: number): Promise<ExternalProductPrice[]> {
+    const url = `/api/externals/${externalId}/prices`;
     const response = await fetch(url);
     if (!response.ok) {
         throw new Error('Failed to fetch product prices');
@@ -93,8 +93,8 @@ export async function fetchPotentiallySimilarProducts({minScore}: {minScore: num
     return response.json();
 }
 
-export async function fetchExternalProductMetadata(internalId: number, externalId: number): Promise<ExternalProductMetadata[]> {
-    const response = await fetch(`/api/products/${internalId}/externals/${externalId}/metadata`);
+export async function fetchExternalProductMetadata(externalId: number): Promise<ExternalProductMetadata[]> {
+    const response = await fetch(`/api/externals/${externalId}/metadata`);
     if (!response.ok) {
         throw new Error('Failed to fetch external products');
     }
@@ -111,8 +111,8 @@ export async function fetchVariantAttributes(productId: number) {
     return response.json();
 }
 
-export async function flagIncorrectGrouping(internalId: number, externalId: number, flagOptions: string[]): Promise<void> {
-    const response = await fetch(`/api/products/${internalId}/externals/${externalId}/flag`, {
+export async function flagIncorrectGrouping(externalId: number, flagOptions: string[]): Promise<void> {
+    const response = await fetch(`/api/externals/${externalId}/flag`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

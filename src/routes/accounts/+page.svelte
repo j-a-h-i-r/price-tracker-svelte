@@ -1,15 +1,16 @@
 <script lang="ts">
-    import { userState } from "$lib/shared.svelte.js";
-    import { onMount } from "svelte";
-    import { trackedProducts } from "$lib/states/tracked.svelte.js";
-    import { formatPrice } from "$lib/util.js";
-    import { page } from "$app/state";
+    import { userState } from '$lib/shared.svelte.js';
+    import { onMount } from 'svelte';
+    import { trackedProducts } from '$lib/states/tracked.svelte.js';
+    import { formatPrice } from '$lib/util.js';
+    import { page } from '$app/state';
 
-    let email = $state("");
-    let message = $state("");
+    let email = $state('');
+    let message = $state('');
+    let authEmailSentSuccess = $state(false);
     let isLoading = $state(false);
     let isSignedIn = $state(false);
-    let redirectUrlAfterLogin = $state("");
+    let redirectUrlAfterLogin = $state('');
     let showConfirmDialog = $state(false);
     let productToUntrack: { id: number; name: string } | null = $state(null);
 
@@ -32,10 +33,10 @@
     async function handleSignup() {
         isLoading = true;
         try {
-            const response = await fetch("/api/auth/new", {
-                method: "POST",
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/json",
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     email,
@@ -43,13 +44,19 @@
                 }),
             });
 
-            const result = await response.json();
-            if (result === true) {
-                message = "Check your email for an authorization link";
-                email = "";
+            if (!response.ok) {
+                throw new Error('Failed to log in');
+            }
+
+            const { success } = await response.json();
+            if (success === true) {
+                authEmailSentSuccess = true;
+                message = 'An authorization link has been sent to your email. Visit the link to complete your login.';
+                email = '';
             }
         } catch (error) {
-            message = "An error occurred. Please try again.";
+            authEmailSentSuccess = false;
+            message = 'An error occurred. Please try again.';
         }
         isLoading = false;
     }
@@ -58,7 +65,7 @@
         await userState.signOut();
         isSignedIn = false;
         trackedProducts.clear();
-        email = "";
+        email = '';
     }
 
     async function handleUntrack(productId: number, productName: string) {
@@ -73,20 +80,20 @@
             const response = await fetch(
                 `/api/products/${productToUntrack.id}/track`,
                 {
-                    method: "DELETE",
+                    method: 'DELETE',
                 },
             );
 
             if (!response.ok) {
-                throw new Error("Failed to untrack product");
+                throw new Error('Failed to untrack product');
             }
 
             await trackedProducts.refresh();
             showConfirmDialog = false;
             productToUntrack = null;
         } catch (error) {
-            console.error("Error untracking product:", error);
-            alert("Failed to untrack product. Please try again.");
+            console.error('Error untracking product:', error);
+            alert('Failed to untrack product. Please try again.');
         }
     }
 
@@ -321,16 +328,17 @@
 
             {#if message}
                 <div
-                    class="message {message.includes('Check your email')
-                        ? 'success'
-                        : 'error'}"
+                    class="message {
+                        authEmailSentSuccess
+                            ? 'success'
+                            : 'error'}"
                 >
                     {message}
                 </div>
             {/if}
 
             <button type="submit" disabled={isLoading}>
-                {isLoading ? "Signing up..." : "Sign up"}
+                {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
         </form>
     </div>

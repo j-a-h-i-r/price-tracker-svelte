@@ -127,7 +127,7 @@
     $effect(() => {
         const promises = externalProducts.map(async (externalProduct) => {
             const { external_product_id } = externalProduct;
-            return fetchExternalProductMetadata(productId, external_product_id);
+            return fetchExternalProductMetadata(external_product_id);
         });
         Promise.all(promises)
         .then((metadatas) => {
@@ -142,7 +142,7 @@
     $effect(() => {
         const promises = externalProducts.map(async (externalProduct) => {
             const { external_product_id } = externalProduct;
-            const prices = await fetchExternalProductPrices(productId, external_product_id);
+            const prices = await fetchExternalProductPrices(external_product_id);
             return prices;
         });
         Promise.all(promises)
@@ -621,7 +621,7 @@
         if (!flaggingProductId) return;
         
         try {
-            await flagIncorrectGrouping(productId, flaggingProductId, selectedFlaggingOptions);
+            await flagIncorrectGrouping(flaggingProductId, selectedFlaggingOptions);
             showFlagModal = false;
             toasts.success('Thank you! The incorrect grouping has been flagged for review.');
         } catch (error) {
