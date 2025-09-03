@@ -3,6 +3,7 @@
     import { goto } from '$app/navigation';
     import { page } from '$app/stores';
     import { userState } from '$lib/shared.svelte.js';
+    import { verifyAuthToken } from '$lib/api/auth.js';
 
     let message = '';
     let isLoading = true;
@@ -25,41 +26,29 @@
             return;
         }
 
-        try {
-            const response = await fetch('/api/auth/verify', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ token })
-            });
+        const response = await verifyAuthToken(token);
+        if (response.isOk()) {
+            const result = response.value;
+            userState.email = result.email;
+            userState.isAdmin = result.isAdmin || false;
+            const { redirectTo } = result;
+            isLoading = false;
+            redirectMessage = getRedirectMessage(countdown, redirectTo);
             
-            const result = await response.json();
-            if (result && result.email) {
-                userState.email = result.email;
-                userState.isAdmin = result.isAdmin || false;
-                const { redirectTo } = result;
-                isLoading = false;
+            const timer = setInterval(() => {
+                countdown--;
                 redirectMessage = getRedirectMessage(countdown, redirectTo);
-                
-                const timer = setInterval(() => {
-                    countdown--;
-                    redirectMessage = getRedirectMessage(countdown, redirectTo);
-                    if (countdown <= 0) {
-                        clearInterval(timer);
-                        if (redirectTo) {
-                            goto(redirectTo);
-                        } else {
-                            goto('/');
-                        }
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    if (redirectTo) {
+                        goto(redirectTo);
+                    } else {
+                        goto('/');
                     }
-                }, 1000);
-            } else {
-                message = 'Invalid or expired verification link';
-                isLoading = false;
-            }
-        } catch (error) {
-            message = 'An error occurred during verification';
+                }
+            }, 1000);
+        } else {
+            message = 'Invalid or expired verification link';
             isLoading = false;
         }
     });

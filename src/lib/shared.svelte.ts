@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import { logOut } from './api/auth.js';
 import { trackedProducts } from './states/tracked.svelte.js';
 import { type LoggedUser } from './types/User.js';
 
@@ -37,8 +38,8 @@ class UserState {
     }
 
     signOut() {
-        return fetch('/api/auth/logout', { method: 'POST' })
-        .finally(() => {
+        return logOut()
+        .then(() => {
             this.#user.email = '';
             this.#user.isAdmin = false;
             localStorage.removeItem('userEmail');

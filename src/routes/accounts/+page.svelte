@@ -4,6 +4,7 @@
     import { trackedProducts } from '$lib/states/tracked.svelte.js';
     import { formatPrice } from '$lib/util.js';
     import { page } from '$app/state';
+    import { logIn } from '$lib/api/auth.js';
 
     let email = $state('');
     let message = $state('');
@@ -32,29 +33,13 @@
 
     async function handleSignup() {
         isLoading = true;
-        try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email,
-                    redirectTo: redirectUrlAfterLogin,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to log in');
-            }
-
-            const { success } = await response.json();
-            if (success === true) {
-                authEmailSentSuccess = true;
-                message = 'An authorization link has been sent to your email. Visit the link to complete your login.';
-                email = '';
-            }
-        } catch (error) {
+        const response = await logIn(email, redirectUrlAfterLogin)
+        if (response.isOk()) {
+            authEmailSentSuccess = true;
+            message = 'An authorization link has been sent to your email. Visit the link to complete your login.';
+            email = '';
+        } else {
+            console.error('Error during login:', response.error);
             authEmailSentSuccess = false;
             message = 'An error occurred. Please try again.';
         }
