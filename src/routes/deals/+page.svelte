@@ -11,6 +11,7 @@
     import type { Manufacturer } from '$lib/types/Manufacturer.js';
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
+    import type { ResultAsync } from 'neverthrow';
 
     let selectedDays = $state(7);
     let sortBy = $state<'value' | 'percentage'>('value');
@@ -60,7 +61,7 @@
         }, {} as Record<string, Manufacturer>);
     });
 
-    let deals: Promise<Deal[]> = $derived.by(() => {
+    let deals: ResultAsync<Deal[], Error> = $derived.by(() => {
         let filters: DealFilter = {
             sortby: sortBy,
             days: selectedDays,
@@ -143,17 +144,19 @@
                 </div>
             </div>
         {:then deals}
-            {#if deals.length === 0}
+            {#if deals.isOk() && deals.value.length === 0}
                 <div class="col-span-full">
                     <NoResult message="No deal found" suggestion="Try different configuration" />
                 </div>
-            {:else}
-                {#each deals as deal (deal.external_product_id)}
+            {:else if deals.isOk() && deals.value.length > 0}
+                {#each deals.value as deal (deal.external_product_id)}
                     <DealCard {deal} {manufacturerMap} {categoryMap} showFullProductName={true} />
                 {/each}
+            {:else if deals.isErr()}
+                <div class="col-span-full">
+                    <NoResult message="Error loading deals" suggestion="Please try again later" />
+                </div>
             {/if}
-        {:catch error}
-            <p>Error loading deals: {error.message}</p>
         {/await}
     </div>
 </div>

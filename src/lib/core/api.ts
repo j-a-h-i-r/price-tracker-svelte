@@ -1,4 +1,4 @@
-import { ResultAsync, err } from "neverthrow";
+import { ResultAsync, err, ok, safeTry } from "neverthrow";
 
 class ApiError<D = any> extends Error {
     constructor(message: string, public status: number, public data?: D) {
@@ -8,22 +8,19 @@ class ApiError<D = any> extends Error {
 }
 
 function fetchResult<T = any, E = any>(url: string, options?: RequestInit): ResultAsync<T, ApiError<E>> {
-    return ResultAsync.fromSafePromise(fetch(url, options))
-    .andThen((response) => {
+    return safeTry(async function *() {
+        const response = yield * (await ResultAsync.fromPromise(fetch(url, options), (error) => {
+            return new ApiError(`Failed to fetch ${url}`, 0, error);
+        }));
+        const data = yield * (await ResultAsync.fromPromise(response.json(), (error) => {
+            return new ApiError(`Failed to parse response`, response.status, error as E);
+        }));
         if (response.ok) {
-            // Response is ok. If parsing works then return ok else return error
-            return ResultAsync.fromPromise<T, ApiError<E>>(response.json() as Promise<T>, (error) => {
-                return new ApiError(`Failed to parse response`, response.status, error as E);
-            })
+            return ok(data);
+        } else {
+            return err(new ApiError(`HTTP error! status: ${response.status}`, response.status, data));
         }
-        // Response is not ok so we always return error. If parsing works then 
-        // included parsed response in the error as well
-        return ResultAsync
-            .fromPromise(response.json(), (error) => {
-                return new ApiError(`Failed to parse response`, response.status, error as E);
-            })
-            .andThen((error) => err(new ApiError(`HTTP error! status: ${response.status}`, response.status, error)))
-    });
+    })
 }
 
 export const api = {

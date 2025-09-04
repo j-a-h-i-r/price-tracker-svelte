@@ -32,5 +32,11 @@ export default ts.config(
   },
   {
     ignores: ['build/', '.svelte-kit/', 'dist/']
+  },
+  {
+    plugins: ['neverthrow'],
+    rules: {
+      'neverthrow/must-use-result': 'error',
+    }
   }
 );
