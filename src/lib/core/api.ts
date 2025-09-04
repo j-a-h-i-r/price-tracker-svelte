@@ -1,4 +1,4 @@
-import { ok, ResultAsync } from "neverthrow";
+import { ResultAsync, err } from "neverthrow";
 
 class ApiError<D = any> extends Error {
     constructor(message: string, public status: number, public data?: D) {
@@ -11,11 +11,18 @@ function fetchResult<T = any, E = any>(url: string, options?: RequestInit): Resu
     return ResultAsync.fromSafePromise(fetch(url, options))
     .andThen((response) => {
         if (response.ok) {
-            return ok(response.json() as Promise<T>);
+            // Response is ok. If parsing works then return ok else return error
+            return ResultAsync.fromPromise<T, ApiError<E>>(response.json() as Promise<T>, (error) => {
+                return new ApiError(`Failed to parse response`, response.status, error as E);
+            })
         }
-        return ResultAsync.fromSafePromise(response.json()).mapErr((error) => {
-            return new ApiError(`HTTP error! status: ${response.status}`, response.status, error);
-        });
+        // Response is not ok so we always return error. If parsing works then 
+        // included parsed response in the error as well
+        return ResultAsync
+            .fromPromise(response.json(), (error) => {
+                return new ApiError(`Failed to parse response`, response.status, error as E);
+            })
+            .andThen((error) => err(new ApiError(`HTTP error! status: ${response.status}`, response.status, error)))
     });
 }
 

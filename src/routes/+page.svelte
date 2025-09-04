@@ -53,16 +53,14 @@
 
     onMount(async () => {
         dealsLoading = true;
-        try {
-            deals = await fetchDeals({});
+        const dealResponse = await fetchDeals();
+        if (dealResponse.isOk()) {
+            deals = dealResponse.value;
             dealCountToShow = Math.floor(deals.length / 10) * 10;
             deals = deals.slice(0, 10); // Limit to first 10 deals
             startAutoScroll();
-        } catch (error) {
-            console.error('Error fetching deals:', error);
-        } finally {
-            dealsLoading = false;
         }
+        dealsLoading = false;
     });
 
     onMount(() => {
