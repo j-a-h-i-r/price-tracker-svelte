@@ -2,17 +2,27 @@
     import { onMount } from 'svelte';
     import { userState } from '$lib/shared.svelte.js';
     import { goto } from '$app/navigation';
-    import type { Flagging } from '$lib/types/Flagging.js';
-    import { fetchFlaggings, resolveFlagging } from '$lib/api/flagging.js';
-    import { formatPrice } from '$lib/util.js';
+    import type { FlaggedProductWithSummary, FlaggingOption } from '$lib/types/Flagging.js';
+    import { fetchFlaggings, getFlaggingOptions, resolveFlagging } from '$lib/api/flagging.js';
     import dayjs from 'dayjs';
     import relativeTime from 'dayjs/plugin/relativeTime';
+    import { arrayToPerIdMap } from '$lib/util.js';
+    import { toasts } from '$lib/states/toast.js';
 
     dayjs.extend(relativeTime);
 
-    let flaggings: Flagging[] = $state([]);
+    let flaggedProductSummary: FlaggedProductWithSummary | null = $state(null);
+    let flaggedProducts = $derived.by(() => {
+        return flaggedProductSummary?.products ?? [];
+    });
     let isLoading = $state(true);
     let error = $state<string | null>(null);
+    let flagOptionsMap: Map<number, FlaggingOption> = $state(new Map());
+
+    onMount(async() => {
+        const flagOptions = await getFlaggingOptions().unwrapOr([]);
+        flagOptionsMap = arrayToPerIdMap<FlaggingOption>(flagOptions);
+    })
 
     onMount(async () => {
         // Check if user is admin
@@ -21,33 +31,41 @@
             return;
         }
 
-        try {
-            flaggings = await fetchFlaggings();
-        } catch (err) {
-            console.error('Error fetching flaggings:', err);
+        const resp = await fetchFlaggings();
+        if (resp.isOk()) {
+            flaggedProductSummary = resp.value;
+            error = null;
+        } else {
+            console.error('Error fetching flaggings:', resp.error);
             error = 'Failed to load flagged products';
-        } finally {
-            isLoading = false;
         }
+        isLoading = false;
     });
 
-    async function handleResolve(flaggingId: number) {
-        try {
-            await resolveFlagging(flaggingId);
-            // Remove the resolved flagging from the list
-            flaggings = flaggings.filter(f => f.id !== flaggingId);
-        } catch (err) {
-            console.error('Error resolving flagging:', err);
-            alert('Failed to resolve flagging. Please try again.');
+    async function handleResolve(externalProductId: number, flagOptionId: number) {
+        const resp = await resolveFlagging(externalProductId, flagOptionId);
+        if (resp.isOk()) {
+            // Remove the specific flag from the product, or remove the entire product if no flags remain
+            flaggedProducts = flaggedProducts?.map(product => {
+                if (product.external_product_id === externalProductId) {
+                    const updatedFlags = product.flags.filter(flag => flag.flag_option_id !== flagOptionId);
+                    return {
+                        ...product,
+                        flags: updatedFlags
+                    };
+                }
+                return product;
+            }).filter(product => product.flags.length > 0); // Remove products with no remaining flags
+            toasts.success('Flag resolved successfully');
+        } else {
+            console.error('Error resolving flagging:', resp.error);
+            toasts.error('Failed to resolve flagging. Please try again.');
         }
     }
 
     function getTimeAgo(date: string): string {
         return dayjs(date).fromNow();
     }
-
-    let pendingFlaggings = $derived(flaggings.filter(f => !f.resolved_at));
-    let resolvedFlaggings = $derived(flaggings.filter(f => f.resolved_at));
 </script>
 
 <svelte:head>
@@ -80,57 +98,59 @@
     {:else}
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-number">{pendingFlaggings.length}</div>
+                <div class="stat-number">{flaggedProductSummary?.pending_count}</div>
                 <div class="stat-label">Pending Flags</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">{resolvedFlaggings.length}</div>
+                <div class="stat-number">{flaggedProductSummary?.resolved_count}</div>
                 <div class="stat-label">Resolved Flags</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">{flaggings.length}</div>
+                <div class="stat-number">{(flaggedProductSummary?.pending_count ?? 0) + (flaggedProductSummary?.resolved_count ?? 0)}</div>
                 <div class="stat-label">Total Flags</div>
             </div>
         </div>
 
-        {#if pendingFlaggings.length > 0}
+        {#if flaggedProducts.length > 0}
             <div class="section">
-                <h2>Pending Flags ({pendingFlaggings.length})</h2>
+                <h2>Flagged Products ({flaggedProducts.length})</h2>
                 <div class="flags-grid">
-                    {#each pendingFlaggings as flagging}
+                    {#each flaggedProducts as flaggedProduct (flaggedProduct.external_product_id)}
                         <div class="flag-card pending">
-                            <div class="flag-header">
-                                <div class="flag-status">
-                                    <span class="status-badge pending">Pending</span>
-                                    <span class="flag-date">{getTimeAgo(flagging.created_at)}</span>
-                                </div>
-                                <button 
-                                    class="resolve-btn"
-                                    onclick={() => handleResolve(flagging.id)}
-                                    title="Mark as resolved"
-                                >
-                                    Resolve
-                                </button>
+                            <div class="flag-details">
+                                {#each flaggedProduct.flags as flag}
+                                    <div class="flag-detail">
+                                        <div class="flag-info">
+                                            <span class="detail-label">Reason:</span>
+                                            <span class="detail-value">{flagOptionsMap.get(flag.flag_option_id)?.description}</span>
+                                            <span class="detail-count">({flag.pending_count} pending, {flag.resolved_count} resolved)</span>
+                                        </div>
+                                        <button 
+                                            class="resolve-btn flag-resolve-btn"
+                                            onclick={() => handleResolve(flaggedProduct.external_product_id, flag.flag_option_id)}
+                                            title="Resolve this flag type"
+                                        >
+                                            Resolve
+                                        </button>
+                                    </div>
+                                {/each}
                             </div>
                             
                             <div class="product-info">
-                                <h3 class="product-name">{flagging.external_product_name}</h3>
+                                <h3 class="product-name">{flaggedProduct.external_product_name}</h3>
                                 <div class="product-details">
                                     <span class="detail-item">
-                                        <strong>Product ID:</strong> {flagging.internal_product_id}
+                                        <strong>Product ID:</strong> {flaggedProduct.internal_product_id}
                                     </span>
                                     <span class="detail-item">
-                                        <strong>External ID:</strong> {flagging.external_product_id}
-                                    </span>
-                                    <span class="detail-item">
-                                        <strong>Flag Description:</strong> {flagging.description}
+                                        <strong>External ID:</strong> {flaggedProduct.external_product_id}
                                     </span>
                                 </div>
                             </div>
 
                             <div class="flag-actions">
                                 <a 
-                                    href="/products/{flagging.internal_product_id}" 
+                                    href="/products/{flaggedProduct.internal_product_id}" 
                                     class="view-product-btn"
                                     target="_blank"
                                 >
@@ -149,33 +169,6 @@
                 </svg>
                 <h3>No Pending Flags</h3>
                 <p>All flagged products have been reviewed and resolved.</p>
-            </div>
-        {/if}
-
-        {#if resolvedFlaggings.length > 0}
-            <div class="section">
-                <h2>Recently Resolved ({resolvedFlaggings.length})</h2>
-                <div class="flags-grid">
-                    {#each resolvedFlaggings.slice(0, 10) as flagging}
-                        <div class="flag-card resolved">
-                            <div class="flag-header">
-                                <div class="flag-status">
-                                    <span class="status-badge resolved">Resolved</span>
-                                    <span class="flag-date">{getTimeAgo(flagging.resolved_at!)}</span>
-                                </div>
-                            </div>
-                            
-                            <div class="product-info">
-                                <h3 class="product-name">{flagging.external_product_name}</h3>
-                                <div class="product-details">
-                                    <span class="detail-item">
-                                        <strong>Originally flagged:</strong> {getTimeAgo(flagging.created_at)}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    {/each}
-                </div>
             </div>
         {/if}
     {/if}
@@ -366,6 +359,52 @@
     .resolve-btn:hover {
         background: #059669;
         transform: translateY(-1px);
+    }
+
+    .flag-details {
+        margin-bottom: 1rem;
+    }
+
+    .flag-detail {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        background: #f9fafb;
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .flag-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        flex: 1;
+    }
+
+    .detail-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #374151;
+    }
+
+    .detail-value {
+        font-size: 0.875rem;
+        color: #1f2937;
+        font-weight: 500;
+    }
+
+    .detail-count {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .flag-resolve-btn {
+        margin-left: 1rem;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+        flex-shrink: 0;
     }
 
     .product-info {

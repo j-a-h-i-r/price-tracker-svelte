@@ -1,23 +1,14 @@
-import type { FlaggingOption, Flagging } from "$lib/types/Flagging.js";
+import { api } from "$lib/core/api.js";
+import type { FlaggingOption, FlaggedProductWithSummary } from "$lib/types/Flagging.js";
 
-export async function getFlaggingOptions(): Promise<FlaggingOption[]> {
-    return fetch('/api/flagoptions')
-        .then((res) => res.json());
+export function getFlaggingOptions() {
+    return api.get<FlaggingOption[]>('/api/flagoptions');
 }
 
-export async function fetchFlaggings(): Promise<Flagging[]> {
-    const response = await fetch('/api/productflags');
-    if (!response.ok) {
-        throw new Error('Failed to fetch flaggings');
-    }
-    return response.json();
+export function fetchFlaggings() {
+    return api.get<FlaggedProductWithSummary>('/api/productflags');
 }
 
-export async function resolveFlagging(flaggingId: number): Promise<void> {
-    const response = await fetch(`/api/admin/flaggings/${flaggingId}/resolve`, {
-        method: 'PUT',
-    });
-    if (!response.ok) {
-        throw new Error('Failed to resolve flagging');
-    }
+export function resolveFlagging(externalProductId: number, flagOptionId: number) {
+    return api.put(`/api/externals/${externalProductId}/flag/${flagOptionId}/resolve`);
 }

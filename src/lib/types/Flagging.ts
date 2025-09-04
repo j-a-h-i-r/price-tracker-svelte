@@ -1,14 +1,21 @@
 export interface FlaggingOption {
-    id: string;
+    id: number;
     description: string;
 }
 
 export interface Flagging {
-    id: number;
-    internal_product_id: number;
     external_product_id: number;
+    internal_product_id: number;
     external_product_name: string;
-    external_product_url: string;
-    description: string;
-    created_at: string;
+    flags: {
+        flag_option_id: number;
+        resolved_count: number;
+        pending_count: number;
+    }[];
+}
+
+export interface FlaggedProductWithSummary {
+    pending_count: number;
+    resolved_count: number;
+    products: Flagging[];
 }

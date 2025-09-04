@@ -607,7 +607,7 @@
     }
 
     onMount(async () => {
-        flaggingOptions = await getFlaggingOptions();
+        flaggingOptions = await getFlaggingOptions().unwrapOr([]);
     });
 
     async function handleFlagIncorrectGrouping(externalProductId: number) {
