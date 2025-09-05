@@ -1,28 +1,14 @@
-interface WebsiteSummary {
-    total_products: number;
-    total_categories: number;
+import { api } from "$lib/core/api.js";
+import type { Website, WebsiteSummary } from "$lib/types/Website.js";
+
+export function fetchWebsites() {
+    return api.get<Website[]>('/api/websites');
 }
 
-export interface Website {
-    id: number;
-    name: string;
-    product_count?: number;
-    url?: string;
-    summary?: WebsiteSummary;
+export function fetchWebsiteSummary(websiteId: number) {
+    return api.get<WebsiteSummary>(`/api/websites/${websiteId}/summary`);
 }
 
-export async function fetchWebsites(): Promise<Website[]> {
-    const response = await fetch('/api/websites');
-    if (!response.ok) {
-        throw new Error('Failed to fetch websites');
-    }
-    return response.json();
-}
-
-export async function fetchWebsiteSummary(websiteId: string): Promise<WebsiteSummary> {
-    const response = await fetch(`/api/websites/${websiteId}/summary`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch website summary');
-    }
-    return response.json();
+export function fetchWebsiteNewProductsCount(websiteId: number, days: number = 7) {
+    return api.get<number>(`/api/websites/${websiteId}/new?days=${days}`);
 }

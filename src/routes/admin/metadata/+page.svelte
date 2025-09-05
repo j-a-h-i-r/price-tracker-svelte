@@ -29,16 +29,16 @@
     )
 
     async function loadMetadata() {
-        try {
-            metadatas = await fetchMetadatas({
+        const metadataResp = await fetchMetadatas({
                 category_id: selectedCategory || undefined,
                 website_id: selectedWebsite || undefined
-            });
+            })
+        if (metadataResp.isOk()) {
+            metadatas = metadataResp.value;
             loading = false;
-        } catch (e) {
-            console.error("Error fetching metadata:", e);
-            error = e instanceof Error ? e.message : "An error occurred";
+        } else {
             loading = false;
+            error = metadataResp.error.message ?? 'An error occured';
         }
     }
 
@@ -49,7 +49,7 @@
     onMount(async () => {
         try {
             // Load categories
-            categories = await fetchCategories();
+            categories = await fetchCategories().unwrapOr([]);
             
             // Load websites (assuming you have this endpoint)
             const response = await fetch('/api/websites');

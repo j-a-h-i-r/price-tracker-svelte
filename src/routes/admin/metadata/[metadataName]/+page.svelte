@@ -53,15 +53,15 @@
     });
 
     async function loadData() {
-        try {
-            loading = true;
-            metadataDetails = await fetchMetadataDetail(metadataName, selectedCategory || undefined);
-            loading = false;
-        } catch (e) {
-            console.error("Error fetching metadata detail:", e);
-            error = e instanceof Error ? e.message : "An error occurred";
-            loading = false;
+        loading = true;
+        const detailResp = await fetchMetadataDetail(metadataName, selectedCategory || undefined);
+        if (detailResp.isOk()) {
+            metadataDetails = detailResp.value;
+            error = null;
+        } else {
+            error = detailResp.error.message ?? 'An error occured';
         }
+        loading = false;
     }
 
     onMount(async () => {

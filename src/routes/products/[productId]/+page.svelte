@@ -19,15 +19,17 @@
     import { Chart } from 'chart.js/auto';
     import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
     import { trackedProducts } from '$lib/states/tracked.svelte.js';
-    import { fetchWebsites, type Website } from '$lib/api/websites.js';
+    import { fetchWebsites } from '$lib/api/websites.js';
     import { userState } from '$lib/shared.svelte.js';
-    import { formatPrice } from '$lib/util.js';
+    import { arrayToPerIdMap, formatPrice } from '$lib/util.js';
     import dayjs from 'dayjs';
     import type { Attachment } from 'svelte/attachments';
     import type { FlaggingOption } from '$lib/types/Flagging.js';
     import { getFlaggingOptions } from '$lib/api/flagging.js';
     import { toasts } from '$lib/states/toast.js';
     import { goto } from '$app/navigation';
+    import { ResultAsync } from 'neverthrow';
+    import type { Website } from '$lib/types/Website.js';
 
     let productId = Number(page.params.productId);
     let product: Product | null = $state(null);
@@ -116,18 +118,16 @@
     }
 
     onMount(async () => {
-        try {
-            let websites = await fetchWebsites();
-            websiteMap = new Map(websites.map((website: Website) => [website.id, website]));
-        } catch (error) {
-            console.error('Error fetching websites:', error);
+        let resp = await fetchWebsites();
+        if (resp.isOk()) {
+            websiteMap = arrayToPerIdMap(resp.value);
         }
     });
 
     $effect(() => {
         const promises = externalProducts.map(async (externalProduct) => {
             const { external_product_id } = externalProduct;
-            return fetchExternalProductMetadata(external_product_id);
+            return fetchExternalProductMetadata(external_product_id).unwrapOr([]);
         });
         Promise.all(promises)
         .then((metadatas) => {
@@ -142,7 +142,7 @@
     $effect(() => {
         const promises = externalProducts.map(async (externalProduct) => {
             const { external_product_id } = externalProduct;
-            const prices = await fetchExternalProductPrices(external_product_id);
+            const prices = await fetchExternalProductPrices(external_product_id).unwrapOr([]);
             return prices;
         });
         Promise.all(promises)
@@ -516,24 +516,25 @@
     }
 
     onMount(async () => {
-        try {
-            const [_product, _variants] = await Promise.all([
-                fetchProductById(productId),
-                fetchVariantAttributes(productId),
-            ])
-            product = _product;
-            variants = _variants;
+        ResultAsync.combine([
+            fetchProductById(productId),
+            fetchVariantAttributes(productId),
+        ]).match(
+            ([_product, _variants]) => {
+                product = _product;
+                variants = _variants;
 
-            variants.forEach((variant) => {
-                selectedVariants![variant.name] = 'unselected';
-            });
-            initialVariantsLoaded = true;
-        } catch (error: unknown) {
-            console.error('Error fetching product:', error);
-            if (error instanceof Error && 'status' in error && (error as { status: number }).status === 404) {
-                productNotFound = true;
+                variants.forEach((variant) => {
+                    selectedVariants![variant.name] = 'unselected';
+                });
+                initialVariantsLoaded = true;
+            },
+            (err) => {
+                if (err.status === 404) {
+                    productNotFound = true;
+                }
             }
-        }
+        )
     });
 
     $effect(() => {
@@ -548,7 +549,7 @@
             }
         }
         fetchExternalProductsByInternalId(productId, sanitizedVariants)
-        .then((products) => {
+        .map((products) => {
             externalProducts = products;
             isExternalProductsLoaded = true;
         });
@@ -619,17 +620,20 @@
 
     async function submitFlag() {
         if (!flaggingProductId) return;
-        
-        try {
-            await flagIncorrectGrouping(flaggingProductId, selectedFlaggingOptions);
-            showFlagModal = false;
-            toasts.success('Thank you! The incorrect grouping has been flagged for review.');
-        } catch (error) {
-            toasts.error('Failed to flag incorrect grouping. Please try again.');
-        } finally {
+        flagIncorrectGrouping(flaggingProductId, selectedFlaggingOptions)
+        .match(
+            () => {
+                showFlagModal = false;
+                toasts.success('Thank you! The incorrect grouping has been flagged for review.');
+            },
+            () => {
+                toasts.error('Failed to flag incorrect grouping. Please try again.');
+            }
+        )
+        .then(() => {
             flaggingProductId = null;
             flaggingProductName = '';
-        }
+        });
     }
 
     function closeFlagModal() {
@@ -1081,9 +1085,6 @@
 
 <style>
     .variants-header {
-        margin-top: 2rem;
-    }
-    .websites-header {
         margin-top: 2rem;
     }
 
@@ -1899,13 +1900,6 @@
         border: 1px solid #e2e8f0;
     }
 
-    .price-stats-header {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #374151;
-        margin-bottom: 0.75rem;
-    }
-
     .price-stats-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -2198,21 +2192,12 @@
         font-size: 0.875rem;
     }
 
-    .description {
-        text-align: left;
-        margin-top: 1.5rem;
-    }
-
     .issues-list {
         text-align: left;
         color: #6b7280;
         font-size: 0.875rem;
         margin: 0.75rem 0 1.5rem 0;
         padding-left: 1.25rem;
-    }
-
-    .issues-list li {
-        margin-bottom: 0.25rem;
     }
 
     .modal-footer {

@@ -5,6 +5,7 @@
     import { userState } from '$lib/shared.svelte.js';
     import { toasts } from '$lib/states/toast';
     import type { PotentialProductMatch, Product } from '$lib/types/Product.js';
+    import { ResultAsync } from 'neverthrow';
 
     let products: PotentialProductMatch[] = $state([]);
     let isLoading = $state(true);
@@ -24,14 +25,14 @@
 
     async function fetchProducts() {
         isLoading = true;
-        try {
-            products = await fetchPotentiallySimilarProducts({ minScore });
-        } catch (e) {
-            error = 'Failed to load products';
-            console.error(e);
-        } finally {
-            isLoading = false;
+        const resp = await fetchPotentiallySimilarProducts({ minScore });
+        if (resp.isOk()) {
+            products = resp.value;
+            error = '';
+        } else {
+            error = 'An error occured';
         }
+        isLoading = false;
     }
 
     async function handleScoreChange() {
@@ -91,16 +92,16 @@
         selectedSimilarProduct = null;
         showModal = true;
 
-        try {
-            const [productDetails, similarProductDetails] = await Promise.all([
-                fetchProductById(product.product_id),
-                fetchProductById(similarProduct.product_id)
-            ]);
-            selectedProduct = productDetails;
-            selectedSimilarProduct = similarProductDetails;
-        } catch (e) {
+        const resp = await ResultAsync.combine([
+            fetchProductById(product.product_id),
+            fetchProductById(similarProduct.product_id)
+        ])
+        if (resp.isOk()) {
+            selectedProduct = resp.value[0];
+            selectedSimilarProduct = resp.value[1];
+        } else {
             error = 'Failed to load product details';
-            console.error(e);
+            console.error(resp.error);
             closeModal();
         }
     }

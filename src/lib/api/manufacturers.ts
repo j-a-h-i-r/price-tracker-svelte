@@ -1,6 +1,6 @@
+import { api } from "$lib/core/api.js";
 import type { Manufacturer } from "$lib/types/Manufacturer.js";
 
-export async function getManufacturers(): Promise<Manufacturer[]> {
-    return fetch('/api/manufacturers')
-        .then((res) => res.json());
+export function getManufacturers() {
+    return api.get<Manufacturer[]>('/api/manufacturers')
 }

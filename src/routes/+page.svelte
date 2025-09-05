@@ -29,11 +29,11 @@
     let isHovering = false;
 
     onMount(async () => {
-        const stats = await fetchStats();
-        if (stats) {
-            totalProducts = stats.products ?? 0;
-            totalWebsites = stats.websites ?? 0;
-            totalCategories = stats.categories ?? 0;
+        const resp = await fetchStats()
+        if (resp.isOk()) {
+            totalProducts = resp.value.products ?? 0;
+            totalWebsites = resp.value.websites ?? 0;
+            totalCategories = resp.value.categories ?? 0;
         }
     });
 
@@ -45,7 +45,7 @@
     });
 
     onMount(async () => {
-        const manufacturers = await getManufacturers();
+        const manufacturers = await getManufacturers().unwrapOr([]);
         manufacturers.forEach((manufacturer: Manufacturer) => {
             manufacturerMap[manufacturer.id] = manufacturer.name;
         });

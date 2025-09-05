@@ -76,7 +76,7 @@
         // Load initial data
         const [categoriesData, manufacturersData] = await Promise.all([
             fetchCategories(),
-            getManufacturers(),
+            getManufacturers().unwrapOr([]),
         ]);
         
         categories = categoriesData;

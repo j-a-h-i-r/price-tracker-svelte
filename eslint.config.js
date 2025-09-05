@@ -2,6 +2,8 @@ import js from '@eslint/js';
 import svelte from 'eslint-plugin-svelte';
 import globals from 'globals';
 import ts from 'typescript-eslint';
+import neverthrow from 'eslint-plugin-neverthrow';
+import { fixupPluginRules } from '@eslint/compat';
 
 export default ts.config(
   js.configs.recommended,
@@ -34,9 +36,8 @@ export default ts.config(
     ignores: ['build/', '.svelte-kit/', 'dist/']
   },
   {
-    plugins: ['neverthrow'],
-    rules: {
-      'neverthrow/must-use-result': 'error',
+    plugins: {
+      neverthrow: fixupPluginRules(neverthrow),
     }
   }
 );

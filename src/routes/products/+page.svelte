@@ -104,10 +104,10 @@
     $effect(() => {
         // Reset filters when products are loaded
         if (initialProductsLoaded) {
-            fetchProducts({include_prices: true}).then((p) => {
+            fetchProducts({include_prices: true}).map((p) => {
                 allProductsLoaded = true;
                 products = p;
-            });
+            })
         }
     });
 
@@ -128,9 +128,10 @@
     });
 
     onMount(async () => {
-        try {
-            // Initially fetch 100 products
-            products = await fetchProducts({limit: 100, include_prices: true});
+        loading = true;
+        const productResp = await fetchProducts({limit: 100, include_prices: true});
+        if (productResp.isOk()) {
+            products = productResp.value;
             initialProductsLoaded = true;
             
             // Fetch categories and manufacturers
@@ -141,12 +142,11 @@
             
             categories = categoriesData;
             manufacturers = manufacturersData;
-        } catch (e) {
-            console.error('Error fetching data:', e);
-            error = e instanceof Error ? e.message : 'An error occurred';
-        } finally {
-            loading = false;
+        } else {
+            console.error('Error fetching data:', productResp.error);
+            error = productResp.error.message ?? 'An error occurred';
         }
+        loading = false;
     });
 </script>
 

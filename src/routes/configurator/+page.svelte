@@ -44,8 +44,7 @@
     onMount(async () => {
         try {
             // Fetch manufacturers
-            manufacturers = await getManufacturers();
-            
+            manufacturers = await getManufacturers().unwrapOr([]);
             // Fetch categories
             const categoriesResponse = await fetch('/api/categories');
             if (categoriesResponse.ok) {

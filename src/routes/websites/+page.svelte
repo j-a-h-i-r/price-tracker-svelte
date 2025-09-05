@@ -1,59 +1,38 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { fetchWebsiteNewProductsCount, fetchWebsites, fetchWebsiteSummary } from '$lib/api/websites.js';
+    import type { WebsiteWithSummary } from '$lib/types/Website.js';
+    import { ok, ResultAsync } from 'neverthrow';
+    import { onMount } from 'svelte';
 
-    interface WebsiteSummary {
-        total_products: number;
-        total_categories: number;
-    }
-
-    interface Website {
-        id: string;
-        name: string;
-        product_count?: number;
-        url?: string;
-        summary?: WebsiteSummary;
-    }
-
-    let websites: Website[] = $state([]);
+    let websites: WebsiteWithSummary[] = $state([]);
     let loading = $state(true);
     let error: string | null = $state(null);
-
-    async function fetchWebsiteSummary(websiteId: string): Promise<WebsiteSummary> {
-        const response = await fetch(`/api/websites/${websiteId}/summary`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch website summary');
-        }
-        return response.json();
-    }
+    let newProductDays = 7;
 
     onMount(async () => {
-        try {
-            const response = await fetch('/api/websites');
-            if (!response.ok) {
-                throw new Error('Failed to fetch websites');
+        fetchWebsites()
+        .andThen((_websites) => {
+            const summaryResp = _websites.map((website) => {
+                return ResultAsync.combine([
+                    fetchWebsiteSummary(website.id),
+                    // Return 0 new product if fails to make error handling easier
+                    fetchWebsiteNewProductsCount(website.id, newProductDays).orElse(() => ok(0)),
+                ])
+                    .andThen(([summary, newProductCount]) => ok({ ...website, summary, newProductsCount: newProductCount }))
+                    .orElse(() => ok(website))
+            })
+            return ResultAsync.combine(summaryResp)
+        })
+        .match(
+            (websitesWithSummaries) => {
+                websites = websitesWithSummaries;
+                loading = false;
+            },
+            (err) => {
+                error = err.message ? err.message : 'An error occurred';
+                loading = false;
             }
-            const websitesList = await response.json();
-            
-            // Fetch summaries for each website
-            const websitesWithSummaries = await Promise.all(
-                websitesList.map(async (website: Website) => {
-                    try {
-                        const summary = await fetchWebsiteSummary(website.id);
-                        return { ...website, summary };
-                    } catch (e) {
-                        console.error(`Failed to fetch summary for website ${website.id}:`, e);
-                        return website;
-                    }
-                })
-            );
-            
-            websites = websitesWithSummaries;
-            loading = false;
-        } catch (e) {
-            console.error("Error fetching websites:", e);
-            error = e instanceof Error ? e.message : "An error occurred";
-            loading = false;
-        }
+        )
     });
 </script>
 
@@ -68,9 +47,16 @@
         <p>No websites available</p>
     {:else}
         <div class="websites-grid">
-            {#each websites as website}
+            {#each websites as website (website.id)}
                 <div class="website-card">
-                    <h2>{website.name}</h2>
+                    <div class="card-header">
+                        <h2>{website.name}</h2>
+                        {#if website.newProductsCount !== undefined && website.newProductsCount > 0}
+                            <div class="new-products-badge">
+                                +{website.newProductsCount} in {newProductDays}d
+                            </div>
+                        {/if}
+                    </div>
                     <div class="stats">
                         {#if website.summary}
                             <div class="stat-item">
@@ -81,18 +67,11 @@
                                 <span class="stat-label">Categories</span>
                                 <span class="stat-value">{website.summary.total_categories}</span>
                             </div>
-                        {:else if website.product_count !== undefined}
-                            <div class="stat-item">
-                                <span class="stat-label">Products</span>
-                                <span class="stat-value">{website.product_count}</span>
-                            </div>
                         {/if}
                     </div>
-                    {#if website.url}
-                        <a href={website.url} target="_blank" rel="noopener noreferrer" class="visit-link">
-                            Visit Website →
-                        </a>
-                    {/if}
+                    <a href={website.url} target="_blank" rel="noopener noreferrer" class="visit-link">
+                        Visit Website →
+                    </a>
                 </div>
             {/each}
         </div>
@@ -132,17 +111,36 @@
         box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
     }
 
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
     .website-card h2 {
         margin: 0;
         color: #374151;
         font-size: 1.25rem;
         font-weight: 600;
+        flex: 1;
+    }
+
+    .new-products-badge {
+        background: #10b981;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        white-space: nowrap;
+        margin-left: 0.75rem;
     }
 
     .stats {
         display: flex;
         gap: 1.5rem;
-        margin: 1rem 0;
+        margin: 0 0 1rem 0;
     }
 
     .stat-item {
