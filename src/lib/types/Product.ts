@@ -9,10 +9,9 @@ export interface Product {
     id: number;
     name: string;
     category_id: number;
-    raw_metadata: Record<string, string>;
-    parsed_metadata: Record<string, string | number | boolean>;
-    lowest_available_price: number;
     manufacturer_id: number;
+    category_name?: string;
+    manufacturer_name?: string;
 }
 
 export interface ProductWithLastPrice extends Product {

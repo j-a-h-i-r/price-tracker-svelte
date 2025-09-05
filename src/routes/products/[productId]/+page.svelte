@@ -115,10 +115,10 @@
     }
 
     onMount(async () => {
-        let resp = await fetchWebsites();
-        if (resp.isOk()) {
-            websiteMap = arrayToPerIdMap(resp.value);
-        }
+        fetchWebsites()
+        .map((websites) => {
+            websiteMap = arrayToPerIdMap(websites);
+        });
     });
 
     $effect(() => {
@@ -680,6 +680,20 @@
             <button class="track-btn" onclick={handleTrack}>Track</button>
         {/if}
     </div>
+
+    {#if product?.manufacturer_name}
+        <div class="category-badge">
+            <span class="category-label">Brand</span>
+            <span class="category-value">{product.manufacturer_name}</span>
+        </div>
+    {/if}
+
+    {#if product?.category_name}
+        <div class="category-badge">
+            <span class="category-label">Category</span>
+            <span class="category-value">{product.category_name}</span>
+        </div>
+    {/if}
 
     {#if trackedProducts.isTracked(productId)}
         <div class="tracked-info">
@@ -1759,6 +1773,28 @@
     .status-text {
         font-size: 0.875rem;
         color: #6b7280;
+    }
+
+    .category-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #e0e7ff;
+        color: #4338ca;
+        padding: 0.375rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+        width: fit-content;
+    }
+
+    .category-label {
+        font-weight: 500;
+        opacity: 0.8;
+    }
+
+    .category-value {
+        font-weight: 600;
     }
 
     @keyframes pulse {
