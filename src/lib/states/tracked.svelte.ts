@@ -1,3 +1,4 @@
+import { getMyTrackedProducts } from "$lib/api/me.js";
 import { userState } from "$lib/shared.svelte.js";
 import type { TrackedProduct } from "$lib/types/Product.js";
 import { toasts } from "./toast.js";
@@ -25,23 +26,18 @@ class TrackedProducts {
     }
 
     refresh() {
-        return fetch('/api/me/products')
-        .then((response) => {
-            if (!response.ok) {
-                if (response.status === 401) {
+        return getMyTrackedProducts()
+        .match(
+            (products) => {
+                this.#trackedProducts = products;
+            },
+            (err) => {
+                if (err.status === 401) {
                     toasts.error('Login expired. Please log in again to view your tracked products');
                     return userState.signOut();
                 }
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then((data) => {
-            this.#trackedProducts = data;
-        })
-        .catch((error) => {
-            console.error('There was a problem with the fetch operation:', error);
-        });
+            },
+        )
     }
 }
 

@@ -1,29 +1,19 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { fetchCategories, type Category } from '$lib/api/products.js';
+    import { onMount } from 'svelte';
 
-    interface Category {
-        id: string;
-        name: string;
-        productCount: number;
-    }
-
-    let categories: Category[] = [];
-    let loading = true;
+    let categories: Category[] = $state([]);
+    let loading = $state(true);
 
     onMount(async () => {
-        categories = await getCategories();
-        loading = false;
+        fetchCategories()
+        .map((_cat) => {
+            categories = _cat;
+        })
+        .then(() => {
+            loading = false;
+        })
     });
-
-    async function getCategories() {
-        const response = await fetch("/api/categories");
-        const data = await response.json();
-        return data.map((category: any) => ({
-            id: category.id,
-            name: category.name,
-            productCount: category.product_count || 0,
-        }));
-    }
 </script>
 
 <div class="categories-container">
@@ -31,11 +21,11 @@
         <p>Loading categories...</p>
     {:else}
         <div class="categories-grid">
-            {#each categories as category}
+            {#each categories as category (category.id)}
                 <div class="category-card">
                     <h2>{category.name}</h2>
                     <p class="product-count">
-                        {category.productCount} products
+                        {category?.product_count} products
                     </p>
                     <a href="/products?category_id={category.id}" class="view-products"
                         >View Products</a

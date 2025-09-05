@@ -6,6 +6,8 @@
     import SearchableSelect from '$lib/components/SearchableSelect.svelte';
     import { formatPrice } from '$lib/util.js';
     import type { Manufacturer } from '$lib/types/Manufacturer.js';
+    import { getManufacturers } from '$lib/api/manufacturers.js';
+    import { ResultAsync } from 'neverthrow';
 
     let queryCategoryId: string | null = $state(null);
     onMount(() => {
@@ -129,25 +131,26 @@
 
     onMount(async () => {
         loading = true;
-        const productResp = await fetchProducts({limit: 100, include_prices: true});
-        if (productResp.isOk()) {
-            products = productResp.value;
-            initialProductsLoaded = true;
-            
-            // Fetch categories and manufacturers
-            const [categoriesData, manufacturersData] = await Promise.all([
-                fetchCategories(),
-                fetch('/api/manufacturers').then(res => res.json())
-            ]);
-            
-            categories = categoriesData;
-            manufacturers = manufacturersData;
-        } else {
-            console.error('Error fetching data:', productResp.error);
-            error = productResp.error.message ?? 'An error occurred';
-        }
+        products = await fetchProducts({limit: 100,include_prices: true})
+            .andTee(() => {
+                initialProductsLoaded = true
+            })
+            .orTee((err) => {
+                error = err.message ?? 'An error occurred';
+            })
+            .unwrapOr([]);
         loading = false;
     });
+
+    onMount(async () => {
+        ResultAsync.combine([
+            fetchCategories(),
+            getManufacturers(),
+        ]).map(([_cat, _mfg]) => {
+            categories = _cat;
+            manufacturers = _mfg;
+        });
+    })
 </script>
 
 <svelte:window onmousedown={(e) => handleClickOutside(e)}></svelte:window>

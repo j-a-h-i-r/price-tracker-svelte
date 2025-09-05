@@ -23,8 +23,16 @@ export function fetchProducts(
     return api.get<ProductWithLastPrice[]>(url);
 }
 
+export function fetchProductsByName(name: string, abortSignal?: AbortSignal) {
+    return api.get<Product[]>('/api/products?name=' + encodeURIComponent(name), { signal: abortSignal });
+}
+
 export function fetchProductById(id: string | number) {
     return api.get<Product>(`/api/products/${id}`);
+}
+
+export function updateProductName(id: number, newName: string) {
+    return api.put(`/api/products/${id}`, { name: newName });
 }
 
 export function fetchExternalProductsByInternalId(
@@ -65,4 +73,21 @@ export function fetchVariantAttributes(productId: number) {
 
 export function flagIncorrectGrouping(externalId: number, flagOptions: string[]) {
     return api.post(`/api/externals/${externalId}/flag`, { flag_option_ids: flagOptions });
+}
+
+export function trackProduct(productId: number, targetPrice: number) {
+    return api.post(`/api/products/${productId}/track`, { target_price: targetPrice });
+}
+
+export function untrackProduct(productId: number) {
+    return api.delete(`/api/products/${productId}/track`);
+}
+
+export function mergeProducts(internalProductId: number, mergeProductId: number) {
+    return api.put(`/api/products/${internalProductId}/merge`, { productIds: [mergeProductId] })
+}
+
+export function unmergeProducts(internalProductId: number, externalProductId: number) {
+    return api.put<{success: true, newInternalId: number, externalProductId: number}>
+        (`/api/products/${internalProductId}/unmerge`, { external_product_id: externalProductId });
 }

@@ -7,6 +7,11 @@
         fetchProductById,
         fetchVariantAttributes,
         flagIncorrectGrouping,
+        mergeProducts,
+        trackProduct,
+        unmergeProducts,
+        untrackProduct,
+        updateProductName,
     } from '$lib/api/products.js';
     import type {
         ExternalProduct,
@@ -86,28 +91,20 @@
     }
 
     async function handleSaveMainProduct() {
-        try {
-            const response = await fetch(`/api/products/${productId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ name: editedMainName }),
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to update product name');
+        updateProductName(productId, editedMainName)
+        .match(
+            () => {
+                toasts.success('Product name updated successfully!');
+                if (product) {
+                    product = { ...product, name: editedMainName };
+                }
+                isEditingMainProduct = false;
+                editedMainName = '';
+            },
+            () => {
+                toasts.error('Failed to update product name. Please try again.');
             }
-            
-            if (product) {
-                product = { ...product, name: editedMainName };
-            }
-            isEditingMainProduct = false;
-            editedMainName = '';
-        } catch (error) {
-            console.error('Error updating product name:', error);
-            alert('Failed to update product name. Please try again.');
-        }
+        )
     }
 
     function startEditingMain() {
@@ -210,7 +207,6 @@
                 count++;
             }
         }
-        console.log('Unavailable count:', count);
         return count;
     });
 
@@ -417,22 +413,16 @@
     }
 
     async function handleUntrack() {
-        try {
-            const response = await fetch(`/api/products/${productId}/track`, {
-                method: 'DELETE',
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to track product');
+        untrackProduct(productId)
+        .match(
+            () => {
+                toasts.success('Product tracking disabled!');
+                return trackedProducts.refresh();
+            },
+            () => {
+                toasts.error('Failed to untrack product. Please try again.');
             }
-            
-            // Optional: Show some feedback to the user that tracking was successful
-            alert('Product tracking disabled!');
-            await trackedProducts.refresh();
-        } catch (error) {
-            console.error('Error tracking product:', error);
-            alert('Failed to track product. Please try again.');
-        }
+        )
     }
 
     async function handleTrack() {
@@ -453,27 +443,18 @@
             return;
         }
 
-        try {
-            const response = await fetch(`/api/products/${productId}/track`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ target_price: targetPrice }),
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to track product');
+        trackProduct(productId, targetPrice)
+        .match(
+            () => {
+                toasts.success('Product tracking enabled!');
+                showTrackModal = false;
+                targetPriceInput = '';
+                return trackedProducts.refresh();
+            },
+            () => {
+                toasts.error('Failed to track product. Please try again.'); 
             }
-            
-            toasts.success('Product tracking enabled!');
-            await trackedProducts.refresh();
-            showTrackModal = false;
-            targetPriceInput = '';
-        } catch (error) {
-            console.error('Error tracking product:', error);
-            toasts.error('Failed to track product. Please try again.');
-        }
+        )
     }
 
     function closeTrackModal() {
@@ -493,26 +474,16 @@
             return;
         }
 
-        try {
-            const response = await fetch(`/api/products/${productId}/merge`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ productIds: [mergeProductId] }),
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to merge product');
+        mergeProducts(productId, mergeProductId)
+        .match(
+            () => {
+                toasts.success('Products merged successfully!');
+                window.location.reload();
+            },
+            () => {
+                toasts.error('Failed to merge products. Please try again.');
             }
-            
-            alert('Products merged successfully!');
-            // Refresh the page to show updated data
-            window.location.reload();
-        } catch (error) {
-            console.error('Error merging product:', error);
-            alert('Failed to merge product. Please try again.');
-        }
+        )
     }
 
     onMount(async () => {
@@ -575,27 +546,19 @@
         if (!confirm('Are you sure you want to unmerge this product? This action cannot be undone.')) {
             return;
         }
-        
-        fetch(`/api/products/${productId}/unmerge`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
+
+        unmergeProducts(productId, externalProductId)
+        .match(
+            (resp) => {
+                console.log('Unmerge response:', resp);
+                toasts.success('Product unmerged successfully!');
+                window.location.reload();
             },
-            body: JSON.stringify({ external_product_id: externalProductId }),
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to unmerge product');
+            (err) => {
+                toasts.error('Failed to unmerge product. Please try again.');
+                console.error('Error unmerging product:', err);
             }
-            console.log('Product unmerged successfully', response);
-            // Refresh the page to show updated data
-            alert('Product unmerged successfully!');
-            window.location.reload();
-        })
-        .catch(error => {
-            console.error('Error unmerging product:', error);
-            alert('Failed to unmerge product. Please try again.');
-        });
+        )
     }
 
     function getLastUpdatedText(updateDate: string | null): string {

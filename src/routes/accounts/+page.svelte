@@ -5,6 +5,8 @@
     import { formatPrice } from '$lib/util.js';
     import { page } from '$app/state';
     import { logIn } from '$lib/api/auth.js';
+    import { untrackProduct } from '$lib/api/products.js';
+    import { toasts } from '$lib/states/toast.js';
 
     let email = $state('');
     let message = $state('');
@@ -31,7 +33,9 @@
         }
     });
 
-    async function handleSignup() {
+    async function handleSignup(event: SubmitEvent) {
+        event.preventDefault();
+        
         isLoading = true;
         const response = await logIn(email, redirectUrlAfterLogin)
         if (response.isOk()) {
@@ -61,25 +65,20 @@
     async function confirmUntrack() {
         if (!productToUntrack) return;
 
-        try {
-            const response = await fetch(
-                `/api/products/${productToUntrack.id}/track`,
-                {
-                    method: 'DELETE',
-                },
-            );
-
-            if (!response.ok) {
-                throw new Error('Failed to untrack product');
+        untrackProduct(productToUntrack.id)
+        .match(
+            () => {
+                trackedProducts.refresh()
+                .then(() => {
+                    toasts.success('Product untracked successfully.');
+                    showConfirmDialog = false;
+                    productToUntrack = null;
+                })
+            },
+            () => {
+                toasts.error('Failed to untrack product. Please try again.');
             }
-
-            await trackedProducts.refresh();
-            showConfirmDialog = false;
-            productToUntrack = null;
-        } catch (error) {
-            console.error('Error untracking product:', error);
-            alert('Failed to untrack product. Please try again.');
-        }
+        )
     }
 
     function cancelUntrack() {
@@ -92,7 +91,7 @@
     <div class="app-container">
         <div class="header-section">
             <h1 class="page-title">Tracked Products</h1>
-            <button class="logout-button" on:click={signOut}>
+            <button class="logout-button" onclick={signOut}>
                 <svg
                     width="20"
                     height="20"
@@ -120,7 +119,7 @@
                 </div>
             {:else}
                 <div class="products-list">
-                    {#each trackedProducts.products as product}
+                    {#each trackedProducts.products as product (product.product_id)}
                         <div class="product-item">
                             <div class="status-indicator">
                                 {#if product.current_price <= product.target_price}
@@ -229,9 +228,10 @@
                                     </div>
                                 </div>
 
+                                <!-- svelte-ignore a11y_consider_explicit_label -->
                                 <button
                                     class="untrack-button"
-                                    on:click={() =>
+                                    onclick={() =>
                                         handleUntrack(
                                             product.product_id,
                                             product.name,
@@ -261,10 +261,12 @@
 
         <!-- Confirmation Dialog -->
         {#if showConfirmDialog}
-            <div class="modal-overlay" on:click={cancelUntrack}>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="modal-overlay" onclick={cancelUntrack}>
                 <div
                     class="modal-content"
-                    on:click={(e) => e.stopPropagation()}
+                    onclick={(e) => e.stopPropagation()}
                 >
                     <div class="modal-header">
                         <h3>Confirm Untrack</h3>
@@ -284,10 +286,10 @@
                         </p>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn-cancel" on:click={cancelUntrack}
+                        <button class="btn-cancel" onclick={cancelUntrack}
                             >Cancel</button
                         >
-                        <button class="btn-confirm" on:click={confirmUntrack}
+                        <button class="btn-confirm" onclick={confirmUntrack}
                             >Untrack Product</button
                         >
                     </div>
@@ -299,7 +301,7 @@
     <div class="container">
         <h1>Sign In</h1>
 
-        <form on:submit|preventDefault={handleSignup}>
+        <form onsubmit={(e) => handleSignup(e)}>
             <div class="form-group">
                 <label for="email">Email address</label>
                 <input
@@ -371,36 +373,6 @@
 
     .header-section .logout-button:hover {
         background: #c82333;
-    }
-
-    .header-bar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1rem 1.5rem;
-        background: white;
-        border-bottom: 1px solid #e9ecef;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-
-    .back-button {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: none;
-        border: none;
-        color: #6c757d;
-        font-size: 0.9rem;
-        cursor: pointer;
-        padding: 0.5rem;
-        border-radius: 8px;
-        transition: background-color 0.2s;
-    }
-
-    .back-button:hover {
-        background: #f8f9fa;
     }
 
     .page-title {

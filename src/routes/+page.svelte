@@ -4,12 +4,14 @@
     import type { Deal } from '$lib/types/Deal.js';
     import { onMount } from 'svelte';
     import { onDestroy } from 'svelte';
-    import { formatPrice } from '$lib/util.js';
+    import { arrayToPerIdMap, formatPrice } from '$lib/util.js';
     import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
     import DealCard from '$lib/components/DealCard.svelte';
     import type { Product } from '$lib/types/Product.js';
     import { getManufacturers } from '$lib/api/manufacturers.js';
     import type { Manufacturer } from '$lib/types/Manufacturer.js';
+    import { getCategories } from '$lib/api/categories.js';
+    import { fetchProductsByName, type Category } from '$lib/api/products.js';
 
     let searchQuery = $state<string>('');
     let totalProducts = $state<number | undefined>(undefined);
@@ -18,7 +20,7 @@
     let searchResults: Product[] = $state([]);
     let searchTimeout: ReturnType<typeof setTimeout>;
     let searchAbortController: AbortController | null = null;
-    let categoryMap: { [key: string]: string } = {};
+    let categoryMap: Map<number, Category> = $state(new Map([]));
     let manufacturerMap: { [key: string]: string } = {};
     let isLoading = $state(false);
     let dealCountToShow = $state<number | undefined>(undefined);
@@ -38,10 +40,8 @@
     });
 
     onMount(async () => {
-        let categories = await getCategories();
-        categories.forEach((category: { id: string; name: string }) => {
-            categoryMap[category.id] = category.name;
-        });
+        let categories = await getCategories().unwrapOr([]);
+        categoryMap = arrayToPerIdMap(categories);
     });
 
     onMount(async () => {
@@ -104,11 +104,6 @@
         isHovering = false;
     }
 
-    async function getCategories() {
-        const response = await fetch('/api/categories');
-        return await response.json();
-    }
-
     async function handleSearch() {
         // Cancel any previous in-flight request
         if (searchAbortController) {
@@ -117,30 +112,17 @@
 
         // Create new AbortController for this request
         searchAbortController = new AbortController();
-        
         isLoading = true;
         
-        try {
-            const response = await fetch(
-                `/api/products?name=${encodeURIComponent(searchQuery)}`,
-                { signal: searchAbortController.signal }
-            );
-            
-            // Only process response if request wasn't aborted
+        const resp = await fetchProductsByName(searchQuery, searchAbortController.signal);
+        if (resp.isOk()) {
             if (!searchAbortController.signal.aborted) {
-                const data = await response.json();
-                searchResults = data;
+                searchResults = resp.value;
             }
-        } catch (error) {
-            // Don't show error if request was intentionally aborted
-            if (error instanceof Error && error.name !== 'AbortError') {
-                console.error('Search error:', error);
-            }
-        } finally {
-            // Only hide loading if this request wasn't aborted
-            if (searchAbortController && !searchAbortController.signal.aborted) {
-                isLoading = false;
-            }
+        }
+
+        if (searchAbortController && !searchAbortController.signal.aborted) {
+            isLoading = false;
         }
     }
 
@@ -297,7 +279,7 @@
                             </span>
                         </div>
                         <div class="second-line">
-                            <span class="category">{categoryMap[product.category_id] || 'Unknown Category'}</span>
+                            <span class="category">{categoryMap.get(product.category_id)?.name || 'Unknown Category'}</span>
                             <span class="brand">{manufacturerMap[product.manufacturer_id] || 'Unknown Brand'}</span>
                         </div>
                     </div>
