@@ -11,7 +11,7 @@
     import type { Manufacturer } from '$lib/types/Manufacturer.js';
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
-    import type { ResultAsync } from 'neverthrow';
+    import { ResultAsync } from 'neverthrow';
 
     let selectedDays = $state(7);
     let sortBy = $state<'value' | 'percentage'>('value');
@@ -74,13 +74,13 @@
 
     onMount(async () => {
         // Load initial data
-        const [categoriesData, manufacturersData] = await Promise.all([
+        ResultAsync.combine([
             fetchCategories(),
-            getManufacturers().unwrapOr([]),
-        ]);
-        
-        categories = categoriesData;
-        manufacturers = manufacturersData;
+            getManufacturers(),
+        ]).map(([categoriesData, manufacturersData]) => {
+            categories = categoriesData;
+            manufacturers = manufacturersData;
+        })
     });
 </script>
 
