@@ -60,7 +60,13 @@
 			title: 'Product Groups',
 			icon: '📦',
 			description: 'Manage product groups and merge related products'
-		}
+		},
+		{
+			path: '/admin/fringegroups',
+			title: 'Fringe Groups',
+			icon: '📦',
+			description: 'Manage fringe groups and merge related products'
+		},
 	];
 
 	let currentPath = $derived($page?.url?.pathname || '/admin');
