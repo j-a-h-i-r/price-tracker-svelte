@@ -6,6 +6,7 @@
     import type { FringeGroup } from '$lib/types/FringeGroup.js';
     import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
     import { getFringeGroups, purgeGroup } from '$lib/api/fringegroups.js';
+    import { ResultAsync } from 'neverthrow';
 
     let fringeGroups: FringeGroup[] = $state([]);
     let isLoading = $state(false);
@@ -116,6 +117,29 @@
         }
     }
 
+    async function purgeAllGroups() {
+        const confirmation = confirm(`Are you sure you want to purge ALL fringe groups? This action cannot be undone.`);
+        if (!confirmation) return;
+
+        try {
+            isLoading = true;
+            await ResultAsync.combine(filteredGroups.map(group => 
+                purgeGroup(group.external_product_id, group.group_id)
+                    .andTee(() => {
+                        toasts.success(`Successfully purged group "${group.group_name}"`);
+                    })
+                    .orTee((error) => {
+                        console.error('Error purging group:', error);
+                        toasts.error(`Failed to purge group "${group.group_name}"`);
+                    })
+            ));
+            // Refresh the fringe groups list
+            await fetchFringeGroups();
+        } finally {
+            isLoading = false;
+        }
+    }
+
     async function handlePurgeGroup(externalProductId: number, groupId: number, groupName: string) {
         const confirmation = confirm(`Are you sure you want to purge group "${groupName}" (ID: ${groupId})? This action cannot be undone.`);
         if (!confirmation) return;
@@ -200,6 +224,10 @@
         <div class="results-summary">
             <p>Found {filteredGroups.length} fringe groups {percentThreshold ? `with threshold ${percentThreshold}%` : ''}</p>
         </div>
+
+        <button type="button" class="purge-all-btn" onclick={purgeAllGroups}>
+            Purge All Groups
+        </button>
 
         {#if fringeGroups.length > 0}
             <div class="search-container">
@@ -435,6 +463,33 @@
         color: #374151;
         font-weight: 500;
         font-size: 0.875rem;
+    }
+
+    .purge-all-btn {
+        padding: 0.75rem 1.5rem;
+        background: #dc2626;
+        color: white;
+        border: 1px solid #dc2626;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .purge-all-btn:hover:not(:disabled) {
+        background: #b91c1c;
+        border-color: #b91c1c;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .purge-all-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background: #9ca3af;
+        border-color: #9ca3af;
     }
 
     .no-results {
