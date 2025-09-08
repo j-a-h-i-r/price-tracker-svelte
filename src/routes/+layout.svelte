@@ -4,6 +4,10 @@
 	import { userState } from '$lib/shared.svelte.js';
 	import { goto } from '$app/navigation';
 	import Toast from '$lib/components/Toast.svelte';
+	import posthog from 'posthog-js';
+    import { onMount } from 'svelte';
+    import { browser } from '$app/environment';
+
 	let { children } = $props();
 
 	let pathname = $derived($page?.url?.pathname || '/');
@@ -29,6 +33,20 @@
 			return { path: p, url: urlSoFar };
 		});
 	}
+
+	onMount(() => {
+		if (browser) {
+			posthog.init(
+				'phc_lMyoqpCqs4BfB8hwKRJydLFZs6P77JgRZffDoiZeopn',
+				{
+					api_host: 'https://hog.daam.deals/',
+					ui_host: 'eu.posthog.com',
+					defaults: '2025-05-24',
+					person_profiles: 'identified_only', // or 'always' to create profiles for anonymous users as well
+				}
+			)
+		}
+	})
 </script>
 
 <div class="min-h-screen bg-gray-50">

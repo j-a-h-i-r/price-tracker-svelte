@@ -37,6 +37,7 @@
 		"chart.js": "^4.4.8",
 		"chartjs-adapter-dayjs-4": "^1.0.4",
 		"dayjs": "^1.11.13",
-		"neverthrow": "^8.2.0"
+		"neverthrow": "^8.2.0",
+		"posthog-js": "^1.261.8"
 	}
 }
