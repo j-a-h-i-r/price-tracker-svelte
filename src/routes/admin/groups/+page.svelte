@@ -511,6 +511,11 @@
             }
         )
     }
+
+    function clearAllSelections() {
+        selectedProducts.clear();
+        selectedProducts = new Set();
+    }
 </script>
 
 <svelte:head>
@@ -553,6 +558,7 @@
     </div>
 
     <button type="button" class="merge-btn" onclick={mergeAllSelected}>Merge All Selected</button>
+    <button type="button" class="merge-btn" onclick={clearAllSelections}>Clear All Selections</button>
 
     {#if isLoading}
         <div class="loading-container">
