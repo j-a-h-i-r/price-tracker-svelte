@@ -3,6 +3,9 @@
     import { userState } from '$lib/shared.svelte.js';
     import { goto } from '$app/navigation';
     import SearchableSelect from '$lib/components/SearchableSelect.svelte';
+    import { mergeProductsIntoGroup } from '$lib/api/groups.js';
+    import { errAsync, ResultAsync } from 'neverthrow';
+    import { toasts } from '$lib/states/toast.js';
 
     type Product = {
         external_product_id: number;
@@ -51,7 +54,7 @@
     let manufacturers: Manufacturer[] = $state([]);
     let isLoading = $state(true);
     let error = $state<string | null>(null);
-    let selectedProducts: Set<number> = $state(new Set());
+    let selectedProducts: Set<string> = $state(new Set());
     let showMergeModal = $state(false);
     let currentGroupId = $state<number | null>(null);
     let selectedPrimaryProductsExternalId = $state<number | null>(null);
@@ -110,7 +113,7 @@
                             product.run_count >= 2 &&
                             product.distinct_groups === 1
                         ) {
-                            selectedProducts.add(product.external_product_id);
+                            selectedProducts.add(`${group.id}_${product.external_product_id}`);
                         }
                     });
                 }
@@ -161,11 +164,11 @@
         selectedManufacturerId = 'all';
     }
 
-    function toggleProductSelection(productId: number) {
-        if (selectedProducts.has(productId)) {
-            selectedProducts.delete(productId);
+    function toggleProductSelection(groupId: number, productId: number) {
+        if (selectedProducts.has(`${groupId}_${productId}`)) {
+            selectedProducts.delete(`${groupId}_${productId}`);
         } else {
-            selectedProducts.add(productId);
+            selectedProducts.add(`${groupId}_${productId}`);
         }
         selectedProducts = new Set(selectedProducts);
     }
@@ -178,15 +181,15 @@
             (p) => p.external_product_id,
         );
         const allSelected = groupProductIds.every((id) =>
-            selectedProducts.has(id),
+            selectedProducts.has(`${group.id}_${id}`),
         );
 
         if (allSelected) {
             // Deselect all products in this group
-            groupProductIds.forEach((id) => selectedProducts.delete(id));
+            groupProductIds.forEach((id) => selectedProducts.delete(`${group.id}_${id}`));
         } else {
             // Select all products in this group
-            groupProductIds.forEach((id) => selectedProducts.add(id));
+            groupProductIds.forEach((id) => selectedProducts.add(`${group.id}_${id}`));
         }
         selectedProducts = new Set(selectedProducts);
     }
@@ -249,8 +252,8 @@
             }
 
             // Remove selection if present
-            if (selectedProducts.has(externalProductId)) {
-                selectedProducts.delete(externalProductId);
+            if (selectedProducts.has(`${groupId}_${externalProductId}`)) {
+                selectedProducts.delete(`${groupId}_${externalProductId}`);
                 selectedProducts = new Set(selectedProducts);
             }
 
@@ -278,7 +281,7 @@
         const groupProductIds = group.products.map(
             (p) => p.external_product_id,
         );
-        return groupProductIds.every((id) => selectedProducts.has(id));
+        return groupProductIds.every((id) => selectedProducts.has(`${groupId}_${id}`));
     }
 
     function isSomeSelectedInGroup(groupId: number): boolean {
@@ -288,7 +291,7 @@
         const groupProductIds = group.products.map(
             (p) => p.external_product_id,
         );
-        return groupProductIds.some((id) => selectedProducts.has(id));
+        return groupProductIds.some((id) => selectedProducts.has(`${groupId}_${id}`));
     }
 
     function getSelectedProductsInGroup(groupId: number): Product[] {
@@ -296,7 +299,7 @@
         if (!group?.products) return [];
 
         return group.products.filter((product) =>
-            selectedProducts.has(product.external_product_id),
+            selectedProducts.has(`${groupId}_${product.external_product_id}`),
         );
     }
 
@@ -327,58 +330,54 @@
         }
     }
 
+    function doMerge(groupId: number, primaryProductExternalId: number) {
+        const currentGroup = groups.find((g) => g.id === groupId);
+        if (!currentGroup) {
+            return errAsync(new Error('Group not found'));
+        }
+        const selectedInGroup = getSelectedProductsInGroup(groupId);
+        console.log(selectedInGroup, primaryProductExternalId);
+        const internalProductIdsToMerge = selectedInGroup
+            .filter((p) => p.external_product_id !== primaryProductExternalId)
+            .map((p) => p.internal_product_id);
+        const externalProductIdsToMerge = selectedInGroup.map(
+            (p) => p.external_product_id,
+        );
+        const selectPrimaryProductInternalId = selectedInGroup.find(
+            (p) => p.external_product_id === primaryProductExternalId,
+        )?.internal_product_id;
+
+        if (!selectPrimaryProductInternalId) {
+            return errAsync(new Error('Primary product not found in selection'));
+        }
+
+        return mergeProductsIntoGroup(
+            groupId,
+            currentGroup.group_name,
+            selectPrimaryProductInternalId,
+            internalProductIdsToMerge,
+            externalProductIdsToMerge
+        )
+    }
+
     async function performMerge() {
         if (!currentGroupId || !selectedPrimaryProductsExternalId) {
             alert('Please select a primary product');
             return;
         }
 
-        const currentGroup = groups.find((g) => g.id === currentGroupId);
-        const selectedInGroup = getSelectedProductsInGroup(currentGroupId);
-        console.log(selectedInGroup, selectedPrimaryProductsExternalId);
-        const internalProductIdsToMerge = selectedInGroup
-            .filter((p) => p.external_product_id !== selectedPrimaryProductsExternalId)
-            .map((p) => p.internal_product_id);
-        const externalProductIdsToMerge = selectedInGroup.map(
-            (p) => p.external_product_id,
-        );
-        const selectPrimaryProductInternalId = selectedInGroup.find(
-            (p) => p.external_product_id === selectedPrimaryProductsExternalId,
-        )?.internal_product_id;
-
-        try {
-            const response = await fetch(
-                `/api/groups/${currentGroupId}/merge`,
-                {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        productName: currentGroup?.group_name,
-                        primaryInternalProductId:
-                            selectPrimaryProductInternalId,
-                        internalProductIds: internalProductIdsToMerge,
-                        externalProductIds: externalProductIdsToMerge,
-                    }),
-                },
-            );
-
-            if (!response.ok) {
-                throw new Error('Failed to merge products');
+        doMerge(currentGroupId, selectedPrimaryProductsExternalId).match(
+            () => {
+                closeMergeModal();
+                selectedProducts.clear();
+                selectedProducts = new Set();
+                return loadGroups();
+            },
+            (err) => {
+                console.error('Error merging products:', err);
+                alert('Failed to merge products. Please try again.');
             }
-
-            alert('Products merged successfully!');
-            closeMergeModal();
-
-            // Clear selections and reload data
-            selectedProducts.clear();
-            selectedProducts = new Set();
-            await loadGroups();
-        } catch (err) {
-            console.error('Error merging products:', err);
-            alert('Failed to merge products. Please try again.');
-        }
+        )
     }
 
     function formatDate(dateString: string): string {
@@ -484,6 +483,34 @@
         
         return colorMap;
     }
+
+    function mergeAllSelected() {
+        if (!confirm('Merge all selected products across all groups? This action cannot be undone.')) {
+            return;
+        }
+        const mergeReqs = groups.map((g) => {
+            const selectedInGroup = getSelectedProductsInGroup(g.id);
+            const productIds = selectedInGroup.map(p => p.external_product_id);
+            return {
+                groupId: g.id,
+                productIds,
+            }
+        }).filter((g) => g.productIds.length >= 2)
+        .map((g) => {
+            return doMerge(g.groupId, g.productIds[0]);
+        });
+
+        ResultAsync.combine(mergeReqs).match(
+            () => {
+                toasts.success('Merged all selected products successfully');
+                return loadGroups();
+            },
+            (err) => {
+                console.error('Error merging products:', err);
+                toasts.error('Failed to merge some products. Please try again.');
+            }
+        )
+    }
 </script>
 
 <svelte:head>
@@ -524,6 +551,8 @@
             />
         </div>
     </div>
+
+    <button type="button" class="merge-btn" onclick={mergeAllSelected}>Merge All Selected</button>
 
     {#if isLoading}
         <div class="loading-container">
@@ -740,11 +769,10 @@
                                         <label class="product-checkbox">
                                             <input
                                                 type="checkbox"
-                                                checked={selectedProducts.has(
-                                                    product.external_product_id,
-                                                )}
+                                                checked={selectedProducts.has(`${group.id}_${product.external_product_id}`)}
                                                 onchange={() =>
                                                     toggleProductSelection(
+                                                        group.id,
                                                         product.external_product_id,
                                                     )}
                                             />

@@ -35,7 +35,7 @@
 	}
 
 	onMount(() => {
-		if (browser) {
+		if (browser && window.location.hostname !== 'localhost') {
 			posthog.init(
 				'phc_lMyoqpCqs4BfB8hwKRJydLFZs6P77JgRZffDoiZeopn',
 				{
