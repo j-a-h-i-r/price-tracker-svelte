@@ -1,18 +1,38 @@
 <script lang="ts">
     import { fetchCategories, type Category } from '$lib/api/products.js';
+    import { getCategoryNewProductsCount } from '$lib/api/categories.js';
     import { onMount } from 'svelte';
+    import { ok, ResultAsync } from 'neverthrow';
 
-    let categories: Category[] = $state([]);
+    interface CategoryWithNewProducts extends Category {
+        newProductsCount?: number;
+        product_count?: number;
+    }
+
+    let categories: CategoryWithNewProducts[] = $state([]);
     let loading = $state(true);
+    let newProductDays = 7;
 
     onMount(async () => {
         fetchCategories()
-        .map((_cat) => {
-            categories = _cat;
+        .andThen((_categories) => {
+            const categoriesWithNewProducts = _categories.map((category) => {
+                return getCategoryNewProductsCount(category.id, newProductDays)
+                    .andThen((newProductsCount) => ok({ ...category, newProductsCount }))
+                    .orElse(() => ok(category)) // Return category without newProductsCount if fails
+            });
+            return ResultAsync.combine(categoriesWithNewProducts);
         })
-        .then(() => {
-            loading = false;
-        })
+        .match(
+            (categoriesWithNewProducts) => {
+                categories = categoriesWithNewProducts;
+                loading = false;
+            },
+            (err) => {
+                console.error('Error fetching categories:', err);
+                loading = false;
+            }
+        );
     });
 </script>
 
@@ -23,7 +43,14 @@
         <div class="categories-grid">
             {#each categories as category (category.id)}
                 <div class="category-card">
-                    <h2>{category.name}</h2>
+                    <div class="card-header">
+                        <h2>{category.name}</h2>
+                        {#if category.newProductsCount !== undefined && category.newProductsCount > 0}
+                            <div class="new-products-badge">
+                                +{category.newProductsCount} in {newProductDays}d
+                            </div>
+                        {/if}
+                    </div>
                     <p class="product-count">
                         {category?.product_count} products
                     </p>
@@ -58,6 +85,8 @@
         border-radius: 8px;
         padding: 1.5rem;
         transition: transform 0.2s;
+        display: flex;
+        flex-direction: column;
     }
 
     .category-card:hover {
@@ -65,10 +94,30 @@
         box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
     }
 
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
     .category-card h2 {
         margin: 0;
         color: #374151;
         font-size: 1.25rem;
+        font-weight: 600;
+        flex: 1;
+    }
+
+    .new-products-badge {
+        background: #10b981;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        white-space: nowrap;
+        margin-left: 0.75rem;
     }
 
     .category-card .product-count {
@@ -84,6 +133,9 @@
         border-radius: 4px;
         text-decoration: none;
         font-size: 0.875rem;
+        transition: background-color 0.2s;
+        margin-top: auto;
+        align-self: flex-start;
     }
 
     .view-products:hover {
