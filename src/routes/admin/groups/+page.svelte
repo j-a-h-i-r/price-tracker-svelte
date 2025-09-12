@@ -752,7 +752,7 @@
                             <div class="products-list">
                                 {#each group.products as product, index (index)}
                                     <div 
-                                        class="product-item"
+                                        class={['product-item', product.internal_product_id === group.verified_internal_product_id && 'attached-group-product']}
                                         style:border-left={groupColorMap.has(index) ? 
                                             `4px solid ${groupColorMap.get(index)}` : 
                                             'none'
@@ -2164,5 +2164,11 @@
             align-items: flex-start;
             gap: 0.25rem;
         }
+    }
+
+    .attached-group-product {
+        border: 2px solid #4f46e5;
+        background: rgba(79, 70, 229, 0.1);
+        border-radius: 6px;
     }
 </style>
