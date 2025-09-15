@@ -2,8 +2,8 @@ import { api } from "$lib/core/api.js";
 
 export function mergeProductsIntoGroup(
     groupId: number,
-    internalProductIdsToMerge: number[],) {
+    externalProductIdsToMerge: number[],) {
     return api.put(`/api/groups/${groupId}/merge`, {
-        internalProductIdsToMerge: internalProductIdsToMerge,
+        externalProductIdsToMerge: externalProductIdsToMerge,
     })
 }

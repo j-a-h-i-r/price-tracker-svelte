@@ -9,17 +9,18 @@
 
     type Product = {
         internal_product_id: number;
-        internal_product_name: string;
+        external_product_id: number;
+        external_product_name: string;
         run_count: number;
         avg_confidence: number;
         distinct_groups: number;
-        ep_count: number;
+        ip_count: number;
         auto_merge_possible: boolean;
     };
 
     type Group = {
         id: number;
-        verified_internal_product_id: number | null;
+        internal_product_id: number | null;
         group_name: string;
         created_at: string;
         updated_at: string;
@@ -58,7 +59,7 @@
     let selectedProducts: Set<string> = $state(new Set());
     let showMergeModal = $state(false);
     let currentGroupId = $state<number | null>(null);
-    let selectedPrimaryProductsInternalId = $state<number | null>(null);
+    let selectedPrimaryProductsExternalId = $state<number | null>(null);
     let editingGroupId = $state<number | null>(null);
     let editingGroupName = $state('');
     let showGroupsModal = $state(false);
@@ -111,7 +112,7 @@
                     group.products.forEach((product: Product) => {
                         // Auto-select products based on criteria
                         if (product.auto_merge_possible) {
-                            selectedProducts.add(`${group.id}_${product.internal_product_id}`);
+                            selectedProducts.add(`${group.id}_${product.external_product_id}`);
                         }
                     });
                 }
@@ -176,7 +177,7 @@
         if (!group?.products) return;
 
         const groupProductIds = group.products.map(
-            (p) => p.internal_product_id,
+            (p) => p.external_product_id,
         );
         const allSelected = groupProductIds.every((id) =>
             selectedProducts.has(`${group.id}_${id}`),
@@ -192,10 +193,10 @@
         selectedProducts = new Set(selectedProducts);
     }
 
-    async function loadExternalGroups(productId: number) {
+    async function loadExternalGroups(externalProductId: number) {
         try {
             loadingExternalGroups = true;
-            const response = await fetch(`/api/products/${productId}/groups`);
+            const response = await fetch(`/api/externals/${externalProductId}/groups`);
             if (!response.ok) {
                 throw new Error('Failed to fetch external groups');
             }
@@ -208,10 +209,10 @@
         }
     }
 
-    async function showExternalGroups(productId: number) {
-        currentProductId = productId;
+    async function showExternalGroups(externalProductId: number) {
+        currentProductId = externalProductId;
         showGroupsModal = true;
-        await loadExternalGroups(productId);
+        await loadExternalGroups(externalProductId);
     }
 
     function closeGroupsModal() {
@@ -221,10 +222,10 @@
     }
 
     async function deleteProductFromGroup(
-        internalProductId: number,
+        externalProductId: number,
         groupId: number,
     ) {
-        const key = `${groupId}:${internalProductId}`;
+        const key = `${groupId}_${externalProductId}`;
         if (!confirm('Remove this product from the group?')) return;
 
         try {
@@ -232,7 +233,7 @@
             deletingProducts = new Set(deletingProducts);
 
             const response = await fetch(
-                `/api/products/${internalProductId}/groups/${groupId}`,
+                `/api/externals/${externalProductId}/groups/${groupId}`,
                 {
                     method: 'DELETE',
                 },
@@ -245,13 +246,13 @@
             const gIdx = groups.findIndex((g) => g.id === groupId);
             if (gIdx !== -1 && groups[gIdx].products) {
                 groups[gIdx].products = groups[gIdx].products!.filter(
-                    (p) => p.internal_product_id !== internalProductId,
+                    (p) => p.external_product_id !== externalProductId,
                 );
             }
 
             // Remove selection if present
-            if (selectedProducts.has(`${groupId}_${internalProductId}`)) {
-                selectedProducts.delete(`${groupId}_${internalProductId}`);
+            if (selectedProducts.has(`${groupId}_${externalProductId}`)) {
+                selectedProducts.delete(`${groupId}_${externalProductId}`);
                 selectedProducts = new Set(selectedProducts);
             }
 
@@ -277,7 +278,7 @@
         if (!group?.products || group.products.length === 0) return false;
 
         const groupProductIds = group.products.map(
-            (p) => p.internal_product_id,
+            (p) => p.external_product_id,
         );
         return groupProductIds.every((id) => selectedProducts.has(`${groupId}_${id}`));
     }
@@ -287,7 +288,7 @@
         if (!group?.products) return false;
 
         const groupProductIds = group.products.map(
-            (p) => p.internal_product_id,
+            (p) => p.external_product_id,
         );
         return groupProductIds.some((id) => selectedProducts.has(`${groupId}_${id}`));
     }
@@ -297,7 +298,7 @@
         if (!group?.products) return [];
 
         return group.products.filter((product) =>
-            selectedProducts.has(`${groupId}_${product.internal_product_id}`),
+            selectedProducts.has(`${groupId}_${product.external_product_id}`),
         );
     }
 
@@ -309,16 +310,16 @@
         }
 
         currentGroupId = groupId;
-        selectedPrimaryProductsInternalId = selectedInGroup.sort((a, b) =>
-            a.internal_product_id < b.internal_product_id ? -1 : 1
-        )[0].internal_product_id;
+        selectedPrimaryProductsExternalId = selectedInGroup.sort((a, b) =>
+            a.external_product_id < b.external_product_id ? -1 : 1
+        )[0].external_product_id;
         showMergeModal = true;
     }
 
     function closeMergeModal() {
         showMergeModal = false;
         currentGroupId = null;
-        selectedPrimaryProductsInternalId = null;
+        selectedPrimaryProductsExternalId = null;
     }
 
     function handleModalClick(event: MouseEvent) {
@@ -334,12 +335,12 @@
             return errAsync(new Error('Group not found'));
         }
         const selectedInGroup = getSelectedProductsInGroup(groupId);
-        const internalProductIdsToMerge = selectedInGroup
-            .map((p) => p.internal_product_id);
+        const externalProductIdsToMerge = selectedInGroup
+            .map((p) => p.external_product_id);
 
         return mergeProductsIntoGroup(
             groupId,
-            internalProductIdsToMerge,
+            externalProductIdsToMerge,
         )
     }
 
@@ -414,7 +415,7 @@
         if (!currentGroupId) return [];
         return getSelectedProductsInGroup(currentGroupId)
         .sort((a, b) =>
-            a.internal_product_id < b.internal_product_id ? -1 : 1
+            a.external_product_id < b.external_product_id ? -1 : 1
         );
     });
 
@@ -440,7 +441,7 @@
             const product = products[i];
             
             // Check if we're starting a new group
-            if (product.internal_product_id !== currentInternalId) {
+            if (product.external_product_id !== currentInternalId) {
                 // Process the previous group if it had 2+ products
                 if (currentInternalId !== null && i - groupStart > 1) {
                     const color = colors[colorIndex % colors.length];
@@ -451,7 +452,7 @@
                 }
                 
                 // Start new group
-                currentInternalId = product.internal_product_id;
+                currentInternalId = product.external_product_id;
                 groupStart = i;
             }
         }
@@ -473,7 +474,7 @@
         }
         const mergeReqs = groups.map((g) => {
             const selectedInGroup = getSelectedProductsInGroup(g.id);
-            const productIds = selectedInGroup.map(p => p.internal_product_id);
+            const productIds = selectedInGroup.map(p => p.external_product_id);
             return {
                 groupId: g.id,
                 productIds,
@@ -714,7 +715,7 @@
                                             0}</span
                                     >
                                     <span>
-                                        Attached Internal Product ID: {group.verified_internal_product_id}
+                                        Attached Internal Product ID: {group.internal_product_id}
                                     </span>
                                 </div>
                             </div>
@@ -752,7 +753,7 @@
                             <div class="products-list">
                                 {#each group.products as product, index (index)}
                                     <div 
-                                        class={['product-item', product.internal_product_id === group.verified_internal_product_id && 'attached-group-product']}
+                                        class={['product-item']}
                                         style:border-left={groupColorMap.has(index) ? 
                                             `4px solid ${groupColorMap.get(index)}` : 
                                             'none'
@@ -761,34 +762,28 @@
                                         <label class="product-checkbox">
                                             <input
                                                 type="checkbox"
-                                                checked={selectedProducts.has(`${group.id}_${product.internal_product_id}`)}
+                                                checked={selectedProducts.has(`${group.id}_${product.external_product_id}`)}
                                                 onchange={() =>
                                                     toggleProductSelection(
                                                         group.id,
-                                                        product.internal_product_id,
+                                                        product.external_product_id,
                                                     )}
                                             />
                                             <span class="checkmark"></span>
                                         </label>
                                         <div class="product-info">
                                             <div class="product-name">
-                                                {product.internal_product_name}
+                                                {product.external_product_name}
                                             </div>
-                                            {#if product.internal_product_name != product.internal_product_name}
-                                                <div
-                                                    class="product-name"
-                                                    style="font-size: 0.75rem;"
-                                                >
-                                                    {product.internal_product_name}
-                                                </div>
-                                            {/if}
                                             <div class="product-meta">
-                                                Internal ID: {product.internal_product_id}
+                                                External ID: {product.external_product_id}
+                                                • Internal ID: {product.internal_product_id}
                                                 • Confidence: {product.avg_confidence
                                                     ? product.avg_confidence
                                                     : 'N/A'}
+                                                • Runs: {product.run_count}
                                                 • Group Count: {product.distinct_groups}
-                                                • External Products: {product.ep_count}
+                                                • Sibling Products: {product.ip_count}
                                             </div>
                                         </div>
                                         <div class="product-actions">
@@ -803,7 +798,7 @@
                                                 class="groups-button"
                                                 onclick={() =>
                                                     showExternalGroups(
-                                                        product.internal_product_id,
+                                                        product.external_product_id,
                                                     )}
                                                 title="View external groups for this product"
                                             >
@@ -813,16 +808,16 @@
                                                 class="delete-button"
                                                 onclick={() =>
                                                     deleteProductFromGroup(
-                                                        product.internal_product_id,
+                                                        product.external_product_id,
                                                         group.id,
                                                     )}
                                                 disabled={deletingProducts.has(
-                                                    `${group.id}:${product.internal_product_id}`,
+                                                    `${group.id}:${product.external_product_id}`,
                                                 )}
                                                 title="Remove this product from the group"
                                             >
                                                 {deletingProducts.has(
-                                                    `${group.id}:${product.internal_product_id}`,
+                                                    `${group.id}:${product.external_product_id}`,
                                                 )
                                                     ? 'Removing...'
                                                     : 'Remove'}
@@ -937,15 +932,15 @@
                             <input
                                 type="radio"
                                 name="primaryProduct"
-                                value={product.internal_product_id}
-                                bind:group={selectedPrimaryProductsInternalId}
+                                value={product.external_product_id}
+                                bind:group={selectedPrimaryProductsExternalId}
                             />
                             <div class="product-option-content">
                                 <div class="product-option-name">
-                                    {product.internal_product_name}
+                                    {product.external_product_name}
                                 </div>
                                 <div class="product-option-meta">
-                                    Internal ID: {product.internal_product_id}
+                                    Internal ID: {product.external_product_id}
                                 </div>
                             </div>
                         </label>
@@ -985,7 +980,7 @@
                 <button
                     class="btn-merge-confirm"
                     onclick={performMerge}
-                    disabled={!selectedPrimaryProductsInternalId}
+                    disabled={!selectedPrimaryProductsExternalId}
                 >
                     Merge Products
                 </button>
