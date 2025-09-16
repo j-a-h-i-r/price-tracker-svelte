@@ -36,6 +36,7 @@
     import { ResultAsync } from 'neverthrow';
     import type { Website } from '$lib/types/Website.js';
     import Loader from '$lib/components/Loader.svelte';
+    import Pill from '$lib/components/Pill.svelte';
 
     let productId = Number(page.params.productId);
     let product: Product | null = $state(null);
@@ -772,10 +773,7 @@
                     {:else}
                         The savings are shown for all products with 
                         {#each getSelectedVariantsFormatted(selectedVariants) as selVar (selVar.name)}
-                        <span class="metadata-pill">
-                            <span class="metadata-pill-label">{selVar.name}</span>
-                            <span class="metadata-pill-value">{selVar.value}</span>
-                        </span>
+                        <Pill label={selVar.name} value={selVar.value} />
                         {/each}
                     {/if}
                 </p>
@@ -864,10 +862,7 @@
                     {#if (externalProductMetadatas.get(product.external_product_id) ?? []).length > 0}
                         <div class="metadata-pills">
                             {#each externalProductMetadatas.get(product.external_product_id) ?? [] as metadata (metadata.name)}
-                                <div class="metadata-pill">
-                                    <span class="metadata-pill-label">{metadata.name_display_text}</span>
-                                    <span class="metadata-pill-value">{metadata.value_display_text}</span>
-                                </div>
+                                <Pill label={metadata.name_display_text} value={metadata.value_display_text} />
                             {/each}
                         </div> 
                     {/if}
@@ -1888,28 +1883,6 @@
         padding-top: 1rem;
         border-top: 1px solid #e5e7eb;
         margin-top: auto;
-    }
-
-    .metadata-pill {
-        display: inline-flex;
-        align-items: center;
-        background: #f3f4f6;
-        border-radius: 9999px;
-        padding: 0.375rem 0.75rem;
-        font-size: 0.75rem;
-        gap: 0.375rem;
-        line-height: 1;
-    }
-
-    .metadata-pill-label {
-        color: #6b7280;
-        font-weight: 500;
-        white-space: nowrap;
-    }
-
-    .metadata-pill-value {
-        color: #374151;
-        font-weight: 600;
     }
 
     @media (max-width: 640px) {

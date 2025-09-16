@@ -104,4 +104,18 @@
     .separator {
         color: #9ca3af;
     }
+
+    .label {
+        background: #f5f5f5;
+        padding: 0.375rem 0.5rem 0.375rem 0.75rem;
+        border-radius: 5px 0 0 5px;
+        font-weight: 500;
+        margin-left: -0.75rem;
+        margin-top: -0.375rem;
+        margin-bottom: -0.375rem;
+        margin-right: 0.25rem;
+        height: calc(100% + 0.75rem);
+        display: flex;
+        align-items: center;
+    }
 </style>

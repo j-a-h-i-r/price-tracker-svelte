@@ -157,6 +157,9 @@
 
 <div class="layout">
     <main class="content">
+        <div class="banner">
+            If you want more granular filters the try out <a href="/configurator">Configurator</a>
+        </div>
         <div class="search-header">
             <div class="search-container">
                 <input 
@@ -303,8 +306,8 @@
     .search-header {
         background-color: white;
         padding: 1rem;
-        margin: -1rem -1rem 1rem -1rem;
         border-bottom: 1px solid #e5e7eb;
+        border-radius: 6px;
     }
 
     .search-container {
@@ -485,5 +488,32 @@
 
     .table-container tr:hover {
         background-color: #f8f9fa;
+    }
+
+    .banner {
+        background: rgba(255, 251, 204, 0.6);
+        color: #92400e;
+        padding: 0.5rem 1rem;
+        margin: -1.5rem auto 0.5rem auto;
+        text-align: center;
+        font-size: 0.8125rem;
+        font-weight: 400;
+        border-radius: 6px;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        max-width: fit-content;
+        box-shadow: none;
+    }
+
+    .banner a {
+        color: #92400e;
+        text-decoration: underline;
+        text-decoration-color: rgba(146, 64, 14, 0.5);
+        text-underline-offset: 2px;
+        font-weight: 500;
+    }
+
+    .banner a:hover {
+        text-decoration-color: #92400e;
+        color: #78350f;
     }
 </style>

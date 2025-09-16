@@ -9,20 +9,38 @@
     import { formatPrice } from '$lib/util.js';
     import SearchableSelect from '$lib/components/SearchableSelect.svelte';
     import RangeInput from '$lib/components/RangeInput.svelte';
+    import { getCategories } from '$lib/api/categories.js';
+    import { fetchMetadataFilters } from '$lib/api/metadata.js';
+    import Pill from '$lib/components/Pill.svelte';
+
+    interface ExternalProduct {
+        id: number,
+        internal_product_id: number,
+        category_id: number,
+        website_id: number,
+        name: string,
+        url: string,
+        created_at: string,
+        updated_at: string,
+        parsed_metadata: Record<string, any>,
+        product_id: number,
+        latest_price: number,
+        is_available: boolean,
+    }
     
     let manufacturers: Manufacturer[] = $state([]);
     let categories: Category[] = $state([]);
     let metadataFilters: MetadataFilter[] = $state([]);
     
     // Filter states
-    let selectedBrandId = $state('all');
-    let selectedCategoryId = $state('all');
+    let selectedBrandId: number | 'all' = $state('all');
+    let selectedCategoryId: number | 'all' = $state('all');
     let minPrice = $state(0);
     let maxPrice = $state(0);
     let selectedMetadata: Record<string, any> = $state({});
     let metadataRanges: Record<string, {min: number, max: number}> = $state({});
     let isLoading = $state(false);
-    let searchResults: any[] = $state([]);
+    let searchResults: ExternalProduct[] = $state([]);
     let hasSearched = $state(false);
 
     export const snapshot: Snapshot<string> = {
@@ -42,23 +60,19 @@
 	};
     
     onMount(async () => {
-        try {
-            // Fetch manufacturers
-            manufacturers = await getManufacturers().unwrapOr([]);
-            // Fetch categories
-            const categoriesResponse = await fetch('/api/categories');
-            if (categoriesResponse.ok) {
-                categories = await categoriesResponse.json();
-            }
-            
-            // Fetch metadata filters
-            const metadataResponse = await fetch('/api/filters');
-            if (metadataResponse.ok) {
-                metadataFilters = await metadataResponse.json();
-            }
-        } catch (error) {
-            console.error('Error fetching configurator data:', error);
-        }
+        manufacturers = await getManufacturers().unwrapOr([]);
+        categories = await getCategories().unwrapOr([]);
+        metadataFilters = await fetchMetadataFilters().unwrapOr([]);
+        metadataFilters.sort((a, b) => {
+            if (a.type === b.type) return 0;
+            if (a.type === 'range') return -1;
+            if (b.type === 'range') return 1;
+            if (a.type === 'set') return -1;
+            if (b.type === 'set') return 1;
+            if (a.type === 'boolean') return -1;
+            if (b.type === 'boolean') return 1;
+            return 0;
+        })
     });
     
     function handleMetadataChange(metadataName: string, value: any) {
@@ -94,8 +108,8 @@
     }
     
     function clearFilters() {
-        selectedBrandId = '';
-        selectedCategoryId = '';
+        selectedBrandId = 'all';
+        selectedCategoryId = 'all';
         minPrice = 0;
         maxPrice = 0;
         selectedMetadata = {};
@@ -159,120 +173,122 @@
 
 <div class="configurator-container">
     <div class="header">
-        <h1>Product Configurator</h1>
         <p>Find the perfect product by configuring your preferences</p>
     </div>
     
     <div class="configurator-content">
-        <!-- Basic Filters Group -->
-        <div class="filter-group">
-            <h2>Basic Filters</h2>
-            <div class="filters-grid">
-                <!-- Brand Filter -->
-                <div class="filter-item">
-                    <SearchableSelect
-                        label="Brand"
-                        allLabel="All Brands"
-                        bind:value={selectedBrandId}
-                        options={manufacturers.map(m => ({ id: m.id, name: m.name }))}
-                    />
-                </div>
-                
-                <!-- Category Filter -->
-                <div class="filter-item">
-                    <SearchableSelect
-                        label="Category"
-                        allLabel="All Categories"
-                        bind:value={selectedCategoryId}
-                        options={categories.map(m => ({ id: m.id, name: m.name }))}
-                    />
-                </div>
-                
-                <!-- Price Range -->
-                <div class="filter-item">
-                    <RangeInput
-                        label="Price Range"
-                        minAllowed={0}
-                        maxAllowed={+Infinity}
-                        bind:minValue={minPrice}
-                        bind:maxValue={maxPrice}
-                    />
-                </div>
-            </div>
-        </div>
-        
-        <!-- Metadata Filters Group -->
-        {#if metadataFilters.length > 0}
+        <div class="filters-sidebar">
+            <!-- Basic Filters Group -->
             <div class="filter-group">
-                <h2>Specifications</h2>
+                <h2>Basic Filters</h2>
                 <div class="filters-grid">
-                    {#each metadataFilters as metadata (metadata.key)}
-                        <div class="filter-item">
-                            {#if metadata.type === 'set'}
-                                <SearchableSelect
-                                    label={metadata.display_text}
-                                    allLabel={`All ${metadata.display_text}`}
-                                    bind:value={
-                                        () => selectedMetadata[metadata.key] || 'all',
-                                        (value) => handleMetadataChange(metadata.key, value)
-                                    }
-                                    options={metadata.value.map(m => ({ id: m, name: m }))}
-                                />
-                                
-                            {:else if metadata.type === 'range'}
-                                <!-- Range inputs for range type -->
-                                <RangeInput
-                                    label={metadata.display_text}
-                                    minAllowed={metadata.value.min}
-                                    maxAllowed={metadata.value.max}
-                                    bind:minValue={
-                                        () => metadataRanges[metadata.key]?.min ?? metadata.value.min,
-                                        (value) => handleRangeChange(metadata.key, 'min', value)
-                                    }
-                                    bind:maxValue={
-                                        () => metadataRanges[metadata.key]?.max ?? metadata.value.max,
-                                        (value) => handleRangeChange(metadata.key, 'max', value)
-                                    }
-                                    unit={metadata.unit || ''}
-                                />
-                            {:else if metadata.type === 'boolean'}
-                                <!-- Checkbox for boolean type -->
-                                <div class="checkbox-container">
-                                    <label class="checkbox-label">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={selectedMetadata[metadata.key] || false}
-                                            onchange={(e: Event) => handleMetadataChange(metadata.key, (e.target as HTMLInputElement).checked)}
-                                        />
-                                        <span class="checkbox-text">{metadata.display_text}</span>
-                                    </label>
-                                </div>
-                            {/if}
-                        </div>
-                    {/each}
+                    <!-- Brand Filter -->
+                    <div class="filter-item">
+                        <SearchableSelect
+                            label="Brand"
+                            allLabel="All Brands"
+                            bind:value={selectedBrandId}
+                            options={manufacturers.map(m => ({ id: m.id, name: m.name }))}
+                        />
+                    </div>
+                    
+                    <!-- Category Filter -->
+                    <div class="filter-item">
+                        <SearchableSelect
+                            label="Category"
+                            allLabel="All Categories"
+                            bind:value={selectedCategoryId}
+                            options={categories.map(m => ({ id: m.id, name: m.name }))}
+                        />
+                    </div>
+                    
+                    <!-- Price Range -->
+                    <div class="filter-item">
+                        <RangeInput
+                            label="Price Range"
+                            minAllowed={0}
+                            maxAllowed={+Infinity}
+                            bind:minValue={minPrice}
+                            bind:maxValue={maxPrice}
+                        />
+                    </div>
                 </div>
             </div>
-        {/if}
-        
-        <!-- Action Buttons -->
-        <div class="actions">
-            <button 
-                class="clear-btn" 
-                onclick={clearFilters}
-                disabled={!hasFilters}
-            >
-                Clear All Filters
-            </button>
-            <button 
-                class="find-btn" 
-                onclick={findProducts}
-                disabled={isLoading}
-            >
-                {isLoading ? 'Searching...' : 'Find Products'}
-            </button>
+            
+            <!-- Metadata Filters Group -->
+            {#if metadataFilters.length > 0}
+                <div class="filter-group">
+                    <h2>Specifications</h2>
+                    <div class="filters-grid">
+                        {#each metadataFilters as metadata (metadata.key)}
+                            <div class="filter-item">
+                                {#if metadata.type === 'set'}
+                                    <SearchableSelect
+                                        label={metadata.display_text}
+                                        allLabel={`All ${metadata.display_text}`}
+                                        bind:value={
+                                            () => selectedMetadata[metadata.key] || 'all',
+                                            (value) => handleMetadataChange(metadata.key, value)
+                                        }
+                                        options={metadata.value.map(m => ({ id: m, name: m }))}
+                                    />
+                                    
+                                {:else if metadata.type === 'range'}
+                                    <!-- Range inputs for range type -->
+                                    <RangeInput
+                                        label={metadata.display_text}
+                                        minAllowed={metadata.value.min}
+                                        maxAllowed={metadata.value.max}
+                                        bind:minValue={
+                                            () => metadataRanges[metadata.key]?.min ?? metadata.value.min,
+                                            (value) => handleRangeChange(metadata.key, 'min', value)
+                                        }
+                                        bind:maxValue={
+                                            () => metadataRanges[metadata.key]?.max ?? metadata.value.max,
+                                            (value) => handleRangeChange(metadata.key, 'max', value)
+                                        }
+                                        unit={metadata.unit || ''}
+                                    />
+                                {:else if metadata.type === 'boolean'}
+                                    <!-- Checkbox for boolean type -->
+                                    <div class="checkbox-container">
+                                        <label class="checkbox-label">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedMetadata[metadata.key] || false}
+                                                onchange={(e: Event) => handleMetadataChange(metadata.key, (e.target as HTMLInputElement).checked)}
+                                            />
+                                            <span class="checkbox-text">{metadata.display_text}</span>
+                                        </label>
+                                    </div>
+                                {/if}
+                            </div>
+                        {/each}
+                    </div>
+                </div>
+            {/if}
+            
+            <!-- Action Buttons -->
+            <div class="actions">
+                <button 
+                    class="clear-btn" 
+                    onclick={clearFilters}
+                    disabled={!hasFilters}
+                >
+                    Clear All Filters
+                </button>
+                <button 
+                    class="find-btn" 
+                    onclick={findProducts}
+                    disabled={isLoading}
+                >
+                    {isLoading ? 'Searching...' : 'Find Products'}
+                </button>
+            </div>
         </div>
-        
-        <!-- Search Results -->
+
+        <div class="results-area">
+            <!-- Search Results -->
         {#if hasSearched}
             <div class="results-section">
                 <div class="results-header">
@@ -291,6 +307,7 @@
                                     {#if product.manufacturer_name}
                                         <span class="manufacturer-badge">{product.manufacturer_name}</span>
                                     {/if}
+
                                 </div>
                                 
                                 {#if product.latest_price}
@@ -310,14 +327,17 @@
                                     </div>
                                 {/if}
                                 
-                                {#if product.metadata && Object.keys(product.metadata).length > 0}
+                                {#if product.parsed_metadata && Object.keys(product.parsed_metadata).length > 0}
                                     <div class="metadata-section">
-                                        <div class="metadata-items">
-                                            {#each Object.entries(product.metadata) as [key, value], idx (idx)}
-                                                <div class="metadata-item">
-                                                    <span class="metadata-key">{key.replace(/_/g, ' ')}</span>
-                                                    <span class="metadata-value">{value}</span>
-                                                </div>
+                                        <h4 class="metadata-title">Specifications</h4>
+                                        <div class="metadata-pills">
+                                            {#each metadataFilters as filter (filter.key)}
+                                                {#if product.parsed_metadata[filter.key]}
+                                                    <Pill
+                                                        label={filter.display_text}
+                                                        value={`${product.parsed_metadata[filter.key]}${filter.unit ? ` ${filter.unit}` : ''}`}
+                                                    />
+                                                {/if}
                                             {/each}
                                         </div>
                                     </div>
@@ -348,6 +368,7 @@
                 {/if}
             </div>
         {/if}
+        </div>
     </div>
 </div>
 
@@ -371,15 +392,28 @@
     }
     
     .header p {
-        font-size: 1.125rem;
         color: #6b7280;
         margin: 0;
     }
     
     .configurator-content {
         display: flex;
-        flex-direction: column;
         gap: 2rem;
+        min-height: calc(100vh - 8rem);
+    }
+    
+    .filters-sidebar {
+        width: 320px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        overflow: hidden;
+    }
+    
+    .results-area {
+        flex: 1;
+        min-width: 0;
     }
     
     .filter-group {
@@ -388,6 +422,8 @@
         padding: 2rem;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         border: 1px solid #e5e7eb;
+        min-width: 0;
+        overflow: hidden;
     }
     
     .filter-group h2 {
@@ -401,7 +437,7 @@
     
     .filters-grid {
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
         gap: 1.5rem;
     }
     
@@ -409,6 +445,14 @@
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
+        width: 100%;
+        min-width: 0;
+    }
+    
+    .filter-item > * {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
     
     .filter-item label {
@@ -693,30 +737,50 @@
     
     .metadata-section {
         margin-bottom: 1rem;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 0.75rem;
     }
     
-    .metadata-items {
+    .metadata-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin: 0 0 0.5rem 0;
+    }
+    
+    .metadata-pills {
         display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
     }
     
-    .metadata-item {
-        background-color: #f3f4f6;
-        border-radius: 4px;
-        padding: 0.25rem 0.5rem;
+    .metadata-pill {
+        display: inline-flex;
+        align-items: center;
+        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        border: 1px solid #cbd5e1;
+        border-radius: 16px;
+        padding: 0.375rem 0.75rem;
         font-size: 0.75rem;
+        transition: all 0.2s ease;
+        white-space: nowrap;
     }
     
-    .metadata-key {
-        color: #6b7280;
-        text-transform: capitalize;
+    .metadata-pill:hover {
+        background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
-    .metadata-value {
-        color: #374151;
+    .pill-key {
+        color: #475569;
         font-weight: 500;
-        margin-left: 0.25rem;
+        margin-right: 0.25rem;
+    }
+    
+    .pill-value {
+        color: #1e293b;
+        font-weight: 600;
     }
     
     .product-actions {
@@ -782,6 +846,14 @@
     @media (max-width: 768px) {
         .configurator-container {
             padding: 0 0.5rem;
+        }
+        
+        .configurator-content {
+            flex-direction: column;
+        }
+        
+        .filters-sidebar {
+            width: 100%;
         }
         
         .header h1 {

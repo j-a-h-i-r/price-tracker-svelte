@@ -1,17 +1,5 @@
 import { api } from '$lib/core/api.js';
-import type { MetadataDetail } from '$lib/types/Metadata';
-
-export interface MetadataFilter {
-    key: string;
-    displayName: string;
-    type: 'range' | 'boolean' | 'string';
-    unit?: string;  // For range type filters
-    values?: string[];  // For string type filters
-    range?: {
-        min: number;
-        max: number;
-    }
-}
+import type { MetadataDetail, MetadataFilter } from '$lib/types/Metadata';
 
 export function fetchMetadataFilters() {
     return api.get<MetadataFilter[]>('/api/filters')
