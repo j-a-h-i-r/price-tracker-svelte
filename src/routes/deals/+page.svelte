@@ -5,13 +5,13 @@
     import SearchableSelect from '$lib/components/SearchableSelect.svelte';
     import { fetchCategories, type Category } from '$lib/api/products';
     import NoResult from '$lib/components/NoResult.svelte';
-    import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
     import DealCard from '$lib/components/DealCard.svelte';
     import { getManufacturers } from '$lib/api/manufacturers.js';
     import type { Manufacturer } from '$lib/types/Manufacturer.js';
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
     import { ResultAsync } from 'neverthrow';
+    import Loader from '$lib/components/Loader.svelte';
 
     let selectedDays = $state(7);
     let sortBy = $state<'value' | 'percentage'>('value');
@@ -136,13 +136,10 @@
 
     <div class="deals-grid">
         {#await deals}
-            <div class="loading-container">
-                <LoadingSpinner size="lg" />
-                <div class="loading-text">
-                    <h3>Finding the best deals for you...</h3>
-                    <p>Searching through thousands of products to find current price drops</p>
-                </div>
-            </div>
+            <Loader
+                headerText="Finding the best deals for you..."
+                subText="Searching through thousands of products to find current price drops"
+            />
         {:then deals}
             {#if deals.isOk() && deals.value.length === 0}
                 <div class="col-span-full">
@@ -318,41 +315,6 @@
         .filter-control {
             flex-direction: column;
             width: 100%;
-        }
-    }
-
-    /* Loading styles */
-    .loading-container {
-        grid-column: 1 / -1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 4rem 2rem;
-        text-align: center;
-        min-height: 300px;
-    }
-
-    .loading-text {
-        margin-top: 1.5rem;
-    }
-
-    .loading-text h3 {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #1f2937;
-        margin: 0 0 0.5rem 0;
-    }
-
-    .loading-text p {
-        font-size: 0.875rem;
-        color: #6b7280;
-        margin: 0;
-    }
-
-    @media (max-width: 640px) {
-        .loading-container {
-            font-size: 1.25rem;
         }
     }
 </style>
