@@ -35,6 +35,7 @@
     import { goto } from '$app/navigation';
     import { ResultAsync } from 'neverthrow';
     import type { Website } from '$lib/types/Website.js';
+    import Loader from '$lib/components/Loader.svelte';
 
     let productId = Number(page.params.productId);
     let product: Product | null = $state(null);
@@ -664,20 +665,23 @@
                 </div>
             {/if}
         {/if}
-        <div class="availability-indicator">
-            <span class="dot" class:available={isAvailable}></span>
-            <span class="status-text"
-                >{isAvailable ? 'Available' : 'Unavailable'}</span
-            >
-        </div>
-        {#if userState.email}
-            {#if trackedProducts.isTracked(productId)}
-                <button class="track-btn untrack" onclick={handleUntrack}> Untrack </button>
+
+        {#if isExternalProductsLoaded}
+            <div class="availability-indicator">
+                <span class="dot" class:available={isAvailable}></span>
+                <span class="status-text"
+                    >{isAvailable ? 'Available' : 'Unavailable'}</span
+                >
+            </div>
+            {#if userState.email}
+                {#if trackedProducts.isTracked(productId)}
+                    <button class="track-btn untrack" onclick={handleUntrack}> Untrack </button>
+                {:else}
+                    <button class="track-btn" onclick={handleTrack}>Track</button>
+                {/if}
             {:else}
                 <button class="track-btn" onclick={handleTrack}>Track</button>
             {/if}
-        {:else}
-            <button class="track-btn" onclick={handleTrack}>Track</button>
         {/if}
     </div>
 
@@ -883,10 +887,8 @@
         </div> -->
     {:else}
         {#if !isExternalProductsLoaded}
-            <div class="loading-message">
-                Loading products...
-            </div>
-        {:else}
+            <Loader headerText="Loading product details..." />
+        {:else if externalProducts.length === 0}
             <div class="no-products">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

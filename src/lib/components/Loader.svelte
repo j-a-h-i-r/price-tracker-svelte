@@ -3,7 +3,7 @@
     import LoadingSpinner from './LoadingSpinner.svelte';
     interface Props {
         children?: Snippet;
-        headerText?: string;
+        headerText: string;
         subText?: string;
     }
     let { children, headerText, subText }: Props = $props();
@@ -16,9 +16,9 @@
     {:else}
         <div class="loading-text">
             <h3>{headerText}</h3>
-            <p>
-                {subText}
-            </p>
+            {#if subText}
+                <p>{subText}</p>
+            {/if}
         </div>
     {/if}
 </div>
