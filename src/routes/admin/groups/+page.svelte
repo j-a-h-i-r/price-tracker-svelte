@@ -57,9 +57,7 @@
     let isLoading = $state(true);
     let error = $state<string | null>(null);
     let selectedProducts: Set<string> = $state(new Set());
-    let showMergeModal = $state(false);
     let currentGroupId = $state<number | null>(null);
-    let selectedPrimaryProductsExternalId = $state<number | null>(null);
     let editingGroupId = $state<number | null>(null);
     let editingGroupName = $state('');
     let showGroupsModal = $state(false);
@@ -309,23 +307,9 @@
             return;
         }
 
-        currentGroupId = groupId;
-        selectedPrimaryProductsExternalId = selectedInGroup.sort((a, b) =>
-            a.external_product_id < b.external_product_id ? -1 : 1
-        )[0].external_product_id;
-        showMergeModal = true;
-    }
-
-    function closeMergeModal() {
-        showMergeModal = false;
-        currentGroupId = null;
-        selectedPrimaryProductsExternalId = null;
-    }
-
-    function handleModalClick(event: MouseEvent) {
-        // Check if the click is on the overlay (not the content)
-        if (event.target === event.currentTarget) {
-            closeMergeModal();
+        if (confirm(`Merge ${selectedInGroup.length} selected products in this group? This action cannot be undone.`)) {
+            currentGroupId = groupId;
+            performMerge();
         }
     }
 
@@ -352,7 +336,6 @@
 
         doMerge(currentGroupId).match(
             () => {
-                closeMergeModal();
                 selectedProducts.clear();
                 selectedProducts = new Set();
                 return loadGroups();
@@ -411,13 +394,6 @@
         }
     }
 
-    let selectedProductsInCurrentGroup = $derived.by(() => {
-        if (!currentGroupId) return [];
-        return getSelectedProductsInGroup(currentGroupId)
-        .sort((a, b) =>
-            a.external_product_id < b.external_product_id ? -1 : 1
-        );
-    });
 
     // Function to get border color for contiguous groups with same internal_product_id
     function getContiguousGroupColors(products: Product[]): Map<number, string> {
@@ -863,131 +839,6 @@
         {/if}
     {/if}
 </div>
-
-<!-- Merge Modal -->
-{#if showMergeModal}
-    <div
-        class="modal-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="merge-modal-title"
-        tabindex="-1"
-        onclick={handleModalClick}
-        onkeydown={(e) => e.key === 'Escape' && closeMergeModal()}
-    >
-        <div class="modal-content" role="document">
-            <div class="modal-header">
-                <h3 id="merge-modal-title">Merge Products</h3>
-                <button
-                    class="modal-close"
-                    onclick={closeMergeModal}
-                    aria-label="Close modal"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-
-            <div class="modal-body">
-                <div class="merge-icon">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="48"
-                        height="48"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path d="m8 6 4-4 4 4" />
-                        <path d="M12 2v10.3a4 4 0 0 1-1.172 2.872L4 22" />
-                        <path d="m20 22-6.928-6.928A4 4 0 0 1 12 12.3V2" />
-                    </svg>
-                </div>
-
-                <h4>Merge Selected Products</h4>
-                <p>
-                    You are about to merge {selectedProductsInCurrentGroup.length}
-                    products. Please select which product should be the primary product
-                    (all others will be merged into this one).
-                </p>
-
-                <div class="products-to-merge">
-                    {#each selectedProductsInCurrentGroup as product, index (index)}
-                        <label class="primary-product-option">
-                            <input
-                                type="radio"
-                                name="primaryProduct"
-                                value={product.external_product_id}
-                                bind:group={selectedPrimaryProductsExternalId}
-                            />
-                            <div class="product-option-content">
-                                <div class="product-option-name">
-                                    {product.external_product_name}
-                                </div>
-                                <div class="product-option-meta">
-                                    Internal ID: {product.external_product_id}
-                                </div>
-                            </div>
-                        </label>
-                    {/each}
-                </div>
-
-                <div class="merge-warning">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path
-                            d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"
-                        />
-                        <path d="M12 9v4" />
-                        <path d="m12 17 .01 0" />
-                    </svg>
-                    <span
-                        ><strong>Warning:</strong> This action cannot be undone.
-                        All non-primary products will be merged into the selected
-                        primary product.</span
-                    >
-                </div>
-            </div>
-
-            <div class="modal-footer">
-                <button class="btn-cancel-modal" onclick={closeMergeModal}
-                    >Cancel</button
-                >
-                <button
-                    class="btn-merge-confirm"
-                    onclick={performMerge}
-                    disabled={!selectedPrimaryProductsExternalId}
-                >
-                    Merge Products
-                </button>
-            </div>
-        </div>
-    </div>
-{/if}
 
 <!-- External Groups Modal -->
 {#if showGroupsModal}
