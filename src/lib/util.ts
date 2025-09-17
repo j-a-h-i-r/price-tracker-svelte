@@ -31,3 +31,8 @@ export function arrayToPerIdMap<T extends { id: number }>(array: T[]): Map<numbe
     });
     return map;
 }
+
+
+export function linkWithUtmSource(url: string, source: string = 'daam.deals'): string {
+    return `${url}${url.includes('?') ? '&' : '?'}utm_source=${source}`;
+}

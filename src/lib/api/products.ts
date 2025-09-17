@@ -1,5 +1,5 @@
 import { api } from '$lib/core/api.js';
-import type { ExternalProduct, ExternalProductMetadata, ExternalProductPrice, PotentialProductMatch, Product, ProductWithLastPrice, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
+import type { ExternalProductMetadata, ExternalProductPrice, PotentialProductMatch, Product, ProductWithLastPrice, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
 
 export function fetchProducts(
     options: {
@@ -90,4 +90,51 @@ export function mergeProducts(internalProductId: number, mergeProductId: number)
 export function unmergeProducts(internalProductId: number, externalProductId: number) {
     return api.put<{success: true, newInternalId: number, externalProductId: number}>
         (`/api/products/${internalProductId}/unmerge`, { external_product_id: externalProductId });
+}
+
+export interface ExternalProduct {
+    id: number;
+    internal_product_id: number;
+    category_id: number;
+    website_id: number;
+    name: string;
+    url: string;
+    created_at: string;
+    updated_at: string;
+    parsed_metadata: Record<string, any>;
+    product_id: number;
+    latest_price: number;
+    is_available: boolean;
+}
+
+export function fetchExternalProducts(filter: {
+    brandId?: number | 'all', categoryId?: number | 'all', minPrice?: number, maxPrice?: number,
+    metadata?: Record<string, any>
+} = {}) {
+    const params = new URLSearchParams();
+    if (filter.brandId && filter.brandId !== 'all')
+        params.append('manufacturer_id', filter.brandId.toString());
+    if (filter.categoryId && filter.categoryId !== 'all')
+        params.append('category_id', filter.categoryId.toString());
+    if (filter.minPrice) params.append('price[gt]', `${filter.minPrice}`);
+    if (filter.maxPrice) params.append('price[lt]', `${filter.maxPrice}`);
+
+    Object.entries(filter.metadata ?? {}).forEach(([key, value]) => {
+        if (value?.min || value?.max) {
+            if (value?.min) {
+                params.append(`metadata[${key}][gt]`, value.min);
+            }
+            if (value?.max) {
+                params.append(`metadata[${key}][lt]`, value.max);
+            }
+        } else if (value && value !== 'all') {
+            params.append(`metadata[${key}]`, value.toString());
+        }
+    });
+    return api.get<ExternalProduct[]>(`/api/externals?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
 }

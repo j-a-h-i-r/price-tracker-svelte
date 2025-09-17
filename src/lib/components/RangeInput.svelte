@@ -1,20 +1,27 @@
 <script lang="ts">
+    interface Props {
+        label: string;
+        unit?: string | null;
+        minValue?: number;
+        maxValue?: number;
+        minAllowed?: number;
+        maxAllowed?: number;
+    }
     let {
-        label, unit = null, minValue = $bindable(), maxValue = $bindable(), minAllowed = 0, maxAllowed = 10000,
-    }: {
-        label: string, unit?: string | null; minValue: number; maxValue: number; minAllowed: number; maxAllowed: number;
-    } = $props();
+        label, unit = null, minValue = $bindable(), maxValue = $bindable(), minAllowed, maxAllowed,
+    }: Props = $props();
 
-    $effect(() => {
-        console.log(label, minAllowed, maxAllowed, minValue, maxValue, minValue !== minAllowed || maxValue !== maxAllowed);
-    });
+    function isValueSet(value: any) {
+        return value !== undefined && value !== null && value !== '';
+    }
 </script>
 
-<button class="filter-chip" class:active={minValue !== minAllowed || maxValue !== maxAllowed}>
+<button class="filter-chip" class:active={isValueSet(minValue) || isValueSet(maxValue)}>
     <span class="label">{label}</span>
     <div class="chip-inputs">
-        <input 
-            type="number" 
+        <input
+            type="number"
+            name="min"
             bind:value={minValue}
             min={minAllowed}
             max={maxAllowed}
@@ -27,6 +34,7 @@
         <span class="separator">to</span>
         <input 
             type="number" 
+            name="max"
             bind:value={maxValue}
             min={minAllowed}
             max={maxAllowed}
@@ -53,7 +61,7 @@
         cursor: pointer;
         transition: all 0.15s ease;
         flex: 1 1 auto;
-        min-width: calc(50% - 0.25rem); /* account for gap */
+        /* min-width: calc(50% - 0.25rem); */
     }
 
     @media (min-width: 640px) {

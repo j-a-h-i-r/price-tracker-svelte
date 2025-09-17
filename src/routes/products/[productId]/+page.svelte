@@ -26,7 +26,7 @@
     import { trackedProducts } from '$lib/states/tracked.svelte.js';
     import { fetchWebsites } from '$lib/api/websites.js';
     import { userState } from '$lib/shared.svelte.js';
-    import { arrayToPerIdMap, formatPrice } from '$lib/util.js';
+    import { arrayToPerIdMap, formatPrice, linkWithUtmSource } from '$lib/util.js';
     import dayjs from 'dayjs';
     import type { Attachment } from 'svelte/attachments';
     import type { FlaggingOption } from '$lib/types/Flagging.js';
@@ -825,7 +825,7 @@
                     </div>
                     <div class="store-info">
                         <a
-                            href={`${product.url}${product.url.includes('?') ? '&' : '?'}utm_source=daam.deals`}
+                            href={linkWithUtmSource(product.url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             class="buy-link"
