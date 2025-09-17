@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { page } from "$app/state";
-    import { fetchMetadataDetail } from "$lib/api/metadata";
-    import { fetchCategories, type Category } from "$lib/api/products";
-    import type { MetadataDetail } from "$lib/types/Metadata";
-    import Table from "$lib/components/Table.svelte";
-    import { goto } from "$app/navigation";
-    import { Chart } from "chart.js/auto";
-    import { arrayToPerIdMap } from "$lib/util.js";
+    import { onMount } from 'svelte';
+    import { page } from '$app/state';
+    import { fetchMetadataDetail } from '$lib/api/metadata';
+    import { fetchCategories, type Category } from '$lib/api/products';
+    import type { MetadataDetail } from '$lib/types/Metadata';
+    import Table from '$lib/components/Table.svelte';
+    import { goto } from '$app/navigation';
+    import { Chart } from 'chart.js/auto';
+    import { arrayToPerIdMap } from '$lib/util.js';
 
     let { metadataName } = page.params;
     let metadataDetails: MetadataDetail[] = $state([]);
@@ -67,11 +67,11 @@
     onMount(async () => {
         try {
             // Load categories first
-            categories = await fetchCategories();
+            categories = await fetchCategories().unwrapOr([]);
             await loadData();
         } catch (e) {
-            console.error("Error:", e);
-            error = e instanceof Error ? e.message : "An error occurred";
+            console.error('Error:', e);
+            error = e instanceof Error ? e.message : 'An error occurred';
             loading = false;
         }
     });
@@ -158,7 +158,7 @@
                 return showNonMatching ? !matches : matches;
             });
         } catch (e) {
-            console.error("Invalid regex pattern:", e);
+            console.error('Invalid regex pattern:', e);
             return metadataDetails;
         }
     }
@@ -217,8 +217,8 @@
                 </div>
             </div>
             <Table 
-                headers={["Name", "Product", "Category"]}
-                keys={["name", "product", "category"]}
+                headers={['Name', 'Product', 'Category']}
+                keys={['name', 'product', 'category']}
                 rows={getFilteredRows().map(metadata => ({
                     name: metadata.raw_metadata[metadataName],
                     product: metadata.name,
