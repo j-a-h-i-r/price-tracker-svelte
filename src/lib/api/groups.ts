@@ -7,3 +7,7 @@ export function mergeProductsIntoGroup(
         externalProductIdsToMerge: externalProductIdsToMerge,
     })
 }
+
+export function deleteGroup(groupId: number) {
+    return api.delete(`/api/groups/${groupId}`);
+}

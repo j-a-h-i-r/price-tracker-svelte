@@ -3,7 +3,7 @@
     import { userState } from '$lib/shared.svelte.js';
     import { goto } from '$app/navigation';
     import SearchableSelect from '$lib/components/SearchableSelect.svelte';
-    import { mergeProductsIntoGroup } from '$lib/api/groups.js';
+    import { mergeProductsIntoGroup, deleteGroup as deleteGroupAPI } from '$lib/api/groups.js';
     import { errAsync, ResultAsync } from 'neverthrow';
     import { toasts } from '$lib/states/toast.js';
 
@@ -476,6 +476,23 @@
         selectedProducts.clear();
         selectedProducts = new Set();
     }
+
+    async function deleteGroup(groupId: number, groupName: string) {
+        if (!confirm(`Are you sure you want to delete the group "${groupName}"? This will permanently remove the group and all its product associations. This action cannot be undone.`)) {
+            return;
+        }
+
+        await deleteGroupAPI(groupId).match(
+            () => {
+                toasts.success(`Group "${groupName}" deleted successfully`);
+                return loadGroups();
+            },
+            (err) => {
+                console.error('Error deleting group:', err);
+                toasts.error(`Failed to delete group: ${err instanceof Error ? err.message : 'Unknown error'}`);
+            }
+        );
+    }
 </script>
 
 <svelte:head>
@@ -711,6 +728,12 @@
                                         >Select All</span
                                     >
                                 </label>
+                                <button 
+                                    class="delete-btn"
+                                    onclick={() => deleteGroup(group.id, group.group_name)}
+                                >
+                                    Delete
+                                </button>
                                 <button
                                     class="merge-btn"
                                     onclick={() => openMergeModal(group.id)}
@@ -1294,6 +1317,28 @@
         background: #9ca3af;
         cursor: not-allowed;
         transform: none;
+    }
+
+    .delete-btn {
+        background: #dc2626;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .delete-btn:hover {
+        background: #b91c1c;
+        transform: translateY(-1px);
+    }
+
+    .delete-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
     }
 
     .products-list {
