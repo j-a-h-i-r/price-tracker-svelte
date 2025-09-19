@@ -12,7 +12,8 @@
     import type { Manufacturer } from '$lib/types/Manufacturer.js';
     import { getCategories } from '$lib/api/categories.js';
     import { fetchProductsByName, type Category } from '$lib/api/products.js';
-
+    import { generateOrganizationStructuredData, generateSEOConfig, generateWebsiteStructuredData } from '$lib/seo.js';
+    
     let searchQuery = $state<string>('');
     let totalProducts = $state<number | undefined>(undefined);
     let totalWebsites = $state<number | undefined>(undefined);
@@ -292,11 +293,25 @@
 {/if}
 
 <svelte:head>
-    <title>Track price and deals on Bangladeshi products</title>
-    <meta
-        name="description"
-        content="Best price comparison website in Bangladesh. Track product prices and find deals. Get the best prices from Startech, Techland, Pickaboo and the biggest bangladeshi retailers."
-    />
+    {@html generateSEOConfig({
+        title: 'Check the best prices and deals on StarTech, Techland, Pickaboo and more Bangladeshi products',
+        description: 'daam.deals is the best price comparison website in Bangladesh. Check the best deals and lowest prices from top retailers like Startech, Techland, and Pickaboo. Track product prices and find the best deals.',
+    })}
+    
+    <!-- Structured Data -->
+    {@html `
+    <script type="application/ld+json">
+        ${JSON.stringify(generateWebsiteStructuredData(), null, 2)}
+    </script>
+    `
+    }
+    
+    {@html `
+    <script type="application/ld+json">
+        ${JSON.stringify(generateOrganizationStructuredData(), null, 2)}
+    </script>
+    `
+    }
 </svelte:head>
 
 <style>

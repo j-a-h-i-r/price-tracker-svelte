@@ -12,6 +12,7 @@
     import { goto } from '$app/navigation';
     import { ResultAsync } from 'neverthrow';
     import Loader from '$lib/components/Loader.svelte';
+    import { generateSEOConfig } from '$lib/seo.js';
 
     let selectedDays = $state(7);
     let sortBy = $state<'value' | 'percentage'>('value');
@@ -159,8 +160,14 @@
 </div>
 
 <svelte:head>
-    <title>Current Deals - Find the hottest deals on Bangladeshi products</title>
-    <meta name="description" content="Discover the best deals available right now on Bangladeshi products. Updated every day" />
+    {@html
+        generateSEOConfig({
+            title: 'Current Deals - Find the hottest deals on Bangladeshi products',
+            description:
+                'Discover the best deals available right now on Bangladeshi products. Updated every day',
+            canonical: 'https://daam.deals/deals',
+        })
+    }
 </svelte:head>
 
 <style>

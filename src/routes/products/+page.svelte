@@ -8,6 +8,7 @@
     import type { Manufacturer } from '$lib/types/Manufacturer.js';
     import { getManufacturers } from '$lib/api/manufacturers.js';
     import { ResultAsync } from 'neverthrow';
+    import { generateSEOConfig } from '$lib/seo.js';
 
     let queryCategoryId: string | null = $state(null);
     onMount(() => {
@@ -517,3 +518,14 @@
         color: #78350f;
     }
 </style>
+
+<svelte:head>
+    {@html
+        generateSEOConfig({
+            title: 'Products - Browse and Compare Prices',
+            description:
+                'Browse thousands of products and compare prices from top Bangladeshi retailers. Find the best deals on electronics, gadgets, and more.',
+            canonical: 'https://daam.deals/products',
+        })
+    }
+</svelte:head>

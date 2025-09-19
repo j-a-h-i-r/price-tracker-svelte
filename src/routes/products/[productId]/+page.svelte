@@ -37,6 +37,7 @@
     import type { Website } from '$lib/types/Website.js';
     import Loader from '$lib/components/Loader.svelte';
     import Pill from '$lib/components/Pill.svelte';
+    import { generateProductStructuredData, generateSEOConfig } from '$lib/seo.js';
 
     let productId = Number(page.params.productId);
     let product: Product | null = $state(null);
@@ -610,8 +611,25 @@
 </script>
 
 <svelte:head>
-    <title>{product?.name} - Price History</title>
-    <meta name="description" content={`Best prices for ${product?.name} in Bangladesh. Track price history, get alerts on price drops and grab the best deals.`} />
+    {@html
+        generateSEOConfig({
+            title: product?.name ? `${product.name} - View price history and track price drops` : 'Product Details',
+            description: `Best prices for ${product?.name || 'this product'} in Bangladesh. Track price history, get alerts on price drops and grab the best deals from top retailers.`,
+            canonical: `https://daam.deals/products/${productId}`,
+        })
+    }
+    
+    {#if product}
+        <!-- Product Structured Data -->
+        
+        {@html
+        `
+        <script type="application/ld+json">
+            ${JSON.stringify(generateProductStructuredData(product), null, 2)}
+        </script>
+        `
+        }
+    {/if}
 </svelte:head>
 
 <div class="product-details">

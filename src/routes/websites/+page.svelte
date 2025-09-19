@@ -1,5 +1,6 @@
 <script lang="ts">
     import { fetchWebsiteNewProductsCount, fetchWebsites, fetchWebsiteSummary } from '$lib/api/websites.js';
+    import { generateSEOConfig } from '$lib/seo.js';
     import type { WebsiteWithSummary } from '$lib/types/Website.js';
     import { ok, ResultAsync } from 'neverthrow';
     import { onMount } from 'svelte';
@@ -79,8 +80,11 @@
 </div>
 
 <svelte:head>
-    <title>Supported Websites for Price Tracking</title>
-    <meta name="description" content="These are the websites currently being tracked to find the best deals and prices." />
+    {@html generateSEOConfig({
+        title: 'Supported retailers and websites for price tracking',
+        description: 'These are the websites currently being tracked to find the best deals and prices.',
+        canonical: 'https://daam.deals/websites',
+    })}
 </svelte:head>
 
 <style>

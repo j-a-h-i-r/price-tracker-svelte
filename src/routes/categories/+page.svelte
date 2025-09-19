@@ -3,6 +3,7 @@
     import { getCategoryNewProductsCount } from '$lib/api/categories.js';
     import { onMount } from 'svelte';
     import { ok, ResultAsync } from 'neverthrow';
+    import { generateSEOConfig } from '$lib/seo.js';
 
     interface CategoryWithNewProducts extends Category {
         newProductsCount?: number;
@@ -64,8 +65,14 @@
 </div>
 
 <svelte:head>
-    <title>Supported Categories for tracking the best prices</title>
-    <meta name="description" content="These are the categories currently being tracked to find the best deals and prices" />
+    {@html
+        generateSEOConfig({
+            title: 'Supported Categories for tracking the best prices',
+            description:
+                'A variety of categories including laptop, smartphone, tablet are currently being tracked to find the best deals and prices',
+            canonical: 'https://daam.deals/categories',
+        })
+    }
 </svelte:head>
 
 <style>
