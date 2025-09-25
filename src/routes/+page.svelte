@@ -7,18 +7,19 @@
     import { arrayToPerIdMap, formatPrice } from '$lib/util.js';
     import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
     import DealCard from '$lib/components/DealCard.svelte';
-    import type { Product } from '$lib/types/Product.js';
+    import type { Product, } from '$lib/types/Product.js';
     import { getManufacturers } from '$lib/api/manufacturers.js';
     import type { Manufacturer } from '$lib/types/Manufacturer.js';
     import { getCategories } from '$lib/api/categories.js';
-    import { fetchProductsByName, type Category } from '$lib/api/products.js';
+    import { fetchProducts, type Category } from '$lib/api/products.js';
     import { generateOrganizationStructuredData, generateSEOConfig, generateWebsiteStructuredData } from '$lib/seo.js';
+    import Pagination from '$lib/components/Pagination.svelte';
     
     let searchQuery = $state<string>('');
     let totalProducts = $state<number | undefined>(undefined);
     let totalWebsites = $state<number | undefined>(undefined);
     let totalCategories = $state<number | undefined>(undefined);
-    let searchResults: Product[] = $state([]);
+    let pagedProducts: Product[] = $state([]);
     let searchTimeout: ReturnType<typeof setTimeout>;
     let searchAbortController: AbortController | null = null;
     let categoryMap: Map<number, Category> = $state(new Map([]));
@@ -30,6 +31,7 @@
     let dealsContainer = $state<HTMLElement | undefined>();
     let autoScrollInterval: ReturnType<typeof setInterval>;
     let isHovering = false;
+    let paginatedProductApi: ReturnType<typeof fetchProducts> | null = $state(null);
 
     onMount(async () => {
         const resp = await fetchStats()
@@ -114,12 +116,15 @@
         // Create new AbortController for this request
         searchAbortController = new AbortController();
         isLoading = true;
-        
-        const resp = await fetchProductsByName(searchQuery, searchAbortController.signal);
-        if (resp.isOk()) {
-            if (!searchAbortController.signal.aborted) {
-                searchResults = resp.value;
-            }
+
+        paginatedProductApi = fetchProducts({
+            name: searchQuery,
+            abortSignal: searchAbortController.signal
+        }, { limit: 10 });
+
+        const resp = await paginatedProductApi.first();
+        if (resp.isOk() && !searchAbortController.signal.aborted) {
+            pagedProducts = resp.value.data;
         }
 
         if (searchAbortController && !searchAbortController.signal.aborted) {
@@ -152,7 +157,7 @@
                 searchAbortController.abort();
                 searchAbortController = null;
             }
-            searchResults = [];
+            pagedProducts = [];
             isLoading = false;
         }
     });
@@ -165,6 +170,14 @@
         }
         clearInterval(autoScrollInterval);
     });
+
+    function fetchPage(page: 'first' | 'prev' | 'next' | 'last') {
+        isLoading = true;
+        paginatedProductApi?.[page]().map((resp) => {
+            pagedProducts = resp.data;
+        });
+        isLoading = false;
+    }
 </script>
 
 <div class="stats-header">
@@ -262,13 +275,22 @@
     {/if}
 </div>
 
-{#if searchResults.length > 0}
+{#if searchQuery}
+    <Pagination
+        handlePageChange={fetchPage}
+        hasNext={paginatedProductApi?.hasNext() || false}
+        hasPrev={paginatedProductApi?.hasPrev() || false}
+    />
+{/if}
+
+{#if pagedProducts.length > 0}
     <div class="search-results-section">
         <div class="search-results-header">
-            <h2>Found {searchResults.length} matching product{searchResults.length === 1 ? '' : 's'}</h2>
+            <h2>Showing {pagedProducts.length} matching product{pagedProducts.length === 1 ? '' : 's'}</h2>
+            
         </div>
         <div class="search-results">
-            {#each searchResults as product (product.id)}
+            {#each pagedProducts as product (product.id)}
                 <a href="/products/{product.id}" class="search-result-row">
                     <div class="result-content">
                         <div class="first-line">

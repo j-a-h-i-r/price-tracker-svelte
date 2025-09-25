@@ -1,30 +1,35 @@
-import { api } from '$lib/core/api.js';
-import type { ExternalProductMetadata, ExternalProductPrice, PotentialProductMatch, Product, ProductWithLastPrice, ProductWithPrice, ProductWithWebsite } from '$lib/types/Product';
+import { api, type PageOptions } from '$lib/core/api.js';
+import { paginatedApi } from '$lib/core/paginatedapi.svelte.js';
+import type {
+    ExternalProductMetadata,
+    ExternalProductPrice,
+    PotentialProductMatch,
+    Product,
+    ProductWithLastPrice,
+} from '$lib/types/Product';
 
 export function fetchProducts(
     options: {
-        limit?: number;
         include_prices?: boolean;
-    } = {}
+        name?: string;
+        abortSignal?: AbortSignal;
+    },
+    pageOptions: Partial<PageOptions> = { page: 'first' },
 ) {
     let url = '/api/products';
-    const { limit, include_prices } = options;
+    const { include_prices, name, abortSignal } = options;
     const queryParams: URLSearchParams = new URLSearchParams();
-    if (limit) {
-        queryParams.set('limit', limit.toString());
-    }
     if (include_prices) {
         queryParams.set('include_prices', 'true');
     }
+    if (name) {
+        queryParams.set('name', name);
+    }
+
     if (queryParams.toString()) {
         url += `?${queryParams.toString()}`;
     }
-
-    return api.get<ProductWithLastPrice[]>(url);
-}
-
-export function fetchProductsByName(name: string, abortSignal?: AbortSignal) {
-    return api.get<Product[]>('/api/products?name=' + encodeURIComponent(name), { signal: abortSignal });
+    return paginatedApi.paginatedGet<ProductWithLastPrice[]>(url, pageOptions, { signal: abortSignal });
 }
 
 export function fetchProductById(id: string | number) {
@@ -88,7 +93,7 @@ export function mergeProducts(internalProductId: number, mergeProductId: number)
 }
 
 export function unmergeProducts(internalProductId: number, externalProductId: number) {
-    return api.put<{success: true, newInternalId: number, externalProductId: number}>
+    return api.put<{ success: true, newInternalId: number, externalProductId: number }>
         (`/api/products/${internalProductId}/unmerge`, { external_product_id: externalProductId });
 }
 
@@ -132,9 +137,9 @@ export function fetchExternalProducts(filter: {
         }
     });
     return api.get<ExternalProduct[]>(`/api/externals?${params.toString()}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
 }
