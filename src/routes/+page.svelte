@@ -7,19 +7,18 @@
     import { arrayToPerIdMap, formatPrice } from '$lib/util.js';
     import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
     import DealCard from '$lib/components/DealCard.svelte';
-    import type { Product, } from '$lib/types/Product.js';
+    import type { ProductWithLastPrice, } from '$lib/types/Product.js';
     import { getManufacturers } from '$lib/api/manufacturers.js';
     import type { Manufacturer } from '$lib/types/Manufacturer.js';
     import { getCategories } from '$lib/api/categories.js';
     import { fetchProducts, type Category } from '$lib/api/products.js';
-    import { generateOrganizationStructuredData, generateSEOConfig, generateWebsiteStructuredData } from '$lib/seo.js';
-    import Pagination from '$lib/components/Pagination.svelte';
-    
+    import { generateLdJSON, generateOrganizationStructuredData, generateSEOConfig, generateWebsiteStructuredData } from '$lib/seo.js';
+        
     let searchQuery = $state<string>('');
     let totalProducts = $state<number | undefined>(undefined);
     let totalWebsites = $state<number | undefined>(undefined);
     let totalCategories = $state<number | undefined>(undefined);
-    let pagedProducts: Product[] = $state([]);
+    let pagedProducts: ProductWithLastPrice[] = $state([]);
     let searchTimeout: ReturnType<typeof setTimeout>;
     let searchAbortController: AbortController | null = null;
     let categoryMap: Map<number, Category> = $state(new Map([]));
@@ -171,12 +170,12 @@
         clearInterval(autoScrollInterval);
     });
 
-    function fetchPage(page: 'first' | 'prev' | 'next' | 'last') {
+    function loadMore() {
         isLoading = true;
-        paginatedProductApi?.[page]().map((resp) => {
-            pagedProducts = resp.data;
+        paginatedProductApi?.next().map((resp) => {
+            pagedProducts.push(...resp.data);
+            isLoading = false;
         });
-        isLoading = false;
     }
 </script>
 
@@ -275,19 +274,10 @@
     {/if}
 </div>
 
-{#if searchQuery}
-    <Pagination
-        handlePageChange={fetchPage}
-        hasNext={paginatedProductApi?.hasNext() || false}
-        hasPrev={paginatedProductApi?.hasPrev() || false}
-    />
-{/if}
-
 {#if pagedProducts.length > 0}
     <div class="search-results-section">
         <div class="search-results-header">
-            <h2>Showing {pagedProducts.length} matching product{pagedProducts.length === 1 ? '' : 's'}</h2>
-            
+            <h2>Showing results for "{searchQuery}"</h2>
         </div>
         <div class="search-results">
             {#each pagedProducts as product (product.id)}
@@ -309,6 +299,32 @@
                 </a>
             {/each}
         </div>
+
+        <div class="load-more-section">
+            {#if isLoading}
+                <div class="loading-state">
+                    <LoadingSpinner size="md" />
+                    <span class="loading-text">Loading more products...</span>
+                </div>
+            {:else if paginatedProductApi?.hasNext()}
+                <button class="load-more-btn" onclick={() => loadMore()}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14"/>
+                        <path d="M5 12h14"/>
+                    </svg>
+                    Load More Products
+                </button>
+            {:else}
+                <div class="all-loaded-state">
+                    <div class="all-loaded-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </div>
+                    <p class="all-loaded-text">All products loaded</p>
+                </div>
+            {/if}
+        </div>
     </div>
 {:else if searchQuery}
     <p class="no-results">No products found</p>
@@ -321,19 +337,9 @@
     })}
     
     <!-- Structured Data -->
-    {@html `
-    <script type="application/ld+json">
-        ${JSON.stringify(generateWebsiteStructuredData(), null, 2)}
-    </script>
-    `
-    }
+    {@html generateLdJSON(JSON.stringify(generateWebsiteStructuredData(), null, 2)) }
     
-    {@html `
-    <script type="application/ld+json">
-        ${JSON.stringify(generateOrganizationStructuredData(), null, 2)}
-    </script>
-    `
-    }
+    {@html generateLdJSON(JSON.stringify(generateOrganizationStructuredData(), null, 2))}
 </svelte:head>
 
 <style>
@@ -643,6 +649,130 @@
         }
 
         .no-deals-home p {
+            font-size: 1rem;
+        }
+    }
+
+    /* Load More Section Styles */
+    .load-more-section {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding-top: 2rem;
+    }
+
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .loading-text {
+        font-size: 1rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .load-more-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        position: relative;
+        overflow: hidden;
+        min-width: 180px;
+        justify-content: center;
+    }
+
+    .load-more-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+
+    .load-more-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+        background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    }
+
+    .load-more-btn:hover::before {
+        left: 100%;
+    }
+
+    .load-more-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .load-more-btn svg {
+        transition: transform 0.3s ease;
+    }
+
+    .load-more-btn:hover svg {
+        transform: scale(1.1);
+    }
+
+    .all-loaded-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        max-width: 300px;
+    }
+
+    .all-loaded-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border-radius: 50%;
+        margin-bottom: 0.5rem;
+    }
+
+    .all-loaded-text {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #334155;
+        margin: 0;
+    }
+
+    @media (max-width: 640px) {
+        .load-more-btn {
+            padding: 0.875rem 1.5rem;
+            font-size: 0.9rem;
+            min-width: 150px;
+        }
+
+        .all-loaded-state {
+            padding: 1.5rem;
+            max-width: 280px;
+        }
+
+        .all-loaded-icon {
+            width: 40px;
+            height: 40px;
+        }
+
+        .all-loaded-text {
             font-size: 1rem;
         }
     }

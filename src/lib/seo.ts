@@ -66,6 +66,14 @@ export function generateProductStructuredData(product: Product): any {
 	};
 }
 
+export function generateLdJSON(data: string): string {
+	return `
+	<script type="application/ld+json">
+		${data}
+	</script>
+	`.trim();
+}
+
 export function generateWebsiteStructuredData(): any {
 	return {
 		"@context": "https://schema.org",

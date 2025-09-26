@@ -16,6 +16,7 @@ export interface Product {
 
 export interface ProductWithLastPrice extends Product {
     prices: ProductPrice[]
+    lowest_available_price?: number;
 }
 
 export interface WebsitePrice {
