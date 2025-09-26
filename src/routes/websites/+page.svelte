@@ -82,7 +82,7 @@
 <svelte:head>
     {@html generateSEOConfig({
         title: 'Supported retailers and websites for price tracking',
-        description: 'These are the websites currently being tracked to find the best deals and prices.',
+        description: 'These are the websites currently being tracked to find the best deals and prices. Retailers include StarTech, Techland, Pickaboo, and more.',
         canonical: 'https://daam.deals/websites',
     })}
 </svelte:head>

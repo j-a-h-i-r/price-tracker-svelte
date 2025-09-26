@@ -20,7 +20,7 @@ export function generateSEOConfig(config: SEOConfig): string {
 	const defaultImage = `${siteUrl}/favicon.svg`;
 	
 	let metaTags = `
-		<title>${title} | ${siteName}</title>
+		<title>${title}</title>
 		<meta name="description" content="${description}" />
 		
 		<!-- Open Graph -->
@@ -37,6 +37,7 @@ export function generateSEOConfig(config: SEOConfig): string {
 		<meta name="twitter:card" content="${twitterCard}" />
 		<meta name="twitter:title" content="${title}" />
 		<meta name="twitter:description" content="${description}" />
+		<meta name="twitter:site" content="${canonical || siteUrl}" />
 		<meta name="twitter:image" content="${ogImage || defaultImage}" />
 		
 		<!-- Canonical URL -->

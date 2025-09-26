@@ -332,8 +332,8 @@
 
 <svelte:head>
     {@html generateSEOConfig({
-        title: 'Check the best prices and deals on StarTech, Techland, Pickaboo and more Bangladeshi products',
-        description: 'daam.deals is the best price comparison website in Bangladesh. Check the best deals and lowest prices from top retailers like Startech, Techland, and Pickaboo. Track product prices and find the best deals.',
+        title: 'Best prices and deals on Bangladeshi products (StarTech etc)',
+        description: 'Best price comparison website in Bangladesh. Check the best deals and track the lowest prices from top retailers like Startech, Techland etc.',
     })}
     
     <!-- Structured Data -->

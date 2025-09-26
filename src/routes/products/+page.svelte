@@ -522,7 +522,7 @@
 <svelte:head>
     {@html
         generateSEOConfig({
-            title: 'Products - Browse and Compare Prices',
+            title: 'Search, sort and view all products and prices',
             description:
                 'Browse thousands of products and compare prices from top Bangladeshi retailers. Find the best deals on electronics, gadgets, and more.',
             canonical: 'https://daam.deals/products',
