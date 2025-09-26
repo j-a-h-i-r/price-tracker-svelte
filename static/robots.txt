@@ -28,14 +28,14 @@ Disallow: /configurator
 # Allow access to individual product pages (these are valuable for SEO)
 Allow: /products/*
 
+# Allow loading svelte assets (js/css)
+Allow: /_app/
+
 # Block access to SvelteKit internal files
-Disallow: /_app/
 Disallow: /.svelte-kit/
 
 # Common files to block from crawling
 Disallow: /*.json$
-Disallow: /*.js$
-Disallow: /*.css$
 
 # Allow access to static assets like images
 Allow: /*.png$
