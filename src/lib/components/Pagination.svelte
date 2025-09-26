@@ -1,9 +1,14 @@
 <script lang="ts">
-    const { handlePageChange, hasNext, hasPrev } = $props();
+    const {
+        handlePageChange,
+        hasNext,
+        hasPrev,
+        align = 'right'
+    } = $props();
 </script>
 
 <nav class="pagination" aria-label="Pagination navigation">
-    <div class="pagination-controls">
+    <div class="pagination-controls" style={align === 'left' ? 'margin-right: auto;' : 'margin-left: auto;'}>
         <button 
             class="pagination-btn pagination-btn-first" 
             onclick={() => handlePageChange('first')}
@@ -59,7 +64,6 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        margin: 2rem 0;
         padding: 1rem 0;
     }
 

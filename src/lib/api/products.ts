@@ -12,18 +12,49 @@ export function fetchProducts(
     options: {
         include_prices?: boolean;
         name?: string;
+        category_id?: number;
+        manufacturer_id?: number;
+        min_price?: number;
+        max_price?: number;
+        sort_by?: '+price' | '-price' | '+name' | '-name';
         abortSignal?: AbortSignal;
     },
     pageOptions: Partial<PageOptions> = { page: 'first' },
 ) {
     let url = '/api/products';
-    const { include_prices, name, abortSignal } = options;
+    const {
+        include_prices,
+        name,
+        category_id,
+        manufacturer_id,
+        min_price,
+        max_price,
+        sort_by,
+        abortSignal
+    } = options;
     const queryParams: URLSearchParams = new URLSearchParams();
     if (include_prices) {
         queryParams.set('include_prices', 'true');
     }
     if (name) {
         queryParams.set('name', name);
+    }
+    if (category_id) {
+        queryParams.set('category_id', category_id.toString());
+    }
+    if (manufacturer_id) {
+        queryParams.set('manufacturer_id', manufacturer_id.toString());
+    }
+    if (min_price) {
+        queryParams.set('price[gt]', min_price.toString());
+    }
+    if (max_price) {
+        queryParams.set('price[lt]', max_price.toString());
+    }
+    if (sort_by) {
+        const direction = sort_by.startsWith('+') ? 'asc' : 'desc';
+        queryParams.set('sort[0][key]', sort_by.slice(1));
+        queryParams.set('sort[0][direction]', direction);
     }
 
     if (queryParams.toString()) {

@@ -9,6 +9,9 @@
     import { getManufacturers } from '$lib/api/manufacturers.js';
     import { ResultAsync } from 'neverthrow';
     import { generateSEOConfig } from '$lib/seo.js';
+    import Pagination from '$lib/components/Pagination.svelte';
+    import Loader from '$lib/components/Loader.svelte';
+    import NoResult from '$lib/components/NoResult.svelte';
 
     let queryCategoryId: string | null = $state(null);
     onMount(() => {
@@ -17,9 +20,7 @@
         selectedCategory = queryCategoryId ? queryCategoryId : 'all';
     });
 
-    let initialProductsLoaded = $state(false);
-    let allProductsLoaded = $state(false);
-    let products: ProductWithLastPrice[] = $state([]);
+    let paginatedProducts: ProductWithLastPrice[] = $state([]);
     let loading = $state(true);
     let error: string | null = $state(null);
     let isFilterModalOpen = $state(false);
@@ -30,64 +31,9 @@
     let selectedCategory: string | number = $state('all');
     let manufacturers: Manufacturer[] = $state([]);
     let selectedManufacturer: string | number = $state('all');
-    let showOutOfStock = $state(false);
-    let sortBy = $state('price-asc');
+    let sortBy = $state<'+price' | '-price' | '+name' | '-name'>('+price');
     let searchQuery = $state('');
-
-    // Pagination
-    let currentPage = $state(1);
-    let itemsPerPage = $state(10);
-
-    let filteredProducts: ProductWithLastPrice[] = $derived.by(() => {
-        return products
-            .filter(p => {
-                // Category filter
-                if (selectedCategory !== 'all' && p.category_id != selectedCategory) return false;
-                
-                // Manufacturer filter
-                if (selectedManufacturer !== 'all' && p.manufacturer_id != selectedManufacturer) return false;
-
-                // Price range filter
-                const productPrice = Math.min(...p.prices.map(price => price.price));
-                if (productPrice < priceRange.min || productPrice > priceRange.max) return false;
-                
-                // Stock filter
-                if (!showOutOfStock) {
-                    if (p.prices.length === 0) return false;
-                    if (p.prices.every(price => price.is_available === false)) return false;
-                }
-
-                // Search query
-                if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-                
-                return true;
-            })
-            .sort((a, b) => {
-                const priceA = Math.min(...a.prices.filter(p => p.price !== null).map(p => p.price));
-                const priceB = Math.min(...b.prices.filter(p => p.price !== null).map(p => p.price));
-                
-                switch (sortBy) {
-                    case 'price-asc':
-                        return priceA - priceB;
-                    case 'price-desc':
-                        return priceB - priceA;
-                    case 'name-asc':
-                        return a.name.localeCompare(b.name);
-                    case 'name-desc':
-                        return b.name.localeCompare(a.name);
-                    default:
-                        return 0;
-                }
-            });
-    });
-
-    let totalPages = $derived(Math.ceil(filteredProducts.length / itemsPerPage));
-    let paginatedProducts = $derived.by(() => {
-        return filteredProducts.slice(
-            (currentPage - 1) * itemsPerPage,
-            currentPage * itemsPerPage,
-        );
-    });
+    let priceRange = $state({min: 0, max: 0});
 
     function handleClickOutside(event: MouseEvent) {
         if (modalNode && !modalNode.contains(event.target as Node)) {
@@ -104,43 +50,58 @@
         }
     });
 
+    function paginateProductApi({
+        category_id,
+        manufacturer_id,
+        min_price,
+        max_price,
+        name,
+        sort_by
+    }: {
+        category_id?: number;
+        manufacturer_id?: number;
+        min_price?: number;
+        max_price?: number;
+        name?: string;
+        sort_by?: '+price' | '-price' | '+name' | '-name';}
+    ) {
+        return fetchProducts({
+            category_id,
+            manufacturer_id,
+            min_price,
+            max_price,
+            name,
+            sort_by,
+        }, {limit: 20});
+    }
+
+    let [paginatedProductApi, newPagination]: [ReturnType<typeof fetchProducts>, boolean] = $derived.by(() => {
+        const category_id = selectedCategory !== 'all' ? Number(selectedCategory) : undefined;
+        const manufacturer_id = selectedManufacturer !== 'all' ? Number(selectedManufacturer) : undefined;
+        const min_price = priceRange.min > 0 ? priceRange.min : undefined;
+        const max_price = priceRange.max > 0 ? priceRange.max : undefined;
+        const name = searchQuery.length > 0 ? searchQuery : undefined;
+        const sort_by = sortBy;
+        return [paginateProductApi({
+            category_id,
+            manufacturer_id,
+            min_price,
+            max_price,
+            name,
+            sort_by,
+        }), true];
+    });
+
     $effect(() => {
-        // Reset filters when products are loaded
-        if (initialProductsLoaded) {
-            fetchProducts({include_prices: true}).map((p) => {
-                allProductsLoaded = true;
-                products = p;
-            })
-        }
-    });
-
-    let actualPriceRange = $derived.by(() => {
-        const prices = products
-            .flatMap(p => p.prices.map(price => price.price))
-            .filter(price => !isNaN(price));
-        return {
-            min: Math.min(...prices),
-            max: Math.max(...prices)
-        }
-    });
-
-    // eslint-disable-next-line svelte/prefer-writable-derived
-    let priceRange = $state({min: 0, max: 0});
-    $effect(() => {
-        priceRange = { ...actualPriceRange };
-    });
-
-    onMount(async () => {
         loading = true;
-        products = await fetchProducts({limit: 100,include_prices: true})
-            .andTee(() => {
-                initialProductsLoaded = true
-            })
-            .orTee((err) => {
-                error = err.message ?? 'An error occurred';
-            })
-            .unwrapOr([]);
-        loading = false;
+        paginatedProductApi?.first().map((p) => {
+            paginatedProducts = p.data
+        })
+        .orTee((err) => {
+            error = err.message ?? 'An error occurred';
+        }).then(() => {
+            loading = false;
+        });
     });
 
     onMount(async () => {
@@ -152,6 +113,22 @@
             manufacturers = _mfg;
         });
     })
+
+    function handlePageChange(page: 'first' | 'prev' | 'next' | 'last') {
+        loading = true;
+        newPagination = false;
+        paginatedProductApi?.[page]().map((p) => {
+            if (page === 'prev' && p.data.length === 0) {
+                loading = false;
+                return;
+            }
+            paginatedProducts = p.data
+            loading = false;
+        })
+        .orTee((err) => {
+            error = err.message ?? 'An error occurred';
+        });
+    }
 </script>
 
 <svelte:window onmousedown={(e) => handleClickOutside(e)}></svelte:window>
@@ -188,49 +165,32 @@
                 allLabel="All Manufacturers"
             />
 
-            <button class="filter-chip" class:active={priceRange.min !== actualPriceRange.min || priceRange.max !== actualPriceRange.max}>
+            <button class="filter-chip">
                 <span>Price Range</span>
                 <div class="chip-inputs">
-                    {#if allProductsLoaded}
-                        <input 
-                            type="number" 
-                            bind:value={priceRange.min}
-                            min={actualPriceRange.min}
-                            max={actualPriceRange.max}
-                            placeholder="Min"
-                            class="chip-input"
-                        />
-                        <span class="separator">-</span>
-                        <input 
-                            type="number" 
-                            bind:value={priceRange.max}
-                            min={actualPriceRange.min}
-                            max={actualPriceRange.max}
-                            placeholder="Max"
-                            class="chip-input"
-                        />
-                    {:else}
-                        <span class="chip-input">Loading...</span>
-                    {/if}
+                    <input 
+                        type="number" 
+                        bind:value={priceRange.min}
+                        placeholder="Min"
+                        class="chip-input"
+                    />
+                    <span class="separator">-</span>
+                    <input 
+                        type="number" 
+                        bind:value={priceRange.max}
+                        placeholder="Max"
+                        class="chip-input"
+                    />
                 </div>
             </button>
 
-            <button class="filter-chip" class:active={!showOutOfStock}>
-                <span>Stock</span>
-                <select bind:value={showOutOfStock} class="chip-select">
-                    <option value={true}>All</option>
-                    <option value={false}>In Stock Only</option>
-                </select>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-            </button>
-
-            <button class="filter-chip" class:active={sortBy !== 'price-asc'}>
+            <button class="filter-chip" class:active={sortBy !== '+price'}>
                 <span>Sort by</span>
                 <select bind:value={sortBy} class="chip-select">
-                    <option value="price-asc">Price: Low to High</option>
-                    <option value="price-desc">Price: High to Low</option>
-                    <option value="name-asc">Name: A to Z</option>
-                    <option value="name-desc">Name: Z to A</option>
+                    <option value="+price">Price: Low to High</option>
+                    <option value="-price">Price: High to Low</option>
+                    <option value="+name">Name: A to Z</option>
+                    <option value="-name">Name: Z to A</option>
                 </select>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             </button>
@@ -238,54 +198,66 @@
         <!-- End Inline Filters -->
 
         {#if loading}
-            <p>Loading products...</p>
+            <Loader headerText="Loading products..." />
         {:else if error}
             <p class="error">{error}</p>
+        {:else if newPagination && paginatedProducts.length === 0}
+            <NoResult
+                message="No products found for the selected filters."
+                suggestion="Try adjusting your filters or searching for different products." 
+            />
         {:else}
-            <div class="results-header">
-                <p>Showing {paginatedProducts.length} of {filteredProducts.length} products</p>
-            </div>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Lowest Price</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {#each paginatedProducts as product (product.id)}
-                            <tr>
-                                <td>
-                                    <a href="/products/{product.id}" class="product-link">
-                                        {product.name}
-                                    </a>
-                                </td>
-                                <td>
-                                    {product?.lowest_available_price ? formatPrice(product.lowest_available_price) : 'N/A'}
-                                </td>
-                            </tr>
-                        {/each}
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="pagination">
-                <button 
-                    disabled={currentPage === 1} 
-                    onclick={() => currentPage--}
-                >
-                    Previous
-                </button>
-
-                <span>Page {currentPage} of {totalPages}</span>
-
-                <button 
-                    disabled={currentPage === totalPages} 
-                    onclick={() => currentPage++}
-                >
-                    Next
-                </button>
+            <Pagination 
+                hasNext={paginatedProductApi?.hasNext()}
+                hasPrev={paginatedProductApi?.hasPrev()}
+                handlePageChange={handlePageChange}
+            />
+            <div class="products-grid">
+                {#each paginatedProducts as product (product.id)}
+                    <a href="/products/{product.id}" class="product-card">
+                        <div class="product-header">
+                            <h3 class="product-name">{product.name}</h3>
+                            <div class="product-price">
+                                {#if product.lowest_available_price}
+                                    <span class="current-price">{formatPrice(product.lowest_available_price)}</span>
+                                {:else}
+                                    <span class="unavailable">Not Available</span>
+                                {/if}
+                            </div>
+                        </div>
+                        
+                        <div class="product-meta">
+                            <div class="meta-tags">
+                                {#if categories.find(c => c.id === product.category_id)}
+                                    <span class="category-tag">
+                                        {categories.find(c => c.id === product.category_id)?.name}
+                                    </span>
+                                {/if}
+                                {#if manufacturers.find(m => m.id === product.manufacturer_id)}
+                                    <span class="brand-tag">
+                                        {manufacturers.find(m => m.id === product.manufacturer_id)?.name}
+                                    </span>
+                                {/if}
+                            </div>
+                            
+                            <div class="product-actions">
+                                <div class="price-info">
+                                    {#if product.prices && product.prices.length > 1}
+                                        <span class="price-count">{product.prices.length} stores</span>
+                                    {:else if product.prices && product.prices.length === 1}
+                                        <span class="price-count">1 store</span>
+                                    {/if}
+                                </div>
+                                
+                                <div class="view-details">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="m9 18 6-6-6-6"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                {/each}
             </div>
         {/if}
     </main>
@@ -477,7 +449,6 @@
     .table-container th {
         background-color: #f8f9fa;
         font-weight: 600;
-        text-transform: uppercase;
         font-size: 0.875rem;
     }
 
@@ -516,6 +487,244 @@
     .banner a:hover {
         text-decoration-color: #92400e;
         color: #78350f;
+    }
+
+    /* Product Grid Styles */
+    .products-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .product-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.3s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .product-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s ease;
+    }
+
+    .product-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.15);
+        border-color: #2563eb;
+    }
+
+    .product-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .product-header {
+        flex: 1;
+        min-width: 0; /* Allow content to shrink */
+    }
+
+    .product-name {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0 0 0.5rem 0;
+        line-height: 1.4;
+        display: -webkit-box;
+        line-clamp: 2;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .product-price {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .current-price {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2563eb;
+        line-height: 1;
+    }
+
+    .price-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+    }
+
+    .unavailable {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #ef4444;
+        background: #fee2e2;
+        padding: 0.25rem 0.75rem;
+        border-radius: 6px;
+        display: inline-block;
+        font-size: 0.875rem;
+    }
+
+    .product-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-end;
+        text-align: right;
+        min-width: 200px;
+    }
+
+    .meta-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+
+    .category-tag,
+    .brand-tag {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.025em;
+        white-space: nowrap;
+    }
+
+    .category-tag {
+        background: #f3f4f6;
+        color: #4b5563;
+    }
+
+    .brand-tag {
+        background: #e0e7ff;
+        color: #4338ca;
+    }
+
+    .product-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .price-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .price-count {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .view-details {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        background: #f8fafc;
+        border-radius: 50%;
+        color: #6b7280;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+    }
+
+    .product-card:hover .view-details {
+        background: #2563eb;
+        color: white;
+        transform: translateX(4px);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .product-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.25rem;
+        }
+
+        .product-header {
+            width: 100%;
+        }
+
+        .product-meta {
+            width: 100%;
+            align-items: flex-start;
+            text-align: left;
+            min-width: auto;
+        }
+
+        .meta-tags {
+            justify-content: flex-start;
+        }
+
+        .product-actions {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .product-name {
+            font-size: 1rem;
+        }
+
+        .current-price {
+            font-size: 1.25rem;
+        }
+
+        .category-tag,
+        .brand-tag {
+            font-size: 0.7rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .products-grid {
+            margin: 1rem 0;
+            gap: 0.75rem;
+        }
+
+        .product-card {
+            padding: 1rem;
+        }
+
+        .view-details {
+            width: 32px;
+            height: 32px;
+        }
+    }
+
+    /* Loading and empty states */
+    .products-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 200px;
+        color: #6b7280;
     }
 </style>
 
