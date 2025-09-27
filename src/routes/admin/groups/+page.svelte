@@ -24,6 +24,9 @@
         group_name: string;
         created_at: string;
         updated_at: string;
+        category_id: number;
+        manufacturer_id: number;
+        auto_merge_eligible: boolean;
         products?: Product[];
     };
 
@@ -69,6 +72,7 @@
     // Filter states
     let selectedCategoryId = $state<string | number>('all');
     let selectedManufacturerId = $state<string | number>('all');
+    let showOnlyEligible = $state(false);
 
     onMount(async () => {
         // Check if user is admin
@@ -88,9 +92,11 @@
             if (selectedCategoryId && selectedCategoryId !== 'all') {
                 params.set('category_id', selectedCategoryId.toString());
             }
-            
             if (selectedManufacturerId && selectedManufacturerId !== 'all') {
                 params.set('manufacturer_id', selectedManufacturerId.toString());
+            }
+            if (showOnlyEligible) {
+                params.set('auto_merge_eligible_only', 'true');
             }
 
             const url = `/api/groups${params.toString() ? `?${params.toString()}` : ''}`;
@@ -151,7 +157,7 @@
 
     // Reactive effect to reload groups when filters change
     $effect(() => {
-        if (categories.length > 0 && manufacturers.length > 0) {
+        if (categories.length > 0 && manufacturers.length > 0 && showOnlyEligible !== null) {
             loadGroups();
         }
     });
@@ -531,6 +537,12 @@
                 allLabel="All Manufacturers"
                 label="Manufacturer"
             />
+            <div>
+                <label for="eligible-checkbox" class="checkbox-label">
+                    Show Only Auto-Merge Eligible
+                </label>
+                <input id="eligible-checkbox" type="checkbox" bind:checked={showOnlyEligible} />
+            </div>
         </div>
     </div>
 
@@ -587,7 +599,7 @@
             <div class="groups-container">
                 {#each groups as group (group.id)}
                     <div class="group-card">
-                        <div class="group-header">
+                        <div class={['group-header', group.auto_merge_eligible ? 'eligible' : 'ineligible']}>
                             <div class="group-info">
                                 {#if editingGroupId === group.id}
                                     <div class="group-name-edit">
@@ -752,7 +764,7 @@
                             <div class="products-list">
                                 {#each group.products as product, index (index)}
                                     <div 
-                                        class={['product-item']}
+                                        class={['product-item', product.auto_merge_possible ? '' : 'ineligible']}
                                         style:border-left={groupColorMap.has(index) ? 
                                             `4px solid ${groupColorMap.get(index)}` : 
                                             'none'
@@ -1188,6 +1200,14 @@
         border-bottom: 1px solid #e5e7eb;
     }
 
+    .group-header.eligible {
+        background-color: #d1ffe9;
+    }
+
+    .group-header.ineligible {
+        background-color: #ffe1e1;
+    }
+
     .group-info {
         flex: 1;
     }
@@ -1352,6 +1372,10 @@
         padding: 1rem 1.5rem;
         border-bottom: 1px solid #f3f4f6;
         transition: background-color 0.2s;
+    }
+
+    .product-item.ineligible {
+        background-color: #fff1f1;
     }
 
     .product-item:hover {
