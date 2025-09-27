@@ -274,6 +274,7 @@
     .content {
         flex: 1;
         padding: 1rem;
+        overflow-x: auto;
     }
 
     .search-header {
@@ -466,7 +467,7 @@
         background: rgba(255, 251, 204, 0.6);
         color: #92400e;
         padding: 0.5rem 1rem;
-        margin: -1.5rem auto 0.5rem auto;
+        margin: -1rem auto 0.5rem auto;
         text-align: center;
         font-size: 0.8125rem;
         font-weight: 400;
@@ -704,7 +705,6 @@
 
     @media (max-width: 640px) {
         .products-grid {
-            margin: 1rem 0;
             gap: 0.75rem;
         }
 

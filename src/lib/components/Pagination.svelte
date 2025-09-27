@@ -134,7 +134,6 @@
     /* Responsive design */
     @media (max-width: 640px) {
         .pagination {
-            margin: 1.5rem 0;
             padding: 0.5rem 0;
         }
 
@@ -151,21 +150,11 @@
         .pagination-text {
             display: none;
         }
-
-        .pagination-btn svg {
-            width: 14px;
-            height: 14px;
-        }
     }
 
     @media (max-width: 480px) {
         .pagination-btn {
             padding: 0.25rem 0.375rem;
-        }
-
-        .pagination-btn svg {
-            width: 12px;
-            height: 12px;
         }
     }
 
