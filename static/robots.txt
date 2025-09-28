@@ -12,9 +12,12 @@ Allow: /deals
 Allow: /categories
 Allow: /websites
 
-# Block access to admin pages and API endpoints
+# Block access to admin pages
 Disallow: /admin
 Disallow: /admin/
+
+# Allow only /products/<id> API
+Allow: /api/products/*
 Disallow: /api
 Disallow: /api/
 
