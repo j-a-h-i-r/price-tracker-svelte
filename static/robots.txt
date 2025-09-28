@@ -52,4 +52,4 @@ Allow: /*.webp$
 Crawl-delay: 1
 
 # Sitemap location (you may want to create this later)
-# Sitemap: https://yoursite.com/sitemap.xml
+Sitemap: https://daam.deals/sitemap.xml
