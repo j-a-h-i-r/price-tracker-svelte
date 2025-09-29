@@ -352,7 +352,7 @@
             () => {
                 selectedProducts.clear();
                 selectedProducts = new Set();
-                return loadGroups();
+                groups = groups.filter((g) => g.id !== currentGroupId);
             },
             (err) => {
                 console.error('Error merging products:', err);
