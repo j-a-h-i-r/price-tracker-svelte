@@ -73,6 +73,7 @@
     let selectedCategoryId = $state<string | number>('all');
     let selectedManufacturerId = $state<string | number>('all');
     let showOnlyEligible = $state(false);
+    let minRunsRequired = $state(4);
 
     onMount(async () => {
         // Check if user is admin
@@ -97,6 +98,9 @@
             }
             if (showOnlyEligible) {
                 params.set('auto_merge_eligible_only', 'true');
+            }
+            if (minRunsRequired > 0) {
+                params.set('min_runs_count', minRunsRequired.toString());
             }
 
             const url = `/api/groups${params.toString() ? `?${params.toString()}` : ''}`;
@@ -157,7 +161,11 @@
 
     // Reactive effect to reload groups when filters change
     $effect(() => {
-        if (categories.length > 0 && manufacturers.length > 0 && showOnlyEligible !== null) {
+        if (categories.length > 0
+            && manufacturers.length > 0 
+            && showOnlyEligible !== null
+            && minRunsRequired !== null
+        ) {
             loadGroups();
         }
     });
@@ -491,7 +499,7 @@
         await deleteGroupAPI(groupId).match(
             () => {
                 toasts.success(`Group "${groupName}" deleted successfully`);
-                return loadGroups();
+                groups = groups.filter((g) => g.id !== groupId);
             },
             (err) => {
                 console.error('Error deleting group:', err);
@@ -542,6 +550,19 @@
                     Show Only Auto-Merge Eligible
                 </label>
                 <input id="eligible-checkbox" type="checkbox" bind:checked={showOnlyEligible} />
+            </div>
+
+            <div>
+                <label for="min-runs" class="number-input-label">
+                    Min Runs Required
+                </label>
+                <input 
+                    id="min-runs"
+                    type="number" 
+                    min="1" 
+                    bind:value={minRunsRequired} 
+                    class="number-input"
+                />
             </div>
         </div>
     </div>
