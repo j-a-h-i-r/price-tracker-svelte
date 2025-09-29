@@ -16,6 +16,7 @@
         distinct_groups: number;
         ip_count: number;
         auto_merge_possible: boolean;
+        verified_internal_product_id?: number;
     };
 
     type Group = {
@@ -806,6 +807,18 @@
                                         <div class="product-info">
                                             <div class="product-name">
                                                 {product.external_product_name}
+                                            </div>
+                                            <div>
+                                                {#if product.verified_internal_product_id}
+                                                    <span class="alert">
+                                                        This product is previously added to {product.verified_internal_product_id} internal product
+                                                    </span>
+                                                {/if}
+                                                {#if product.distinct_groups > 1}
+                                                    <span class="alert">
+                                                        This product belongs to {product.distinct_groups} groups
+                                                    </span>
+                                                {/if}
                                             </div>
                                             <div class="product-meta">
                                                 External ID: {product.external_product_id}
@@ -2114,5 +2127,16 @@
         border: 2px solid #4f46e5;
         background: rgba(79, 70, 229, 0.1);
         border-radius: 6px;
+    }
+
+    .alert {
+        background-color: #fef3c7;
+        border: 1px solid #f59e0b;
+        color: #92400e;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
     }
 </style>
