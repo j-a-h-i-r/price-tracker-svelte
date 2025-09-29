@@ -6,7 +6,7 @@
     import { mergeProductsIntoGroup, deleteGroup as deleteGroupAPI } from '$lib/api/groups.js';
     import { errAsync, ResultAsync } from 'neverthrow';
     import { toasts } from '$lib/states/toast.js';
-
+    
     type Product = {
         internal_product_id: number;
         external_product_id: number;
@@ -354,10 +354,11 @@
                 selectedProducts.clear();
                 selectedProducts = new Set();
                 groups = groups.filter((g) => g.id !== currentGroupId);
+                toasts.success('Products merged successfully');
             },
             (err) => {
                 console.error('Error merging products:', err);
-                alert('Failed to merge products. Please try again.');
+                alert(err?.data?.error || 'Failed to merge products. Please try again.');
             }
         )
     }
