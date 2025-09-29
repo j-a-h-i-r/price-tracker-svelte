@@ -926,6 +926,8 @@
                                 <div class="group-main-info">
                                     <h4 class="group-name">
                                         {group.group_name}
+
+                                        <button class="group-delete-btn" onclick={() => deleteGroup(group.group_id, group.group_name)}>Delete</button>
                                     </h4>
                                     <div class="group-id">
                                         Group ID: {group.group_id} ({group.runs.length} runs)
@@ -1099,6 +1101,12 @@
         font-size: 0.875rem;
         color: #1f2937;
         transition: border-color 0.2s;
+    }
+
+    .group-delete-btn {
+        margin-left: auto;
+        background: #ef4444;
+        cursor: pointer;
     }
 
     .filter-select:focus {
