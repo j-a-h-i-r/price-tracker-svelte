@@ -75,19 +75,36 @@
         }, {limit: 20});
     }
 
+    // Debounced filter inputs for not spamming API on every input change
+    let de_minPrice: number | undefined = $state(undefined);
+    let de_maxPrice: number | undefined = $state(undefined);
+    let de_name: string | undefined = $state(undefined);
+
+    let debouncedInputs = debounce();
+    $effect(() => {
+        let fn = ([min, max, query]: [number | undefined, number | undefined, string | undefined]) => {
+            return () => {
+                const min_price = min > 0 ? min : undefined;
+                const max_price = max > 0 ? max : undefined;
+                const name = query?.length > 0 ? query : undefined;
+                de_maxPrice = max_price;
+                de_minPrice = min_price;
+                de_name = name;
+            }
+        }
+        debouncedInputs(fn([priceRange.min, priceRange.max, searchQuery]));
+    })
+
     let [paginatedProductApi, newPagination]: [ReturnType<typeof fetchProducts>, boolean] = $derived.by(() => {
         const category_id = selectedCategory !== 'all' ? Number(selectedCategory) : undefined;
         const manufacturer_id = selectedManufacturer !== 'all' ? Number(selectedManufacturer) : undefined;
-        const min_price = priceRange.min > 0 ? priceRange.min : undefined;
-        const max_price = priceRange.max > 0 ? priceRange.max : undefined;
-        const name = searchQuery.length > 0 ? searchQuery : undefined;
         const sort_by = sortBy;
         return [paginateProductApi({
             category_id,
             manufacturer_id,
-            min_price,
-            max_price,
-            name,
+            min_price: de_minPrice,
+            max_price: de_maxPrice,
+            name: de_name,
             sort_by,
         }), true];
     });
@@ -128,6 +145,16 @@
         .orTee((err) => {
             error = err.message ?? 'An error occurred';
         });
+    }
+
+    function debounce(wait: number = 300) {
+        let timeout: number;
+        return (func: () => void) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                func();
+            }, wait);
+        };
     }
 </script>
 
