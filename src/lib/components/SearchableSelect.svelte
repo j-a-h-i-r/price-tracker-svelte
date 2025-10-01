@@ -7,9 +7,9 @@
     let { options, value = $bindable(), allLabel = 'All', label }: { options: Option[]; value: string | number; allLabel: string; label: string } = $props();
 
     let isOpen = $state(false);
-    let searchQuery = $state("");
+    let searchQuery = $state('');
     let selectedLabel = $derived.by(() => {
-        if (value === "all") {
+        if (value === 'all') {
             return allLabel;
         } else {
             const selected = options.find(opt => opt.id == value);
@@ -24,14 +24,14 @@
     function handleSelect(optionId: string | number) {
         value = optionId;
         isOpen = false;
-        searchQuery = "";
+        searchQuery = '';
     }
 
     function handleClickOutside(event: MouseEvent) {
         const target = event.target as HTMLElement;
         if (!target.closest('.searchable-select')) {
             isOpen = false;
-            searchQuery = "";
+            searchQuery = '';
         }
     }
 
@@ -61,7 +61,7 @@
 
 <svelte:window onclick={handleClickOutside} />
 
-<div class="filter-control" class:active={value !== "all"}>
+<div class="filter-control" class:active={value !== 'all'}>
     <div class="searchable-select">
         <button class="select-label" onclick={() => isOpen = !isOpen}>{label}</button>
         <button 
@@ -87,8 +87,8 @@
                 <div class="options-list">
                     <button 
                         class="option"
-                        class:selected={value === "all"}
-                        onclick={() => handleSelect("all")}
+                        class:selected={value === 'all'}
+                        onclick={() => handleSelect('all')}
                     >
                         {allLabel}
                     </button>
@@ -121,7 +121,6 @@
         border: 1px solid #e5e7eb;
         border-radius: 6px;
         color: #374151;
-        font-size: 0.875rem;
         cursor: pointer;
         transition: all 0.15s ease;
         flex: 1 1 auto;
@@ -202,7 +201,7 @@
         padding: 0.375rem 0.5rem;
         border: 1px solid #e5e7eb;
         border-radius: 4px;
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
 
     .search-container input:focus {

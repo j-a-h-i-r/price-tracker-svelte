@@ -141,7 +141,8 @@
         <div class="search-header">
             <div class="search-container">
                 <input 
-                    type="text" 
+                    type="text"
+                    name="search product"
                     bind:value={searchQuery}
                     placeholder="Search products..."
                     class="search-input"
@@ -169,7 +170,8 @@
                 <span>Price Range</span>
                 <div class="chip-inputs">
                     <input 
-                        type="number" 
+                        type="number"
+                        name="min price"
                         bind:value={priceRange.min}
                         placeholder="Min"
                         class="chip-input"
@@ -177,6 +179,7 @@
                     <span class="separator">-</span>
                     <input 
                         type="number" 
+                        name="max price"
                         bind:value={priceRange.max}
                         placeholder="Max"
                         class="chip-input"
@@ -361,7 +364,6 @@
         border: 1px solid #e5e7eb;
         border-radius: 6px;
         color: #374151;
-        font-size: 0.875rem;
         cursor: pointer;
         transition: all 0.15s ease;
         flex: 1 1 auto;
@@ -396,7 +398,6 @@
         border: none;
         padding: 0;
         margin: 0;
-        font-size: 0.875rem;
         color: inherit;
         cursor: pointer;
         flex: 1;
@@ -419,8 +420,9 @@
         border: none;
         background: transparent;
         padding: 0;
-        font-size: 0.875rem;
+        font-size: 1rem;
         color: inherit;
+        max-width: 10rem;
     }
 
     .chip-input:focus {
