@@ -168,7 +168,7 @@
         display: inline-block;
         background: #2563eb;
         color: white;
-        padding: 0.5rem 1rem;
+        padding: var(--spacing-sm) var(--spacing-md);
         border-radius: 4px;
         text-decoration: none;
         font-size: 0.875rem;

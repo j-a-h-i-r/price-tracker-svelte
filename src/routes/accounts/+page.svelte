@@ -91,7 +91,7 @@
     <div class="app-container">
         <div class="header-section">
             <h1 class="page-title">Tracked Products</h1>
-            <button class="logout-button" onclick={signOut}>
+            <button class="btn btn-fatal" onclick={signOut}>
                 <svg
                     width="20"
                     height="20"

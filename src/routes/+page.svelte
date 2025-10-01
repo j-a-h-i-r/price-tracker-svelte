@@ -266,6 +266,7 @@
         type="text"
         bind:value={searchQuery}
         placeholder="Search for products or paste the URL..."
+        class="form-input"
     />
     {#if isLoading}
         <div class="loading-container">
@@ -307,7 +308,7 @@
                     <span class="loading-text">Loading more products...</span>
                 </div>
             {:else if paginatedProductApi?.hasNext()}
-                <button class="load-more-btn" onclick={() => loadMore()}>
+                <button class="btn-primary load-more-btn" onclick={() => loadMore()}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 5v14"/>
                         <path d="M5 12h14"/>
@@ -345,37 +346,37 @@
 <style>
     .stats-header {
         text-align: center;
-        margin: 1rem 0;
-        padding: 0rem 1rem;
+        margin: var(--spacing-lg) 0;
+        padding: 0 var(--spacing-lg);
     }
 
     .stats-header h1 {
-        font-size: 1.75rem;
-        color: #1f2937;
-        font-weight: 600;
-        line-height: 1.4;
+        font-size: var(--text-2xl);
+        color: var(--color-text-primary);
+        font-weight: var(--font-semibold);
+        line-height: var(--leading-relaxed);
         margin: 0;
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         letter-spacing: -0.025em;
     }
 
     .highlight-link {
-        color: #2563eb;
-        font-weight: 800;
+        color: var(--color-primary);
+        font-weight: var(--font-bold);
         text-decoration: none;
         position: relative;
-        padding: 0.25rem 0.5rem;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.15);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-md);
+        transition: all var(--transition-normal);
+        background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary-lighter) 100%);
+        box-shadow: var(--shadow-sm);
     }
 
     .highlight-link:hover {
-        color: #1d4ed8;
+        color: var(--color-primary-dark);
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-        background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+        box-shadow: var(--shadow-md);
+        background: linear-gradient(135deg, var(--color-primary-lighter) 0%, var(--color-primary-light) 100%);
     }
 
     .highlight-link:active {
@@ -384,18 +385,18 @@
 
     @media (min-width: 768px) {
         .stats-header {
-            margin: 1rem 0;
-            padding: 0rem 2rem;
+            margin: var(--spacing-lg) 0;
+            padding: 0 var(--spacing-2xl);
         }
 
         .stats-header h1 {
-            font-size: 2.25rem;
+            font-size: var(--text-3xl);
         }
     }
 
     @media (min-width: 1024px) {
         .stats-header h1 {
-            font-size: 2.5rem;
+            font-size: var(--text-4xl);
         }
     }
 
@@ -404,184 +405,173 @@
     }
 
     .search-container {
-        margin: 2rem 0;
+        margin: var(--spacing-2xl) 0;
         max-width: 600px;
         margin-left: auto;
         margin-right: auto;
         position: relative;
     }
 
-    input {
-        width: 100%;
-        padding: 0.75rem 1rem;
-        font-size: 1.1rem;
-        border: 2px solid #e5e7eb;
-        border-radius: 8px;
-        outline: none;
-    }
-
-    input:focus {
-        border-color: #2563eb;
-    }
-
     .loading-container {
         position: absolute;
-        right: 1rem;
+        right: var(--spacing-lg);
         top: 50%;
         transform: translateY(-50%);
     }
 
     .search-results-section {
-        margin: 2rem 0;
+        margin: var(--spacing-2xl) 0;
     }
 
     .search-results-header {
-        margin-bottom: 1.5rem;
+        margin-bottom: var(--spacing-xl);
     }
 
     .search-results-header h2 {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #1f2937;
+        font-size: var(--text-base);
+        font-weight: var(--font-semibold);
+        color: var(--color-text-primary);
         margin: 0;
     }
 
     .search-results {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: var(--spacing-lg);
     }
 
     .search-result-row {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 1.5rem;
+        background: var(--color-bg-primary);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-xl);
         text-decoration: none;
         color: inherit;
-        transition: all 0.2s ease;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: all var(--transition-fast);
+        box-shadow: var(--shadow-sm);
     }
 
     .search-result-row:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(37, 99, 235, 0.1);
-        border-color: #2563eb;
+        box-shadow: var(--shadow-lg);
+        border-color: var(--color-primary);
     }
 
     .result-content {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: var(--spacing-md);
     }
 
     .first-line {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 1rem;
+        gap: var(--spacing-lg);
     }
 
     .product-name {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #1f2937;
+        font-size: var(--text-lg);
+        font-weight: var(--font-semibold);
+        color: var(--color-text-primary);
         margin: 0;
-        line-height: 1.4;
+        line-height: var(--leading-relaxed);
         flex: 1;
     }
 
     .current-price {
-        font-size: 1.25rem;
-        font-weight: bold;
-        color: #2563eb;
+        font-size: var(--text-xl);
+        font-weight: var(--font-bold);
+        color: var(--color-primary);
         white-space: nowrap;
     }
 
     .second-line {
         display: flex;
-        gap: 1rem;
+        gap: var(--spacing-lg);
         align-items: center;
     }
 
     .category,
     .brand {
-        font-size: 0.875rem;
-        padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
-        font-weight: 500;
+        font-size: var(--text-sm);
+        padding: var(--spacing-xs) var(--spacing-md);
+        border-radius: var(--radius-full);
+        font-weight: var(--font-medium);
     }
 
     .category {
-        background: #f3f4f6;
-        color: #4b5563;
+        background: var(--color-bg-tertiary);
+        color: var(--color-text-secondary);
     }
 
     .brand {
-        background: #e0e7ff;
-        color: #4338ca;
+        background: var(--color-primary-light);
+        color: var(--color-primary-dark);
     }
 
     .no-results {
         text-align: center;
-        color: #6b7280;
-        margin: 2rem 0;
+        color: var(--color-text-secondary);
+        margin: var(--spacing-2xl) 0;
     }
 
     @media (max-width: 640px) {
         .first-line {
             flex-direction: column;
             align-items: flex-start;
-            gap: 0.5rem;
+            gap: var(--spacing-sm);
         }
 
         .product-name {
-            font-size: 1rem;
+            font-size: var(--text-base);
         }
 
         .current-price {
-            font-size: 1.125rem;
+            font-size: var(--text-lg);
         }
 
         .second-line {
             flex-wrap: wrap;
-            gap: 0.5rem;
+            gap: var(--spacing-sm);
         }
 
         .search-result-row {
-            padding: 1rem;
+            padding: var(--spacing-lg);
         }
     }
 
     .deals-section {
-        margin: 2rem 0;
-        padding: 0 1rem;
+        margin: var(--spacing-2xl) 0;
+        padding: 0 var(--spacing-lg);
     }
 
     .deals-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 1rem;
+        margin-bottom: var(--spacing-lg);
     }
 
     .view-all {
-        font-size: 0.875rem;
-        color: #2563eb;
+        font-size: var(--text-sm);
+        color: var(--color-primary);
         text-decoration: none;
-        font-weight: 500;
+        font-weight: var(--font-medium);
+        transition: all var(--transition-fast);
     }
 
     .view-all:hover {
         text-decoration: underline;
+        color: var(--color-primary-dark);
     }
 
     .deals-scroll {
         display: flex;
         overflow-x: auto;
-        gap: 1rem;
-        padding: 0.5rem;
-        margin: 0 -1rem;
+        gap: var(--spacing-lg);
+        padding: var(--spacing-sm);
+        margin: 0 calc(-1 * var(--spacing-lg));
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none; /* Firefox */
@@ -597,18 +587,18 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 3rem 2rem;
+        padding: var(--spacing-3xl) var(--spacing-2xl);
         text-align: center;
-        background: #f8fafc;
-        border-radius: 12px;
-        border: 2px dashed #e2e8f0;
+        background: var(--color-bg-secondary);
+        border-radius: var(--radius-lg);
+        border: 2px dashed var(--color-border-light);
     }
 
     .deals-loading p {
-        margin-top: 1rem;
-        font-size: 1rem;
-        color: #64748b;
-        font-weight: 500;
+        margin-top: var(--spacing-lg);
+        font-size: var(--text-base);
+        color: var(--color-text-secondary);
+        font-weight: var(--font-medium);
     }
 
     /* No deals on homepage styles */
@@ -617,39 +607,39 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 3rem 2rem;
+        padding: var(--spacing-3xl) var(--spacing-2xl);
         text-align: center;
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border-radius: 12px;
-        border: 2px dashed #cbd5e1;
+        background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg-tertiary) 100%);
+        border-radius: var(--radius-lg);
+        border: 2px dashed var(--color-border-light);
     }
 
     .no-deals-home .no-deals-icon {
-        color: #64748b;
-        margin-bottom: 1rem;
+        color: var(--color-text-secondary);
+        margin-bottom: var(--spacing-lg);
         opacity: 0.8;
     }
 
     .no-deals-home p {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #334155;
-        margin: 0 0 0.5rem 0;
+        font-size: var(--text-lg);
+        font-weight: var(--font-semibold);
+        color: var(--color-text-primary);
+        margin: 0 0 var(--spacing-sm) 0;
     }
 
     .no-deals-home span {
-        font-size: 0.875rem;
-        color: #64748b;
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
     }
 
     @media (max-width: 640px) {
         .deals-loading,
         .no-deals-home {
-            padding: 2rem 1rem;
+            padding: var(--spacing-2xl) var(--spacing-lg);
         }
 
         .no-deals-home p {
-            font-size: 1rem;
+            font-size: var(--text-base);
         }
     }
 
@@ -658,7 +648,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        padding-top: 2rem;
+        padding-top: var(--spacing-2xl);
     }
 
     .loading-state {
@@ -669,25 +659,15 @@
     }
 
     .loading-text {
-        font-size: 1rem;
-        color: #6b7280;
-        font-weight: 500;
+        font-size: var(--text-base);
+        color: var(--color-text-secondary);
+        font-weight: var(--font-medium);
     }
 
     .load-more-btn {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        color: white;
-        border: none;
-        padding: 1rem 2rem;
-        border-radius: 12px;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        gap: var(--spacing-sm);
         position: relative;
         overflow: hidden;
         min-width: 180px;
@@ -705,23 +685,12 @@
         transition: left 0.5s;
     }
 
-    .load-more-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
-        background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-    }
-
     .load-more-btn:hover::before {
         left: 100%;
     }
 
-    .load-more-btn:active {
-        transform: translateY(0);
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-    }
-
     .load-more-btn svg {
-        transition: transform 0.3s ease;
+        transition: transform var(--transition-normal);
     }
 
     .load-more-btn:hover svg {
@@ -742,28 +711,26 @@
         justify-content: center;
         width: 48px;
         height: 48px;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white;
-        border-radius: 50%;
-        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%);
+        color: var(--color-success-contrast);
+        border-radius: var(--radius-full);
+        margin-bottom: var(--spacing-sm);
     }
 
     .all-loaded-text {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #334155;
+        font-size: var(--text-lg);
+        font-weight: var(--font-semibold);
+        color: var(--color-text-primary);
         margin: 0;
     }
 
     @media (max-width: 640px) {
         .load-more-btn {
-            padding: 0.875rem 1.5rem;
-            font-size: 0.9rem;
             min-width: 150px;
         }
 
         .all-loaded-state {
-            padding: 1.5rem;
+            padding: var(--spacing-xl);
             max-width: 280px;
         }
 
@@ -773,7 +740,7 @@
         }
 
         .all-loaded-text {
-            font-size: 1rem;
+            font-size: var(--text-base);
         }
     }
 </style>

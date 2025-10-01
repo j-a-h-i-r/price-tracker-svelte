@@ -679,8 +679,8 @@
             <h1>{product?.name}</h1>
             {#if userState.isAdmin}
                 <div class="admin-actions">
-                    <button class="btn-edit" onclick={startEditingMain}>Edit</button>
-                    <button class="btn-merge" onclick={handleMergeProduct}>Merge</button>
+                    <button class="btn btn-primary" onclick={startEditingMain}>Edit</button>
+                    <button class="btn" onclick={handleMergeProduct}>Merge</button>
                 </div>
             {/if}
         {/if}
@@ -694,12 +694,12 @@
             </div>
             {#if userState.email}
                 {#if trackedProducts.isTracked(productId)}
-                    <button class="track-btn untrack" onclick={handleUntrack}> Untrack </button>
+                    <button class="btn btn-danger" onclick={handleUntrack}> Untrack </button>
                 {:else}
-                    <button class="track-btn" onclick={handleTrack}>Track</button>
+                    <button class="btn btn-primary" onclick={handleTrack}>Track</button>
                 {/if}
             {:else}
-                <button class="track-btn" onclick={handleTrack}>Track</button>
+                <button class="btn btn-primary" onclick={handleTrack}>Track</button>
             {/if}
         {/if}
     </div>
@@ -738,16 +738,14 @@
                         {#if variant.values.length <= 3}
                             <div class="variant-buttons">
                                 <button 
-                                    class="variant-button" 
-                                    class:selected={selectedVariants[variant.name] === 'unselected'}
+                                    class={['btn', selectedVariants[variant.name] === 'unselected' ? 'btn-primary': '']} 
                                     onclick={() => selectedVariants[variant.name] = 'unselected'}
                                 >
                                     Any
                                 </button>
                                 {#each variant.values as value, idx (idx)}
                                     <button 
-                                        class="variant-button" 
-                                        class:selected={selectedVariants[variant.name] === value.value}
+                                        class={['btn', selectedVariants[variant.name] === value.value ? 'btn-primary': '']} 
                                         onclick={() => selectedVariants[variant.name] = value.value}
                                     >
                                         {value.display_text}
@@ -887,7 +885,7 @@
 
                     {#if userState.isAdmin}
                         <div class="admin-actions-product">
-                            <button onclick={() => handleUnmerge(product.external_product_id)}>Unmerge</button>
+                            <button class="btn btn-danger" onclick={() => handleUnmerge(product.external_product_id)}>Unmerge</button>
                         </div>
                     {/if}
                 </div>
@@ -1019,8 +1017,8 @@
             </div>
             
             <div class="modal-footer">
-                <button class="btn-cancel-modal" onclick={closeTrackModal}>Cancel</button>
-                <button class="btn-submit-track" onclick={submitTrackingPrice}>Start Tracking</button>
+                <button class="btn btn-ghost" onclick={closeTrackModal}>Cancel</button>
+                <button class="btn btn-primary" onclick={submitTrackingPrice}>Start Tracking</button>
             </div>
         </div>
     </div>
@@ -1310,32 +1308,6 @@
         margin-top: 1rem;
         padding-top: 1rem;
         border-top: 1px solid #e5e7eb;
-    }
-
-    .admin-actions-product button {
-        background-color: #dc2626;
-        color: white;
-        padding: 0.5rem 1rem;
-        border: none;
-        border-radius: 6px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.375rem;
-    }
-
-    .admin-actions-product button:hover {
-        background-color: #b91c1c;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
-    }
-
-    .admin-actions-product button:active {
-        transform: translateY(0);
     }
 
     .variants-section {

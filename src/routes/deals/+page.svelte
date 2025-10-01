@@ -93,13 +93,13 @@
     <div class="filter-sort">
         <div class="time-filters">
             <button 
-                class:active={selectedDays === 7} 
+                class={['btn', selectedDays === 7 ? 'btn-primary': '']}
                 onclick={() => selectedDays = 7}
             >
                 7 Days
             </button>
             <button 
-                class:active={selectedDays === 30} 
+                class={['btn', selectedDays === 30 ? 'btn-primary': '']}
                 onclick={() => selectedDays = 30}
             >
                 30 Days
@@ -263,24 +263,6 @@
         .time-filters button {
             flex: 1;
         }
-    }
-
-    .time-filters button {
-        padding: 0.375rem 0.75rem;
-        border: none;
-        border-radius: 8px;
-        background: #e5e7eb;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-
-    .time-filters button:hover {
-        background: #d1d5db;
-    }
-
-    .time-filters button.active {
-        background: #2563eb;
-        color: white;
     }
 
     .deals-grid {
