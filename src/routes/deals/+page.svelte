@@ -3,21 +3,19 @@
     import type { Deal, DealFilter } from '$lib/types/Deal';
     import { fetchDeals } from '$lib/api/deals.js';
     import SearchableSelect from '$lib/components/SearchableSelect.svelte';
-    import { fetchCategories, type Category } from '$lib/api/products';
     import NoResult from '$lib/components/NoResult.svelte';
     import DealCard from '$lib/components/DealCard.svelte';
-    import { getManufacturers } from '$lib/api/manufacturers.js';
-    import type { Manufacturer } from '$lib/types/Manufacturer.js';
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
     import { ResultAsync } from 'neverthrow';
     import Loader from '$lib/components/Loader.svelte';
     import { generateSEOConfig } from '$lib/seo.js';
+    import type { PageProps } from '../$types.js';
+
+    let { data }: PageProps = $props();
 
     let selectedDays = $state(7);
     let sortBy = $state<'value' | 'percentage'>('value');
-    let categories: Category[] = $state([]);
-    let manufacturers: Manufacturer[] = $state([]);
     let selectedCategoryId: string | number = $state('all');
     let selectedManufacturerId: string | number = $state('all');
 
@@ -48,20 +46,6 @@
         }
     });
 
-    let categoryMap = $derived.by(() => {
-        return categories.reduce((map, category) => {
-            map[category.id] = category;
-            return map;
-        }, {} as Record<string, Category>);
-    });
-
-    let manufacturerMap = $derived.by(() => {
-        return manufacturers.reduce((map, manufacturer) => {
-            map[manufacturer.id] = manufacturer;
-            return map;
-        }, {} as Record<string, Manufacturer>);
-    });
-
     let deals: ResultAsync<Deal[], Error> = $derived.by(() => {
         let filters: DealFilter = {
             sortby: sortBy,
@@ -71,17 +55,6 @@
         if (selectedManufacturerId !== 'all') filters.manufacturer_id = selectedManufacturerId;
         
         return fetchDeals(filters);
-    });
-
-    onMount(async () => {
-        // Load initial data
-        ResultAsync.combine([
-            fetchCategories(),
-            getManufacturers(),
-        ]).map(([categoriesData, manufacturersData]) => {
-            categories = categoriesData;
-            manufacturers = manufacturersData;
-        })
     });
 </script>
 
@@ -108,14 +81,14 @@
         <div class="filter-control">
             <SearchableSelect
                 label="Category"
-                options={categories}
+                options={data.categories}
                 bind:value={selectedCategoryId}
                 allLabel="All Categories"
             />
 
             <SearchableSelect
                 label="Brand"
-                options={manufacturers}
+                options={data.manufacturers}
                 bind:value={selectedManufacturerId}
                 allLabel="All Brands"
             />
@@ -148,7 +121,7 @@
                 </div>
             {:else if deals.isOk() && deals.value.length > 0}
                 {#each deals.value as deal (deal.external_product_id)}
-                    <DealCard {deal} {manufacturerMap} {categoryMap} showFullProductName={true} />
+                    <DealCard {deal} categoryMap={data.categoryMap} manufacturerMap={data.manufacturerMap} showFullProductName={true} />
                 {/each}
             {:else if deals.isErr()}
                 <div class="col-span-full">

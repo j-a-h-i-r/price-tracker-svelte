@@ -26,9 +26,10 @@ export class ApiError<D = any> extends Error {
     }
 }
 
-function fetchResult<T = any, E = any>(url: string, options?: RequestInit): ResultAsync<T, ApiError<E>> {
+function fetchResult<T = any, E = any>(url: string, options?: RequestInit & { superFetch?: typeof fetch }): ResultAsync<T, ApiError<E>> {
+    const fetchF = options?.superFetch ?? fetch;
     return safeTry(async function* () {
-        const response = yield* (await ResultAsync.fromPromise(fetch(url, options), (error) => {
+        const response = yield* (await ResultAsync.fromPromise(fetchF(url, options), (error) => {
             return new ApiError(`Failed to fetch ${url}`, 0, error);
         }));
         const data = yield* (await ResultAsync.fromPromise(response.json(), (error) => {
@@ -54,7 +55,7 @@ function appendQueryParams(url: string, params: URLSearchParams): string {
 }
 
 export const api = {
-    get: <T, E = any>(url: string, options?: RequestInit) => {
+    get: <T, E = any>(url: string, options?: RequestInit & { superFetch?: typeof fetch }) => {
         return fetchResult<T, E>(url, { method: 'GET', ...options });
     },
     post: <T, E = any>(url: string, data: any = {}, options?: RequestInit) => {

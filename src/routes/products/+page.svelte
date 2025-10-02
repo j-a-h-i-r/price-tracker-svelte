@@ -1,17 +1,17 @@
 <script lang="ts">
     import { page } from '$app/state';
     import { onMount } from 'svelte';
-    import { fetchCategories, fetchProducts, type Category } from '$lib/api/products';
+    import { fetchProducts } from '$lib/api/products';
     import type { ProductWithLastPrice } from '$lib/types/Product';
     import SearchableSelect from '$lib/components/SearchableSelect.svelte';
     import { formatPrice } from '$lib/util.js';
-    import type { Manufacturer } from '$lib/types/Manufacturer.js';
-    import { getManufacturers } from '$lib/api/manufacturers.js';
-    import { ResultAsync } from 'neverthrow';
     import { generateSEOConfig } from '$lib/seo.js';
     import Pagination from '$lib/components/Pagination.svelte';
     import Loader from '$lib/components/Loader.svelte';
     import NoResult from '$lib/components/NoResult.svelte';
+    import type { PageProps } from '../$types.js';
+
+    let { data }: PageProps = $props();
 
     let queryCategoryId: string | null = $state(null);
     onMount(() => {
@@ -27,9 +27,7 @@
     let modalNode: HTMLDivElement | null = null;
 
     // Filters
-    let categories: Category[] = $state([]);
     let selectedCategory: string | number = $state('all');
-    let manufacturers: Manufacturer[] = $state([]);
     let selectedManufacturer: string | number = $state('all');
     let sortBy = $state<'+price' | '-price' | '+name' | '-name'>('+price');
     let searchQuery = $state('');
@@ -121,16 +119,6 @@
         });
     });
 
-    onMount(async () => {
-        ResultAsync.combine([
-            fetchCategories(),
-            getManufacturers(),
-        ]).map(([_cat, _mfg]) => {
-            categories = _cat;
-            manufacturers = _mfg;
-        });
-    })
-
     function handlePageChange(page: 'first' | 'prev' | 'next' | 'last') {
         loading = true;
         newPagination = false;
@@ -181,14 +169,14 @@
         <div class="inline-filters">
             <SearchableSelect
                 label="Category"
-                options={categories}
+                options={data.categories}
                 bind:value={selectedCategory}
                 allLabel="All Categories"
             />
 
             <SearchableSelect
                 label="Manufacturer"
-                options={manufacturers}
+                options={data.manufacturers}
                 bind:value={selectedManufacturer}
                 allLabel="All Manufacturers"
             />
@@ -258,14 +246,14 @@
                         
                         <div class="product-meta">
                             <div class="meta-tags">
-                                {#if categories.find(c => c.id === product.category_id)}
+                                {#if data.categoryMap.has(product.category_id)}
                                     <span class="category-tag">
-                                        {categories.find(c => c.id === product.category_id)?.name}
+                                        {data.categoryMap.get(product.category_id)?.name}
                                     </span>
                                 {/if}
-                                {#if manufacturers.find(m => m.id === product.manufacturer_id)}
+                                {#if data.manufacturerMap.has(product.manufacturer_id)}
                                     <span class="brand-tag">
-                                        {manufacturers.find(m => m.id === product.manufacturer_id)?.name}
+                                        {data.manufacturerMap.get(product.manufacturer_id)?.name}
                                     </span>
                                 {/if}
                             </div>

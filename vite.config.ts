@@ -8,9 +8,9 @@ export default defineConfig({
 		tailwindcss(),
 	],
 	server: {
-        proxy: {
-            '/api': 'http://localhost:3333',
-        },
+        // proxy: {
+        //     '/api': 'http://localhost:3333',
+        // },
 		host: true,
     },
 });

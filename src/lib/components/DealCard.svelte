@@ -6,8 +6,8 @@
     interface Props {
         deal: Deal;
         showFullProductName?: boolean;
-        manufacturerMap?: Record<number, { name: string }>;
-        categoryMap?: Record<number, { name: string }>;
+        manufacturerMap?: Map<number, { name: string }>;
+        categoryMap?: Map<number, { name: string }>;
     }
 
     let { deal, showFullProductName = false, manufacturerMap, categoryMap }: Props = $props();
@@ -51,8 +51,8 @@
     </div>
     {#if manufacturerMap && categoryMap}
         <div class="info-section">
-            <span class="manufacturer">{manufacturerMap[deal.manufacturer_id]?.name || 'Unknown Brand'}</span>
-            <span class="category">{categoryMap[deal.category_id]?.name || 'Uncategorized'}</span>
+            <span class="manufacturer">{manufacturerMap.get(deal.manufacturer_id)?.name || 'Unknown Brand'}</span>
+            <span class="category">{categoryMap.get(deal.category_id)?.name || 'Uncategorized'}</span>
         </div>
     {/if}
 </a>

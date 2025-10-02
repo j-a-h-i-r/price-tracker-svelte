@@ -1,11 +1,11 @@
 import { api } from "$lib/core/api.js";
 
-interface Stats {
+export interface Stats {
     products: number;
     categories: number;
     websites: number;
 }
 
-export function fetchStats() {
-    return api.get<Stats>('/api/stats');
+export function fetchStats(superFetch: typeof fetch = fetch) {
+    return api.get<Stats>('/api/stats', { superFetch });
 }

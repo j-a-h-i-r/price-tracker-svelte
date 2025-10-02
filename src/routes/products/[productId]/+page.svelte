@@ -4,17 +4,15 @@
     fetchExternalProductMetadata,
         fetchExternalProductPrices,
         fetchExternalProductsByInternalId,
-        fetchProductById,
-        fetchVariantAttributes,
         flagIncorrectGrouping,
         mergeProducts,
         trackProduct,
         unmergeProducts,
         untrackProduct,
         updateProductName,
+        type ExternalProduct,
     } from '$lib/api/products.js';
     import type {
-        ExternalProduct,
         ExternalProductPrice,
         ProductVariant,
         ExternalProductMetadata,
@@ -24,30 +22,37 @@
     import { Chart } from 'chart.js/auto';
     import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
     import { trackedProducts } from '$lib/states/tracked.svelte.js';
-    import { fetchWebsites } from '$lib/api/websites.js';
     import { userState } from '$lib/shared.svelte.js';
-    import { arrayToPerIdMap, formatPrice, linkWithUtmSource } from '$lib/util.js';
+    import { formatPrice, linkWithUtmSource } from '$lib/util.js';
     import dayjs from 'dayjs';
     import type { Attachment } from 'svelte/attachments';
     import type { FlaggingOption } from '$lib/types/Flagging.js';
     import { getFlaggingOptions } from '$lib/api/flagging.js';
     import { toasts } from '$lib/states/toast.js';
     import { goto } from '$app/navigation';
-    import { ResultAsync } from 'neverthrow';
-    import type { Website } from '$lib/types/Website.js';
     import Loader from '$lib/components/Loader.svelte';
     import Pill from '$lib/components/Pill.svelte';
     import { generateProductStructuredData, generateSEOConfig } from '$lib/seo.js';
+    import type { PageProps } from './$types.js';
+
+    let { data }: PageProps = $props();
+
+    let websiteMap = data.websiteMap;
+    let product: Product | null = $state(data.product);
+    let variants: ProductVariant[] = $state(data.variantAttributes);
+    let productNotFound = data.exists === false;
+    let externalProducts: ExternalProduct[] = $state(data.externalProducts ?? []);
+
+    onMount(() => {
+        variants.forEach((variant) => {
+            selectedVariants![variant.name] = 'unselected';
+        });
+    })
 
     let productId = Number(page.params.productId);
-    let product: Product | null = $state(null);
-    let websiteMap: Map<number, Website> = $state(new Map());
-    let externalProducts: ExternalProduct[] = $state([]);
     let externalProductPrices: Map<number, ExternalProductPrice[]> = $state(new Map());
     let isEditingMainProduct = $state(false);
     let editedMainName = $state('');
-    let variants: ProductVariant[] = $state([]);
-    let initialVariantsLoaded = $state(false);
     let selectedVariants: Record<string, string | 'unselected'> = $state({});
     let externalProductMetadatas: Map<number, ExternalProductMetadata[]> = $state(new Map());
     let isExternalProductsLoaded = $state(false);
@@ -66,7 +71,6 @@
 
     let externalProductIdToHighlight: number | null = $state(null);
     let alreadyScrolledOnce = $state(false);
-    let productNotFound = $state(false);
 
     onMount(() => {
         const { highlight_external_product_id } = page.state as { highlight_external_product_id: number | null };
@@ -116,13 +120,6 @@
             editedMainName = product.name;
         }
     }
-
-    onMount(async () => {
-        fetchWebsites()
-        .map((websites) => {
-            websiteMap = arrayToPerIdMap(websites);
-        });
-    });
 
     $effect(() => {
         const promises = externalProducts.map(async (externalProduct) => {
@@ -490,33 +487,10 @@
         )
     }
 
-    onMount(async () => {
-        ResultAsync.combine([
-            fetchProductById(productId),
-            fetchVariantAttributes(productId),
-        ]).match(
-            ([_product, _variants]) => {
-                product = _product;
-                variants = _variants;
-
-                variants.forEach((variant) => {
-                    selectedVariants![variant.name] = 'unselected';
-                });
-                initialVariantsLoaded = true;
-            },
-            (err) => {
-                if (err.status === 404) {
-                    productNotFound = true;
-                }
-            }
-        )
-    });
-
     $effect(() => {
         // I don't like this. But without this the external products are fetched
         // twice during the initial load. And since prices and metadata are fetched
         // when external products are fetched, it causes those to be fetched twice as well.
-        if (initialVariantsLoaded === false) return;
         const sanitizedVariants: Record<string, string> = {};
         for (const [key, value] of Object.entries(selectedVariants)) {
             if (value !== 'unselected') {

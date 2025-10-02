@@ -5,6 +5,7 @@ import type {
     ExternalProductPrice,
     PotentialProductMatch,
     Product,
+    ProductVariant,
     ProductWithLastPrice,
 } from '$lib/types/Product';
 
@@ -63,8 +64,8 @@ export function fetchProducts(
     return paginatedApi.paginatedGet<ProductWithLastPrice[]>(url, pageOptions, { signal: abortSignal });
 }
 
-export function fetchProductById(id: string | number) {
-    return api.get<Product>(`/api/products/${id}`);
+export function fetchProductById(id: string | number, superFetch?: typeof fetch) {
+    return api.get<Product>(`/api/products/${id}`, { superFetch });
 }
 
 export function updateProductName(id: number, newName: string) {
@@ -72,14 +73,14 @@ export function updateProductName(id: number, newName: string) {
 }
 
 export function fetchExternalProductsByInternalId(
-    internalId: number, variants?: Record<string, string | number> | null
+    internalId: number, variants?: Record<string, string | number> | null, superFetch?: typeof fetch
 ) {
     let url = `/api/products/${internalId}/externals`;
     if (variants) {
         const variantQs = Object.keys(variants).map(key => `variants[${key}]=${variants[key]}`).join('&');
         url += `?${variantQs}`;
     }
-    return api.get<ExternalProduct[]>(url);
+    return api.get<ExternalProduct[]>(url, { superFetch });
 }
 
 export function fetchExternalProductPrices(externalId: number) {
@@ -91,8 +92,8 @@ export interface Category {
     name: string;
 }
 
-export function fetchCategories() {
-    return api.get<Category[]>('/api/categories');
+export function fetchCategories(superFetch?: typeof fetch) {
+    return api.get<Category[]>('/api/categories', { superFetch });
 }
 
 export function fetchPotentiallySimilarProducts({ minScore }: { minScore: number }) {
@@ -103,8 +104,8 @@ export function fetchExternalProductMetadata(externalId: number) {
     return api.get<ExternalProductMetadata[]>(`/api/externals/${externalId}/metadata`);
 }
 
-export function fetchVariantAttributes(productId: number) {
-    return api.get(`/api/products/${productId}/variantattributes`);
+export function fetchVariantAttributes(productId: number | string, superFetch?: typeof fetch) {
+    return api.get<ProductVariant[]>(`/api/products/${productId}/variantattributes`, { superFetch });
 }
 
 export function flagIncorrectGrouping(externalId: number, flagOptions: string[]) {
@@ -128,19 +129,26 @@ export function unmergeProducts(internalProductId: number, externalProductId: nu
         (`/api/products/${internalProductId}/unmerge`, { external_product_id: externalProductId });
 }
 
+// export interface ExternalProduct {
+//     id: number;
+//     internal_product_id: number;
+//     category_id: number;
+//     website_id: number;
+//     name: string;
+//     url: string;
+//     created_at: string;
+//     updated_at: string;
+//     parsed_metadata: Record<string, any>;
+//     product_id: number;
+//     latest_price: number;
+//     is_available: boolean;
+// }
+
 export interface ExternalProduct {
-    id: number;
-    internal_product_id: number;
-    category_id: number;
-    website_id: number;
-    name: string;
-    url: string;
-    created_at: string;
-    updated_at: string;
-    parsed_metadata: Record<string, any>;
-    product_id: number;
-    latest_price: number;
-    is_available: boolean;
+    external_product_id: number,
+    website_id: number,
+    name: string,
+    url: string,
 }
 
 export function fetchExternalProducts(filter: {

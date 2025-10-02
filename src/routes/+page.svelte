@@ -1,71 +1,31 @@
 <script lang="ts">
-    import { fetchStats } from '$lib/api/stats.js';
-    import { fetchDeals } from '$lib/api/deals.js';
-    import type { Deal } from '$lib/types/Deal.js';
     import { onMount } from 'svelte';
     import { onDestroy } from 'svelte';
-    import { arrayToPerIdMap, formatPrice } from '$lib/util.js';
+    import { formatPrice } from '$lib/util.js';
     import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
     import DealCard from '$lib/components/DealCard.svelte';
     import type { ProductWithLastPrice, } from '$lib/types/Product.js';
-    import { getManufacturers } from '$lib/api/manufacturers.js';
-    import type { Manufacturer } from '$lib/types/Manufacturer.js';
-    import { getCategories } from '$lib/api/categories.js';
-    import { fetchProducts, type Category } from '$lib/api/products.js';
+    import { fetchProducts, } from '$lib/api/products.js';
     import { generateLdJSON, generateOrganizationStructuredData, generateSEOConfig, generateWebsiteStructuredData } from '$lib/seo.js';
+    import type { PageProps } from './$types.js';
         
     let searchQuery = $state<string>('');
-    let totalProducts = $state<number | undefined>(undefined);
-    let totalWebsites = $state<number | undefined>(undefined);
-    let totalCategories = $state<number | undefined>(undefined);
     let pagedProducts: ProductWithLastPrice[] = $state([]);
     let searchTimeout: ReturnType<typeof setTimeout>;
     let searchAbortController: AbortController | null = null;
-    let categoryMap: Map<number, Category> = $state(new Map([]));
-    let manufacturerMap: { [key: string]: string } = {};
     let isLoading = $state(false);
-    let dealCountToShow = $state<number | undefined>(undefined);
-    let deals: Deal[] = $state([]);
-    let dealsLoading = $state(true);
     let dealsContainer = $state<HTMLElement | undefined>();
     let autoScrollInterval: ReturnType<typeof setInterval>;
     let isHovering = false;
     let paginatedProductApi: ReturnType<typeof fetchProducts> | null = $state(null);
 
-    onMount(async () => {
-        const resp = await fetchStats()
-        if (resp.isOk()) {
-            totalProducts = resp.value.products ?? 0;
-            totalWebsites = resp.value.websites ?? 0;
-            totalCategories = resp.value.categories ?? 0;
-        }
-    });
+    let { data }: PageProps = $props();
 
-    onMount(async () => {
-        let categories = await getCategories().unwrapOr([]);
-        categoryMap = arrayToPerIdMap(categories);
-    });
-
-    onMount(async () => {
-        const manufacturers = await getManufacturers().unwrapOr([]);
-        manufacturers.forEach((manufacturer: Manufacturer) => {
-            manufacturerMap[manufacturer.id] = manufacturer.name;
-        });
-    });
-
-    onMount(async () => {
-        dealsLoading = true;
-        const dealResponse = await fetchDeals();
-        if (dealResponse.isOk()) {
-            deals = dealResponse.value;
-            dealCountToShow = Math.floor(deals.length / 10) * 10;
-            deals = deals.slice(0, 10); // Limit to first 10 deals
-            startAutoScroll();
-        }
-        dealsLoading = false;
-    });
+    let dealCountToShow = Math.floor(data.deals.length / 10) * 10;
+    let deals = data.deals.slice(0, 10); // Limit to first 10 deals
 
     onMount(() => {
+        startAutoScroll();
         return () => {
             if (autoScrollInterval) {
                 clearInterval(autoScrollInterval);
@@ -183,26 +143,26 @@
     <h1>
         Tracking prices of
         <span class="highlight-link">
-            {#if totalProducts === undefined}
+            {#if data.stats.products === undefined}
                 <LoadingSpinner size="sm" inline={true} />
             {:else}
-                <a href="/products">{totalProducts}</a>
+                <a href="/products">{data.stats.products}</a>
             {/if}
         </span>
         products from
         <span class="highlight-link">
-            {#if totalCategories === undefined}
+            {#if data.stats.categories === undefined}
                 <LoadingSpinner size="sm" inline={true} />
             {:else}
-                <a href="/categories">{totalCategories}</a>
+                <a href="/categories">{data.stats.categories}</a>
             {/if}
         </span>
         categories across
         <span class="highlight-link">
-            {#if totalWebsites === undefined}
+            {#if data.stats.websites === undefined}
                 <LoadingSpinner size="sm" inline={true} />
             {:else}
-                <a href="/websites">{totalWebsites}</a>
+                <a href="/websites">{data.stats.websites}</a>
             {/if}
         </span> websites 🇧🇩
     </h1>
@@ -217,12 +177,7 @@
         </h2>
         <a href="/deals" class="view-all">View all →</a>
     </div>
-    {#if dealsLoading}
-        <div class="deals-loading">
-            <LoadingSpinner size="md" />
-            <p>Loading the best deals of this week...</p>
-        </div>
-    {:else if deals.length > 0}
+    {#if deals.length > 0}
         <div
             class="deals-scroll"
             bind:this={dealsContainer}
@@ -293,8 +248,8 @@
                             </span>
                         </div>
                         <div class="second-line">
-                            <span class="category">{categoryMap.get(product.category_id)?.name || 'Unknown Category'}</span>
-                            <span class="brand">{manufacturerMap[product.manufacturer_id] || 'Unknown Brand'}</span>
+                            <span class="category">{data.categoryMap.get(product.category_id)?.name || 'Unknown Category'}</span>
+                            <span class="brand">{data.manufacturerMap.get(product.manufacturer_id)?.name || 'Unknown Brand'}</span>
                         </div>
                     </div>
                 </a>
