@@ -6,6 +6,7 @@
     import { mergeProductsIntoGroup, deleteGroup as deleteGroupAPI } from '$lib/api/groups.js';
     import { errAsync, ResultAsync } from 'neverthrow';
     import { toasts } from '$lib/states/toast.js';
+    import { diffChars } from 'diff';
     
     type Product = {
         internal_product_id: number;
@@ -807,7 +808,24 @@
                                         </label>
                                         <div class="product-info">
                                             <div class="product-name">
-                                                {product.external_product_name}
+                                                <div {@attach (div) => {
+                                                    const spans: string[] = [];
+                                                    diffChars(
+                                                        group.group_name,
+                                                        product.external_product_name,
+                                                        { ignoreCase: true }
+                                                    ).forEach((part) => {
+                                                        if ((part.added || part.removed) === false) {
+                                                            spans.push(`<span>${part.value}</span>`);
+                                                        } else if (part.added) {
+                                                            spans.push(`<span class="diff-added">${part.value}</span>`);
+                                                        } else if (part.removed) {
+                                                            spans.push(`<span class="diff-removed">${part.value}</span>`);
+                                                        }
+                                                    })
+                                                    div.innerHTML = spans.join('');
+                                                }}>
+                                                </div>
                                             </div>
                                             <div>
                                                 {#if product.verified_internal_product_id}
@@ -2139,5 +2157,13 @@
         align-items: center;
         gap: 0.5rem;
         margin-bottom: 1.5rem;
+    }
+
+    :global(span.diff-added) {
+        background-color: oklch(from green 80% 50% 140 / 60%);
+    }
+
+    :global(span.diff-removed) {
+        background-color: oklch(from red 90% 50% 20 / 80%);
     }
 </style>
