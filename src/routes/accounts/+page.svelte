@@ -40,7 +40,7 @@
         const response = await logIn(email, redirectUrlAfterLogin)
         if (response.isOk()) {
             authEmailSentSuccess = true;
-            message = 'An authorization link has been sent to your email. Visit the link to complete your login.';
+            message = 'An authorization link has been sent to your email. Visit the link to complete your login. Check your spam folder if you do not see it in your inbox :)';
             email = '';
         } else {
             console.error('Error during login:', response.error);
