@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { userState } from '$lib/shared.svelte.js';
+    import { userState } from '$lib/user.svelte.js';
     import { goto } from '$app/navigation';
     import SearchableSelect from '$lib/components/SearchableSelect.svelte';
     import { mergeProductsIntoGroup, deleteGroup as deleteGroupAPI } from '$lib/api/groups.js';

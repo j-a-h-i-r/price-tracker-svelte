@@ -2,7 +2,7 @@
     import { fetchPotentiallySimilarProducts, fetchProductById } from '$lib/api/products';
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-    import { userState } from '$lib/shared.svelte.js';
+    import { userState } from '$lib/user.svelte.js';
     import { toasts } from '$lib/states/toast';
     import type { PotentialProductMatch, Product } from '$lib/types/Product.js';
     import { ResultAsync } from 'neverthrow';
@@ -151,12 +151,12 @@
         <div class="error">{error}</div>
     {:else}
         <div class="products-grid">
-            {#each products as product}
+            {#each products as product, index (index)}
                 <div class="product-comparison">
                     <div class="product-main">
                         <h2><a href="/products/{product.product_id}">{product.product_name}</a></h2>
                         <div class="similar-products">
-                            {#each product.similar_products as similarProduct}
+                            {#each product.similar_products as similarProduct, index (index)}
                                 <div class="similar-product">
                                     <div class="similar-product-info">
                                         <p>
@@ -214,19 +214,19 @@
                                 </thead>
                                 <tbody>
                                     {#if selectedProduct && selectedSimilarProduct}
-                                        {#each Object.keys({...selectedProduct.parsed_metadata, ...selectedProduct.raw_metadata}) as key}
+                                        {#each Object.keys({...selectedProduct.parsed_metadata, ...selectedProduct.raw_metadata}) as key, index (index)}
                                             <tr>
                                                 <td class="metadata-key">{key}</td>
                                                 <td class="metadata-value">
                                                     <div class="metadata-content">
-                                                        <span class={metadataMatches(selectedProduct, selectedSimilarProduct, key) ? "matching-value": "non-matching-value"}>
+                                                        <span class={metadataMatches(selectedProduct, selectedSimilarProduct, key) ? 'matching-value': 'non-matching-value'}>
                                                             {getMetadataValue(selectedProduct, key)}
                                                         </span>
                                                     </div>
                                                 </td>
                                                 <td class="metadata-value">
                                                     <div class="metadata-content">
-                                                        <span class={metadataMatches(selectedProduct, selectedSimilarProduct, key) ? "matching-value": "non-matching-value"}>
+                                                        <span class={metadataMatches(selectedProduct, selectedSimilarProduct, key) ? 'matching-value': 'non-matching-value'}>
                                                             {getMetadataValue(selectedSimilarProduct, key)}
                                                         </span>
                                                     </div>

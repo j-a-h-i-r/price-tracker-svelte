@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-    import { userState } from '$lib/shared.svelte.js';
+    import { userState } from '$lib/user.svelte.js';
     import { toasts } from '$lib/states/toast';
     import type { FringeGroup } from '$lib/types/FringeGroup.js';
     import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';

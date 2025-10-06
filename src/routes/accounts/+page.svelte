@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { userState } from '$lib/shared.svelte.js';
+    import { userState } from '$lib/user.svelte.js';
     import { onMount } from 'svelte';
     import { trackedProducts } from '$lib/states/tracked.svelte.js';
     import { formatPrice } from '$lib/util.js';

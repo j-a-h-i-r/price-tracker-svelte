@@ -22,7 +22,7 @@
     import { Chart } from 'chart.js/auto';
     import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
     import { trackedProducts } from '$lib/states/tracked.svelte.js';
-    import { userState } from '$lib/shared.svelte.js';
+    import { userState } from '$lib/user.svelte.js';
     import { formatPrice, linkWithUtmSource } from '$lib/util.js';
     import dayjs from 'dayjs';
     import type { Attachment } from 'svelte/attachments';

@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { goto } from '$app/navigation';
+    import { goto, } from '$app/navigation';
     import { page } from '$app/stores';
-    import { userState } from '$lib/shared.svelte.js';
+    import { userState } from '$lib/user.svelte.js';
     import { verifyAuthToken } from '$lib/api/auth.js';
 
     let message = '';

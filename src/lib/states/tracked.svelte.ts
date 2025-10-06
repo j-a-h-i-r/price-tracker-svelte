@@ -1,7 +1,5 @@
 import { getMyTrackedProducts } from "$lib/api/me.js";
-import { userState } from "$lib/shared.svelte.js";
 import type { TrackedProduct } from "$lib/types/Product.js";
-import { toasts } from "./toast.js";
 
 class TrackedProducts {
     #trackedProducts: TrackedProduct[] = $state([]);
@@ -27,17 +25,9 @@ class TrackedProducts {
 
     refresh() {
         return getMyTrackedProducts()
-        .match(
-            (products) => {
-                this.#trackedProducts = products;
-            },
-            (err) => {
-                if (err.status === 401) {
-                    toasts.error('Login expired. Please log in again to view your tracked products');
-                    return userState.signOut();
-                }
-            },
-        )
+        .andTee((products) => {
+            this.#trackedProducts = products;
+        });
     }
 }
 

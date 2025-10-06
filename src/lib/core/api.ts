@@ -46,7 +46,6 @@ function fetchResult<T = any, E = any>(relativeUrl: string, options?: RequestIni
             return new ApiError(`Failed to parse response`, response.status, error as E);
         }));
         if (response.ok) {
-            console.log('Response type', response.type);
             return ok(data);
         } else {
             return err(new ApiError(`HTTP error! status: ${response.status}`, response.status, data));

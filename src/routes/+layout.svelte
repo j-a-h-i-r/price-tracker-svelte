@@ -1,16 +1,21 @@
 <script lang="ts">
 	import '../app.css';
-	import { page } from '$app/stores';
-	import { userState } from '$lib/shared.svelte.js';
+	import { userState } from '$lib/user.svelte.js';
 	import { goto } from '$app/navigation';
 	import Toast from '$lib/components/Toast.svelte';
 	import posthog from 'posthog-js';
     import { onMount } from 'svelte';
     import { browser } from '$app/environment';
+    import { toasts } from '$lib/states/toast.js';
+    import { page } from '$app/state';
 
-	let { children } = $props();
+	let { children, data } = $props();
 
-	let pathname = $derived($page?.url?.pathname || '/');
+	userState.setUser({email: data.user?.email, isAdmin: data.user?.isAdmin});
+	if (data.user.isExistingUser && !data.user.email && page.url.pathname !== '/accounts/verify') {
+		toasts.error('Failed to fetch user info. Please sign in again.');
+	} 
+	let pathname = $derived(page.url.pathname || '/');
 
 	function gotoAccount() {
 		goto('/accounts');
