@@ -1,4 +1,4 @@
-export interface WebsiteSummary {
+export interface WebsiteStat {
     total_products: number;
     total_categories: number;
 }
@@ -9,7 +9,7 @@ export interface Website {
     url: string;
 }
 
-export interface WebsiteWithSummary extends Website {
-    summary?: WebsiteSummary;
+export interface WebsiteWithStat extends Website {
+    stat?: WebsiteStat;
     newProductsCount?: number;
 }

@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { fetchWebsiteNewProductsCount, fetchWebsites, fetchWebsiteSummary } from '$lib/api/websites.js';
+    import { fetchWebsiteNewProductsCount, fetchWebsites, fetchWebsiteStats } from '$lib/api/websites.js';
     import { generateSEOConfig } from '$lib/seo.js';
-    import type { WebsiteWithSummary } from '$lib/types/Website.js';
+    import type { WebsiteWithStat } from '$lib/types/Website.js';
     import { ok, ResultAsync } from 'neverthrow';
     import { onMount } from 'svelte';
 
-    let websites: WebsiteWithSummary[] = $state([]);
+    let websites: WebsiteWithStat[] = $state([]);
     let loading = $state(true);
     let error: string | null = $state(null);
     let newProductDays = 7;
@@ -13,16 +13,16 @@
     onMount(async () => {
         fetchWebsites()
         .andThen((_websites) => {
-            const summaryResp = _websites.map((website) => {
+            const statResp = _websites.map((website) => {
                 return ResultAsync.combine([
-                    fetchWebsiteSummary(website.id),
+                    fetchWebsiteStats(website.id),
                     // Return 0 new product if fails to make error handling easier
                     fetchWebsiteNewProductsCount(website.id, newProductDays).orElse(() => ok(0)),
                 ])
-                    .andThen(([summary, newProductCount]) => ok({ ...website, summary, newProductsCount: newProductCount }))
+                    .andThen(([stat, newProductCount]) => ok({ ...website, stat, newProductsCount: newProductCount }))
                     .orElse(() => ok(website))
             })
-            return ResultAsync.combine(summaryResp)
+            return ResultAsync.combine(statResp)
         })
         .match(
             (websitesWithSummaries) => {
@@ -59,14 +59,14 @@
                         {/if}
                     </div>
                     <div class="stats">
-                        {#if website.summary}
+                        {#if website.stat}
                             <div class="stat-item">
                                 <span class="stat-label">Products</span>
-                                <span class="stat-value">{website.summary.total_products}</span>
+                                <span class="stat-value">{website.stat.total_products}</span>
                             </div>
                             <div class="stat-item">
                                 <span class="stat-label">Categories</span>
-                                <span class="stat-value">{website.summary.total_categories}</span>
+                                <span class="stat-value">{website.stat.total_categories}</span>
                             </div>
                         {/if}
                     </div>
