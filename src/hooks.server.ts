@@ -6,6 +6,7 @@ export const handleFetch: HandleFetch = async ({ request, event, fetch }) => {
     console.log('Redirecting fetch for', request.url, 'to', API_URL);
 	if (request.url.startsWith(PUBLIC_API_URL)) {
 		// clone the original request, but change the URL
+		request.headers.set('cookie', event.request.headers.get('cookie') ?? '');
 		return fetch(new Request(
 			request.url.replace(PUBLIC_API_URL, API_URL),
 			request
