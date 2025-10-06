@@ -1,4 +1,5 @@
 import { ResultAsync, err, ok, safeTry } from "neverthrow";
+import { PUBLIC_API_URL } from '$env/static/public';
 
 interface FirstPage {
     page: 'first';
@@ -26,16 +27,26 @@ export class ApiError<D = any> extends Error {
     }
 }
 
-function fetchResult<T = any, E = any>(url: string, options?: RequestInit & { superFetch?: typeof fetch }): ResultAsync<T, ApiError<E>> {
+function fetchResult<T = any, E = any>(relativeUrl: string, options?: RequestInit & { superFetch?: typeof fetch }): ResultAsync<T, ApiError<E>> {
+    // This is unfortunately needed to make this common api function work in both
+    // server and client contexts
+    // See: https://github.com/sveltejs/kit/discussions/5173
+    // We are directly calling fetch here which is `window.fetch`. So when 
+    // this code runs on the server it will also use that. But we need to use
+    // trigger event.fetch so svelte can intercept it in the handleFetch hook.
+    // That hook is used so we can rewrite the API URL to the internal API to
+    // avoid roundtrips. 
     const fetchF = options?.superFetch ?? fetch;
+    const fullUrl = PUBLIC_API_URL + relativeUrl;
     return safeTry(async function* () {
-        const response = yield* (await ResultAsync.fromPromise(fetchF(url, options), (error) => {
-            return new ApiError(`Failed to fetch ${url}`, 0, error);
+        const response = yield* (await ResultAsync.fromPromise(fetchF(fullUrl, options), (error) => {
+            return new ApiError(`Failed to fetch ${fullUrl}`, 0, error);
         }));
         const data = yield* (await ResultAsync.fromPromise(response.json(), (error) => {
             return new ApiError(`Failed to parse response`, response.status, error as E);
         }));
         if (response.ok) {
+            console.log('Response type', response.type);
             return ok(data);
         } else {
             return err(new ApiError(`HTTP error! status: ${response.status}`, response.status, data));
@@ -56,7 +67,7 @@ function appendQueryParams(url: string, params: URLSearchParams): string {
 
 export const api = {
     get: <T, E = any>(url: string, options?: RequestInit & { superFetch?: typeof fetch }) => {
-        return fetchResult<T, E>(url, { method: 'GET', ...options });
+        return fetchResult<T, E>(url, { method: 'GET', credentials: 'include', ...options });
     },
     post: <T, E = any>(url: string, data: any = {}, options?: RequestInit) => {
         let { headers, ...restOptions } = options ?? {};
@@ -64,7 +75,7 @@ export const api = {
         if (!headers.get('Content-Type')) {
             headers.set('Content-Type', 'application/json');
         }
-        return fetchResult<T, E>(url, { method: 'POST', body: JSON.stringify(data), headers, ...restOptions });
+        return fetchResult<T, E>(url, { method: 'POST', credentials: 'include', body: JSON.stringify(data), headers, ...restOptions });
     },
     put: <T, E = any>(url: string, data: any = {}, options?: RequestInit) => {
         let { headers, ...restOptions } = options ?? {};
@@ -72,9 +83,9 @@ export const api = {
         if (!headers.get('Content-Type')) {
             headers.set('Content-Type', 'application/json');
         }
-        return fetchResult<T, E>(url, { method: 'PUT', body: JSON.stringify(data), headers, ...restOptions });
+        return fetchResult<T, E>(url, { method: 'PUT', credentials: 'include', body: JSON.stringify(data), headers, ...restOptions });
     },
     delete: <T, E = any>(url: string, options?: RequestInit) => {
-        return fetchResult<T, E>(url, { method: 'DELETE', ...options });
+        return fetchResult<T, E>(url, { method: 'DELETE', credentials: 'include', ...options });
     }
 }

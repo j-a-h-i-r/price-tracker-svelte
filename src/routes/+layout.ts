@@ -9,6 +9,9 @@ import { fetchWebsites } from "$lib/api/websites.js";
 export const ssr = true;
 
 export const load: LayoutLoad = async ({ fetch }) => {
+    console.log("[In layout load]");
+    // I don't expect these values to change while the user
+    // is browsing the site. So fetching these once
     const categories = await fetchCategories(fetch).unwrapOr([]);
     const manufacturers = await getManufacturers(fetch).unwrapOr([]);
     const websites = await fetchWebsites(fetch).unwrapOr([]);
