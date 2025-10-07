@@ -26,12 +26,6 @@
 			description: 'Run and monitor admin tasks'
 		},
 		{
-			path: '/admin/similar',
-			title: 'Similar Products',
-			icon: '🔗',
-			description: 'Manage similar products'
-		},
-		{
 			path: '/admin/metadata',
 			title: 'Metadata',
 			icon: '📝',

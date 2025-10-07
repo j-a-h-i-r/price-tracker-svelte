@@ -41,6 +41,7 @@ export const load: LayoutServerLoad = async ({ fetch, cookies }) => {
         user,
         categories,
         manufacturers,
+        websites,
         categoryMap,
         manufacturerMap,
         websiteMap,

@@ -1,10 +1,11 @@
 <script lang="ts">
+    type IdType = 'all' | string | number;
     interface Option {
-        id: string | number;
+        id: IdType;
         name: string;
     }
 
-    let { options, value = $bindable(), allLabel = 'All', label }: { options: Option[]; value: string | number; allLabel: string; label: string } = $props();
+    let { options, value = $bindable(), allLabel = 'All', label }: { options: Option[]; value: IdType; allLabel: string; label: string } = $props();
 
     let isOpen = $state(false);
     let searchQuery = $state('');
@@ -21,7 +22,7 @@
         option.name.toLowerCase().includes(searchQuery.toLowerCase())
     ));
 
-    function handleSelect(optionId: string | number) {
+    function handleSelect(optionId: IdType) {
         value = optionId;
         isOpen = false;
         searchQuery = '';
@@ -92,7 +93,7 @@
                     >
                         {allLabel}
                     </button>
-                    {#each filteredOptions as option}
+                    {#each filteredOptions as option (option.id)}
                         <button 
                             class="option"
                             class:selected={value == option.id}

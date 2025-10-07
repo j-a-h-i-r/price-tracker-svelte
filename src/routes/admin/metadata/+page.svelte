@@ -1,26 +1,22 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { fetchMetadatas } from "$lib/api/metadata.js";
-    import { fetchCategories, type Category } from "$lib/api/products";
-    import Table from "$lib/components/Table.svelte";
-    import { goto } from "$app/navigation";
+    import { fetchMetadatas } from '$lib/api/metadata.js';
+    import Table from '$lib/components/Table.svelte';
+    import { goto } from '$app/navigation';
+    import SearchableSelect from '$lib/components/SearchableSelect.svelte';
+
+    const { data } = $props();
+
+    let categories = data.categories;
+    let websites = data.websites;
 
     let metadatas: {metadata: string; count: number}[] = $state([]);
     let loading = $state(true);
     let error: string | null = $state(null);
-    let searchQuery = $state("");
+    let searchQuery = $state('');
 
     // New state for filters
-    let categories: Category[] = $state([]);
-    let selectedCategory: string = $state("");
-    
-    // Update website type
-    interface Website {
-        id: string;
-        name: string;
-    }
-    let websites: Website[] = $state([]);
-    let selectedWebsite: string = $state("");
+    let selectedCategory: string = $state('all');
+    let selectedWebsite: string = $state('all');
 
     let filteredMetadatas = $derived(
         metadatas.filter(({metadata}) => 
@@ -30,8 +26,8 @@
 
     async function loadMetadata() {
         const metadataResp = await fetchMetadatas({
-                category_id: selectedCategory || undefined,
-                website_id: selectedWebsite || undefined
+                category_id: selectedCategory !== 'all' ? selectedCategory : undefined,
+                website_id: selectedWebsite !== 'all' ? selectedWebsite : undefined
             })
         if (metadataResp.isOk()) {
             metadatas = metadataResp.value;
@@ -44,20 +40,6 @@
 
     $effect(() => {
         loadMetadata();
-    });
-
-    onMount(async () => {
-        try {
-            // Load categories
-            categories = await fetchCategories().unwrapOr([]);
-            
-            // Load websites (assuming you have this endpoint)
-            const response = await fetch('/api/websites');
-            websites = await response.json();
-        } catch (e) {
-            console.error("Error fetching filters:", e);
-            error = e instanceof Error ? e.message : "An error occurred";
-        }
     });
 
     function handleRowClick(row: { name: string }) {
@@ -79,19 +61,17 @@
         </div>
 
         <div class="select-container">
-            <select bind:value={selectedCategory} class="filter-select">
-                <option value="">All Categories</option>
-                {#each categories as category}
-                    <option value={category.id}>{category.name}</option>
-                {/each}
-            </select>
+            <SearchableSelect
+                allLabel="All Categories" label="Category"
+                options={categories.map(category => ({ id: category.id, name: category.name }))}
+                bind:value={selectedCategory}
+            />
 
-            <select bind:value={selectedWebsite} class="filter-select">
-                <option value="">All Websites</option>
-                {#each websites as website}
-                    <option value={website.id}>{website.name}</option>
-                {/each}
-            </select>
+            <SearchableSelect
+                allLabel="All Websites" label="Website"
+                options={websites.map(website => ({ id: website.id, name: website.name }))}
+                bind:value={selectedWebsite}
+            />
         </div>
     </div>
 
@@ -103,8 +83,8 @@
         <p>No metadata available</p>
     {:else}
         <Table
-            headers={["Metadata Name", "Count"]}
-            keys={["name", "count"]}
+            headers={['Metadata Name', 'Count']}
+            keys={['name', 'count']}
             rows={filteredMetadatas.map(metadata => ({
                 name: metadata.metadata,
                 count: metadata.count

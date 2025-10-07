@@ -3,7 +3,6 @@ import { paginatedApi } from '$lib/core/paginatedapi.svelte.js';
 import type {
     ExternalProductMetadata,
     ExternalProductPrice,
-    PotentialProductMatch,
     Product,
     ProductVariant,
     ProductWithLastPrice,
@@ -94,10 +93,6 @@ export interface Category {
 
 export function fetchCategories(superFetch?: typeof fetch) {
     return api.get<Category[]>('/api/categories', { superFetch });
-}
-
-export function fetchPotentiallySimilarProducts({ minScore }: { minScore: number }) {
-    return api.get<PotentialProductMatch[]>(`/api/potentialsimilar?min_score=${minScore}`);
 }
 
 export function fetchExternalProductMetadata(externalId: number) {

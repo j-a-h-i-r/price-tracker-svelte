@@ -2,11 +2,11 @@
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
     import { userState } from '$lib/user.svelte.js';
+    import { executeUpdateMetadataTask } from '$lib/api/tasks.js';
+    import { toasts } from '$lib/states/toast.svelte.js';
     
     let isUpdatingMetadata = $state(false);
     let updateStatus = $state('');
-    let isUpdatingSimilarProducts = $state(false);
-    let similarProductsStatus = $state('');
     
     onMount(() => {
         if (!userState.isAdmin) {
@@ -17,45 +17,13 @@
     async function updateMetadata() {
         isUpdatingMetadata = true;
         updateStatus = 'Starting metadata update...';
-        
-        try {
-            const response = await fetch('/api/admin/tasks/updatemetadata', {
-                method: 'POST',
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to start metadata update');
-            }
-            
+        const response = await executeUpdateMetadataTask();
+        if (response.isOk()) {
             updateStatus = 'Metadata update task started successfully';
-        } catch (error) {
-            console.error('Error starting metadata update:', error);
-            updateStatus = 'Failed to start metadata update';
-        } finally {
-            isUpdatingMetadata = false;
+        } else {
+            toasts.error('Failed to start metadata update');
         }
-    }
-    
-    async function updatePotentialSimilarProducts() {
-        isUpdatingSimilarProducts = true;
-        similarProductsStatus = 'Starting potential similar products update...';
-        
-        try {
-            const response = await fetch('/api/potentialsimilar', {
-                method: 'POST',
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to start potential similar products update');
-            }
-            
-            similarProductsStatus = 'Potential similar products update task started successfully';
-        } catch (error) {
-            console.error('Error starting potential similar products update:', error);
-            similarProductsStatus = 'Failed to start potential similar products update';
-        } finally {
-            isUpdatingSimilarProducts = false;
-        }
+        isUpdatingMetadata = false;
     }
 </script>
 
@@ -85,29 +53,6 @@
             {#if updateStatus}
                 <div class="status-message" class:error={updateStatus.includes('Failed')}>
                     {updateStatus}
-                </div>
-            {/if}
-        </div>
-        
-        <div class="task-card">
-            <div class="task-header">
-                <h2>Update Potential Similar Products</h2>
-                <p>Update the list of potential similar products for all products in the database</p>
-            </div>
-            
-            <div class="task-actions">
-                <button 
-                    class="run-btn"
-                    disabled={isUpdatingSimilarProducts}
-                    onclick={updatePotentialSimilarProducts}
-                >
-                    {isUpdatingSimilarProducts ? 'Running...' : 'Run Task'}
-                </button>
-            </div>
-            
-            {#if similarProductsStatus}
-                <div class="status-message" class:error={similarProductsStatus.includes('Failed')}>
-                    {similarProductsStatus}
                 </div>
             {/if}
         </div>

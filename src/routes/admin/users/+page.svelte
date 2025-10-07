@@ -3,6 +3,7 @@
     import { userState } from '$lib/user.svelte.js';
     import { goto } from '$app/navigation';
     import type { User } from '$lib/types/User';
+    import { fetchUsers } from '$lib/api/users.js';
 
     let users: User[] = $state([]);
 
@@ -12,16 +13,15 @@
             return;
         }
 
-        try {
-            const response = await fetch('/api/users');
-            if (!response.ok) throw new Error('Failed to fetch users');
-            users = await response.json();
-        } catch (error) {
-            console.error('Error fetching users:', error);
+        const response = await fetchUsers();
+        if (response.isOk()) {
+            users = response.value;
+        } else {
+            console.error('Error fetching users:', response.error);
         }
     });
 
-    const columns = [
+    const columns: {key: keyof User, title: string, render?: (value: any) => string}[] = [
         { key: 'id', title: 'ID' },
         { key: 'email', title: 'Email' },
         { key: 'created_at', title: 'Created At', render: (value: string) => new Date(value).toLocaleDateString() }
@@ -37,15 +37,15 @@
         <table>
             <thead>
                 <tr>
-                    {#each columns as column}
+                    {#each columns as column (column.key)}
                         <th>{column.title}</th>
                     {/each}
                 </tr>
             </thead>
             <tbody>
-                {#each users as user}
+                {#each users as user (user.id)}
                     <tr>
-                        {#each columns as column}
+                        {#each columns as column (column.key)}
                             <td>{user[column.key]}</td>
                         {/each}
                     </tr>
