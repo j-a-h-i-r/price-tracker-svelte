@@ -3,9 +3,12 @@
     import { goto } from '$app/navigation';
     import { userState } from '$lib/user.svelte.js';
     import { toasts } from '$lib/states/toast';
+    import { fetchManufacturerStats, getManufacturers, mergeIntoManufacturer } from '$lib/api/manufacturers.js';
+
+    const { data } = $props();
     
-    let manufacturers: any[] = $state([]);
-    let selectedManufacturers = $state<any>({});
+    let manufacturers = $state(data.manufacturers);
+    let selectedManufacturers = $state<Record<string, boolean>>({});
     let isMerging = $state(false);
     let targetManufacturerId = $state<number | null>(null);
 
@@ -15,34 +18,29 @@
     );
     let selectedItems = $derived.by(() => {
         return Promise.all(manufacturers.filter(m => selectedManufacturers[m.id] === true)
-        .map(m => {
-            return fetch(`/api/manufacturers/${m.id}/stats`)
-                .then(res => res.json())
-                .then(data => {
-                    const ret = { ...m, ...data };
-                    console.log('Manufacturer stats:', ret);
-                    return ret;
-                })
+        .map(async m => {
+            return await fetchManufacturerStats(m.id).match(
+                (data) => {
+                return { ...m, ...data };
+            }, () => {
+                return m;
+            })
         }));
     });
+
+    $effect(() => {
+        console.log(selectedItems);
+    })
 
     onMount(async () => {
         if (!userState.isAdmin) {
             goto('/');
             return;
         }
-
-        try {
-            const response = await fetch('/api/manufacturers');
-            if (!response.ok) throw new Error('Failed to fetch manufacturers');
-            manufacturers = await response.json();
-        } catch (error) {
-            console.error('Error fetching manufacturers:', error);
-        }
     });
 
     async function handleMerge() {
-        if (!targetManufacturerId || selectedManufacturers.length < 2) return;
+        if (!targetManufacturerId || Object.keys(selectedManufacturers).length < 2) return;
 
         const idsToRemove = Object.keys(selectedManufacturers)
             .filter(id => selectedManufacturers[id] === true)
@@ -50,37 +48,20 @@
             .filter(id => id !== targetManufacturerId);
         console.log('Merging manufacturers:', idsToRemove, 'into', targetManufacturerId);
         
-        try {
-            const response = await fetch(`/api/manufacturers/${targetManufacturerId}/merge`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    manufacturer_ids: idsToRemove
-                }),
-            });
-
-            if (!response.ok) {
+        const response = await mergeIntoManufacturer(targetManufacturerId, idsToRemove);
+            if (response.isErr()) {
                 toasts.error('Failed to merge manufacturers');
-                throw new Error('Failed to merge manufacturers');
+                return;
             }
 
             toasts.success('Manufacturers merged successfully');
 
-            // Refresh the manufacturers list
-            const response1 = await fetch('/api/manufacturers');
-            if (!response1.ok) throw new Error('Failed to fetch manufacturers');
-            manufacturers = await response1.json();
+            manufacturers = await getManufacturers().unwrapOr([]);
             
             // Reset selection state
             selectedManufacturers = {};
             isMerging = false;
             targetManufacturerId = null;
-        } catch (error) {
-            console.error('Error merging manufacturers:', error);
-            alert('Failed to merge manufacturers. Please try again.');
-        }
     }
 
     const columns = [
@@ -102,7 +83,7 @@
             {#await selectedItems}
                 <p>Loading</p>
             {:then selectedItems} 
-                {#each selectedItems as manufacturer}
+                {#each selectedItems as manufacturer (manufacturer.id)}
                     <div class="selected-chip">
                         <span>{manufacturer.name} ({manufacturer.product_count})</span>
                         <button 
@@ -129,7 +110,7 @@
                 <h3>Merge Manufacturers</h3>
                 <p class="merge-description">Select the manufacturer to keep. Other selected manufacturers will be merged into this one.</p>
                 <div class="merge-options">
-                    {#each manufacturers.filter(m => selectedManufacturers[m.id]) as manufacturer}
+                    {#each manufacturers.filter(m => selectedManufacturers[m.id]) as manufacturer (manufacturer.id)}
                         <label class="merge-option">
                             <input
                                 type="radio"
@@ -161,13 +142,13 @@
         <thead>
             <tr>
                 <th>Select</th>
-                {#each columns as column}
+                {#each columns as column, index (index)}
                     <th>{column.title}</th>
                 {/each}
             </tr>
         </thead>
         <tbody>
-            {#each manufacturers as manufacturer}
+            {#each manufacturers as manufacturer (manufacturer.id)}
                 <tr>
                     <td>
                         <!-- bind:checked={selectedManufacturers.includes(manufacturer.id)} -->
@@ -176,7 +157,7 @@
                             bind:checked={selectedManufacturers[manufacturer.id]}
                         />
                     </td>
-                    {#each columns as column}
+                    {#each columns as column, index (index)}
                         <td>{manufacturer[column.key]}</td>
                     {/each}
                 </tr>
