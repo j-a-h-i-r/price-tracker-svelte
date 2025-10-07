@@ -3,62 +3,18 @@
     import { userState } from '$lib/user.svelte.js';
     import { goto } from '$app/navigation';
     import SearchableSelect from '$lib/components/SearchableSelect.svelte';
-    import { mergeProductsIntoGroup, deleteGroup as deleteGroupAPI } from '$lib/api/groups.js';
+    import { mergeProductsIntoGroup, deleteGroup as deleteGroupAPI, fetchGroups, type Group, fetchExternalProductGroups, type ExternalProductGroup, deleteExternalProductFromGroup, updateGroup } from '$lib/api/groups.js';
     import { errAsync, ResultAsync } from 'neverthrow';
     import { toasts } from '$lib/states/toast.js';
     import { diffChars } from 'diff';
-    
-    type Product = {
-        internal_product_id: number;
-        external_product_id: number;
-        external_product_name: string;
-        run_count: number;
-        avg_confidence: number;
-        distinct_groups: number;
-        ip_count: number;
-        auto_merge_possible: boolean;
-        verified_internal_product_id?: number;
-    };
+    import type { PageProps } from '../$types.js';
 
-    type Group = {
-        id: number;
-        internal_product_id: number | null;
-        group_name: string;
-        created_at: string;
-        updated_at: string;
-        category_id: number;
-        manufacturer_id: number;
-        auto_merge_eligible: boolean;
-        products?: Product[];
-    };
+    const { data }: PageProps = $props();
 
-    type GroupRun = {
-        created_at: string;
-        updated_at: string;
-        confidence_score: number;
-        run_id: number;
-        admin_verified_at: string | null;
-    };
-
-    type ExternalGroup = {
-        group_id: number;
-        group_name: string;
-        runs: GroupRun[];
-    };
-
-    type Category = {
-        id: number;
-        name: string;
-    };
-
-    type Manufacturer = {
-        id: number;
-        name: string;
-    };
+    let categories = data.categories;
+    let manufacturers = data.manufacturers;
 
     let groups: Group[] = $state([]);
-    let categories: Category[] = $state([]);
-    let manufacturers: Manufacturer[] = $state([]);
     let isLoading = $state(true);
     let error = $state<string | null>(null);
     let selectedProducts: Set<string> = $state(new Set());
@@ -67,7 +23,7 @@
     let editingGroupName = $state('');
     let showGroupsModal = $state(false);
     let currentProductId = $state<number | null>(null);
-    let externalGroups = $state<ExternalGroup[]>([]);
+    let externalGroups = $state<ExternalProductGroup[]>([]);
     let loadingExternalGroups = $state(false);
     let deletingProducts: Set<string> = $state(new Set());
     
@@ -84,81 +40,42 @@
             return;
         }
 
-        await Promise.all([loadGroups(), loadCategories(), loadManufacturers()]);
+        await Promise.all([loadGroups()]);
     });
 
     async function loadGroups() {
-        try {
-            isLoading = true;
-            const params = new URLSearchParams();
-            
-            if (selectedCategoryId && selectedCategoryId !== 'all') {
-                params.set('category_id', selectedCategoryId.toString());
-            }
-            if (selectedManufacturerId && selectedManufacturerId !== 'all') {
-                params.set('manufacturer_id', selectedManufacturerId.toString());
-            }
-            if (showOnlyEligible) {
-                params.set('auto_merge_eligible_only', 'true');
-            }
-            if (minRunsRequired > 0) {
-                params.set('min_runs_count', minRunsRequired.toString());
-            }
-
-            const url = `/api/groups${params.toString() ? `?${params.toString()}` : ''}`;
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('Failed to fetch groups');
-            }
-            groups = await response.json();
-
-            // Reset selections when groups change
-            selectedProducts.clear();
-
-            // Since the API now returns products within each group,
-            // we can process them directly without additional API calls
-            groups.forEach((group) => {
-                if (group.products) {
-                    group.products.forEach((product: Product) => {
-                        // Auto-select products based on criteria
-                        if (product.auto_merge_possible) {
-                            selectedProducts.add(`${group.id}_${product.external_product_id}`);
-                        }
-                    });
-                }
-            });
-
-            selectedProducts = new Set(selectedProducts);
-        } catch (err) {
-            console.error('Error fetching groups:', err);
+        isLoading = true;
+        const response = await fetchGroups({
+            categoryId: selectedCategoryId !== 'all' ? selectedCategoryId as number : undefined,
+            manufacturerId: selectedManufacturerId !== 'all' ? selectedManufacturerId as number : undefined,
+            onlyAutoMergeEligible: showOnlyEligible || undefined,
+            minRunsCount: minRunsRequired > 0 ? minRunsRequired : undefined,
+        })
+        if (response.isOk()) {
+            groups = response.value;
+        } else {
+            console.error('Error fetching groups:', response.error);
             error = 'Failed to load product groups';
-        } finally {
-            isLoading = false;
         }
-    }
+        isLoading = false;
+        
+        // Reset selections when groups change
+        selectedProducts.clear();
 
-    async function loadCategories() {
-        try {
-            const response = await fetch('/api/categories');
-            if (!response.ok) {
-                throw new Error('Failed to fetch categories');
+        // Since the API now returns products within each group,
+        // we can process them directly without additional API calls
+        groups.forEach((group) => {
+            if (group.products) {
+                group.products.forEach((product) => {
+                    // Auto-select products based on criteria
+                    if (product.auto_merge_possible) {
+                        selectedProducts.add(`${group.id}_${product.external_product_id}`);
+                    }
+                });
             }
-            categories = await response.json();
-        } catch (err) {
-            console.error('Error fetching categories:', err);
-        }
-    }
+        });
 
-    async function loadManufacturers() {
-        try {
-            const response = await fetch('/api/manufacturers');
-            if (!response.ok) {
-                throw new Error('Failed to fetch manufacturers');
-            }
-            manufacturers = await response.json();
-        } catch (err) {
-            console.error('Error fetching manufacturers:', err);
-        }
+        selectedProducts = new Set(selectedProducts);
     }
 
     // Reactive effect to reload groups when filters change
@@ -208,19 +125,15 @@
     }
 
     async function loadExternalGroups(externalProductId: number) {
-        try {
-            loadingExternalGroups = true;
-            const response = await fetch(`/api/externals/${externalProductId}/groups`);
-            if (!response.ok) {
-                throw new Error('Failed to fetch external groups');
-            }
-            externalGroups = await response.json();
-        } catch (err) {
-            console.error('Error fetching external groups:', err);
+        loadingExternalGroups = true;
+        const response = await fetchExternalProductGroups(externalProductId);
+        if (response.isOk()) {
+            externalGroups = response.value;
+        } else {
+            console.error('Error fetching external groups:', response.error);
             externalGroups = [];
-        } finally {
-            loadingExternalGroups = false;
         }
+        loadingExternalGroups = false;
     }
 
     async function showExternalGroups(externalProductId: number) {
@@ -242,19 +155,12 @@
         const key = `${groupId}_${externalProductId}`;
         if (!confirm('Remove this product from the group?')) return;
 
-        try {
-            deletingProducts.add(key);
-            deletingProducts = new Set(deletingProducts);
+        deletingProducts.add(key);
+        deletingProducts = new Set(deletingProducts);
 
-            const response = await fetch(
-                `/api/externals/${externalProductId}/groups/${groupId}`,
-                {
-                    method: 'DELETE',
-                },
-            );
-            if (!response.ok) {
-                throw new Error('Failed to remove product from group');
-            }
+        const response = await deleteExternalProductFromGroup(externalProductId, groupId);
+        if (response.isOk()) {
+            toasts.success('Product removed from group successfully');
 
             // Update local state
             const gIdx = groups.findIndex((g) => g.id === groupId);
@@ -272,13 +178,12 @@
 
             // Trigger reactivity for groups
             groups = [...groups];
-        } catch (err) {
-            console.error('Error removing product from group:', err);
-            alert('Failed to remove product. Please try again.');
-        } finally {
-            deletingProducts.delete(key);
-            deletingProducts = new Set(deletingProducts);
+        } else {
+            toasts.error('Failed to remove product from group');
         }
+
+        deletingProducts.delete(key);
+        deletingProducts = new Set(deletingProducts);
     }
 
     function handleGroupsModalClick(event: MouseEvent) {
@@ -384,19 +289,13 @@
             return;
         }
 
-        try {
-            const response = await fetch(`/api/groups/${groupId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ groupName: editingGroupName.trim() }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to update group name');
-            }
-
+        const response = await updateGroup(groupId, {
+            name: editingGroupName.trim(),
+        });
+        if (response.isErr()) {
+            toasts.error('Failed to update group name');
+            console.error('Error updating group name:', response.error);
+        } else {
             // Update the group in the local state
             const groupIndex = groups.findIndex((g) => g.id === groupId);
             if (groupIndex !== -1) {
@@ -405,9 +304,6 @@
 
             editingGroupId = null;
             editingGroupName = '';
-        } catch (err) {
-            console.error('Error updating group name:', err);
-            alert('Failed to update group name. Please try again.');
         }
     }
 

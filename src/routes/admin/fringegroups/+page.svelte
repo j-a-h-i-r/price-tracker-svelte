@@ -7,6 +7,7 @@
     import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
     import { getFringeGroups, purgeGroup } from '$lib/api/fringegroups.js';
     import { ResultAsync } from 'neverthrow';
+    import { fetchExternalProductGroups } from '$lib/api/groups.js';
 
     let fringeGroups: FringeGroup[] = $state([]);
     let isLoading = $state(false);
@@ -100,12 +101,7 @@
             loadingGroups.add(externalProductId);
             loadingGroups = new Set(loadingGroups);
 
-            const response = await fetch(`/api/externals/${externalProductId}/groups`);
-            if (!response.ok) {
-                throw new Error('Failed to fetch group details');
-            }
-            
-            const groups = await response.json();
+            const groups = await fetchExternalProductGroups(externalProductId).unwrapOr([]);
             groupDetails[externalProductId] = groups;
             groupDetails = { ...groupDetails };
         } catch (error) {
