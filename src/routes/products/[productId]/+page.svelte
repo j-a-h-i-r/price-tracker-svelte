@@ -32,16 +32,17 @@
     import { goto } from '$app/navigation';
     import Loader from '$lib/components/Loader.svelte';
     import Pill from '$lib/components/Pill.svelte';
-    import { generateProductStructuredData, generateSEOConfig } from '$lib/seo.js';
+    import { generateLdJSON, generateProductStructuredData, generateSEOConfig } from '$lib/seo.js';
     import type { PageProps } from './$types.js';
 
     let { data }: PageProps = $props();
 
     let websiteMap = data.websiteMap;
-    let product: Product | null = $state(data.product);
-    let variants: ProductVariant[] = $state(data.variantAttributes);
+    let product: Product | undefined = $state(data.product);
+    let variants: ProductVariant[] = $state(data.variantAttributes ?? []);
     let productNotFound = data.exists === false;
     let externalProducts: ExternalProduct[] = $state(data.externalProducts ?? []);
+    let externalPrices = $state(data.externalPrices ?? []);
 
     onMount(() => {
         variants.forEach((variant) => {
@@ -585,6 +586,7 @@
 </script>
 
 <svelte:head>
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html
         generateSEOConfig({
             title: product?.name ? `${product.name} - View price history and track price drops` : 'Product Details',
@@ -595,13 +597,9 @@
     
     {#if product}
         <!-- Product Structured Data -->
-        
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html
-        `
-        <script type="application/ld+json">
-            ${JSON.stringify(generateProductStructuredData(product), null, 2)}
-        </script>
-        `
+            generateLdJSON(JSON.stringify(generateProductStructuredData(product, externalPrices), null, 2))
         }
     {/if}
 </svelte:head>

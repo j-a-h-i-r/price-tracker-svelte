@@ -177,3 +177,15 @@ export function fetchExternalProducts(filter: {
         },
     });
 }
+
+export function fetchExternalPricesOfProduct(internalProductId: number, superFetch?: typeof fetch) {
+    return api.get<{
+        id: number,
+        url: string,
+        name: string,
+        price: number,
+        is_available: boolean,
+        website: string,
+        last_checked_at: string
+    }[]>(`/api/products/${internalProductId}/externalprices`, { superFetch });
+}

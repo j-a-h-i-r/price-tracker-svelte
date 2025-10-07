@@ -52,7 +52,7 @@ export function generateSEOConfig(config: SEOConfig): string {
 	return metaTags.trim();
 }
 
-export function generateProductStructuredData(product: Product): any {
+export function generateProductStructuredData(product: Product, prices: any[]): any {
 	return {
 		"@context": "https://schema.org/",
 		"@type": "Product",
@@ -64,6 +64,23 @@ export function generateProductStructuredData(product: Product): any {
 			"name": product.manufacturer_name || "Unknown"
 		},
 		"category": product.category_name || "Uncategorized",
+		"offers": prices.length > 0 ? {
+			"@type": "AggregateOffer",
+			"priceCurrency": "BDT",
+			"highPrice": prices[prices.length - 1].price,
+			"lowPrice": prices[0].price,
+			"offerCount": prices.length,
+			"offers": prices.map((price) => ({
+				"@type": "Offer",
+				"priceCurrency": "BDT",
+				"url": price.url,
+				"name": price.name,
+				"price": price.price,
+				"availability": price.is_available
+					? "https://schema.org/InStock"
+					: "https://schema.org/OutOfStock",
+			}))
+		} : undefined
 	};
 }
 
