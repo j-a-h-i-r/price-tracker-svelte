@@ -7,20 +7,21 @@
     import { logIn } from '$lib/api/auth.js';
     import { untrackProduct } from '$lib/api/products.js';
     import { toasts } from '$lib/states/toast.js';
+    import type { PageProps } from '../$types.js';
+
+    const { data }: PageProps = $props();
+    let user = $state(data.user);
 
     let email = $state('');
     let message = $state('');
     let authEmailSentSuccess = $state(false);
     let isLoading = $state(false);
-    let isSignedIn = $state(false);
     let redirectUrlAfterLogin = $state('');
     let showConfirmDialog = $state(false);
     let productToUntrack: { id: number; name: string } | null = $state(null);
 
     onMount(async () => {
-        if (userState.email) {
-            email = userState.email;
-            isSignedIn = true;
+        if (user?.email) {
             // Refresh tracked products when user is signed in
             await trackedProducts.refresh();
         }
@@ -52,9 +53,11 @@
 
     async function signOut() {
         await userState.signOut();
-        isSignedIn = false;
         trackedProducts.clear();
-        email = '';
+        if (user.isExistingUser) {
+            user.email = '';
+            user.isAdmin = false;
+        }
     }
 
     async function handleUntrack(productId: number, productName: string) {
@@ -87,8 +90,8 @@
     }
 </script>
 
-{#if isSignedIn}
-    <div class="app-container">
+{#if user?.email}
+    <div>
         <div class="header-section">
             <h1 class="page-title">Tracked Products</h1>
             <button class="btn btn-fatal" onclick={signOut}>
