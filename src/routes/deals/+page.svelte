@@ -58,7 +58,7 @@
     });
 </script>
 
-<div class="deals-container">
+<div class="">
     <div class="deals-header">
         <h1>Current Deals</h1>
         <h2>Check out current deals. Use the filters to grab your perfect deal!</h2>
@@ -133,6 +133,7 @@
 </div>
 
 <svelte:head>
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html
         generateSEOConfig({
             title: 'Current Deals - Find the hottest deals on Bangladeshi products',
@@ -144,11 +145,6 @@
 </svelte:head>
 
 <style>
-    .deals-container {
-        padding: 2rem;
-        padding-top: 0;
-    }
-
     .deals-header {
         display: flex;
         flex-direction: column;

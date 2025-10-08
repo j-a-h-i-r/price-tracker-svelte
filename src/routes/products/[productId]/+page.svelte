@@ -604,7 +604,7 @@
     {/if}
 </svelte:head>
 
-<div class="product-details">
+<div>
     {#if productNotFound}
         <div class="product-not-found">
             <div class="not-found-icon-container">

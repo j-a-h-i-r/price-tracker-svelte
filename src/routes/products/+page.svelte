@@ -291,8 +291,8 @@
 
     .content {
         flex: 1;
-        padding: 1rem;
-        overflow-x: auto;
+        padding: 1rem 0;
+        overflow-x: hidden;
     }
 
     .search-header {

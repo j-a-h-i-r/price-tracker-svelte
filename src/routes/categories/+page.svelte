@@ -37,7 +37,7 @@
     });
 </script>
 
-<div class="categories-container">
+<div>
     {#if loading}
         <p>Loading categories...</p>
     {:else}
@@ -65,6 +65,7 @@
 </div>
 
 <svelte:head>
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html
         generateSEOConfig({
             title: 'Supported Categories for tracking the best prices',
@@ -76,10 +77,6 @@
 </svelte:head>
 
 <style>
-    .categories-container {
-        padding: 2rem 0;
-    }
-
     .categories-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));

@@ -219,6 +219,7 @@
 <div class="search-container">
     <input
         type="text"
+        name="searchproducts"
         bind:value={searchQuery}
         placeholder="Search for products or paste the URL..."
         class="form-input"
@@ -361,7 +362,6 @@
 
     .search-container {
         margin: var(--spacing-2xl) 0;
-        max-width: 600px;
         margin-left: auto;
         margin-right: auto;
         position: relative;

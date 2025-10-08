@@ -54,7 +54,7 @@
 	})
 </script>
 
-<div class="min-h-screen bg-secondary">
+<div class="min-h-screen gradient-bg">
 	<Toast />
 	<header>
 		<nav class="bg-primary border-b" style="border-color: var(--color-border-light);" aria-label="Main navigation">
@@ -131,7 +131,7 @@
 						{/if}
 						{#if userState.email}
 							<div class="flex items-center gap-md">
-								<span class="text-small hidden sm:inline"
+								<span class="text-sm text-gray-500 hidden sm:inline"
 									>{userState.email}</span
 								>
 								<button
@@ -154,8 +154,10 @@
 			</div>
 		</nav>
 	</header>
-	<main class="container py-4 mx-auto">
+	<main class="container py-4 px-4 lg:px-16 min-[400px]:px-8 mx-auto">
+		<div class="sm:max-w-4/5 mx-auto">
 		{@render children()}
+		</div>
 	</main>
 </div>
 
