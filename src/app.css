@@ -68,6 +68,9 @@
   --radius-xl: 0.75rem;     /* 12px */
   --radius-full: 9999px;
 
+  /* Border Width */
+  --border-width: 1px;
+
   /* === SHADOWS === */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -91,7 +94,7 @@
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   border-radius: var(--radius-md);
-  border: var(--radius-sm) solid var(--color-border);
+  border: var(--border-width) solid var(--color-border);
   cursor: pointer;
   text-decoration: none;
   transition: all var(--transition-fast);
@@ -147,7 +150,7 @@
   width: 100%;
   padding: var(--spacing-md) var(--spacing-lg);
   font-size: var(--text-lg);
-  border: 2px solid var(--color-border);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
   outline: none;
   background-color: var(--color-bg-primary);
@@ -183,6 +186,75 @@
 
 .padding-lg {
   padding: var(--spacing-lg);
+}
+
+/* === BACKGROUND GRADIENT === */
+.gradient-bg {
+  background: linear-gradient(
+    135deg,
+    #fef3e2 0%,
+    #f0f9ff 25%,
+    #f0fdf4 50%,
+    #fff8f0 75%,
+    #fef3e2 100%
+  );
+  position: relative;
+  overflow: hidden;
+}
+
+.gradient-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(255, 255, 255, 0.85) 20%,
+      rgba(255, 255, 255, 0.75) 40%,
+      rgba(255, 255, 255, 0.85) 60%,
+      rgba(255, 255, 255, 0.9) 100%
+    );
+  backdrop-filter: blur(60px);
+  -webkit-backdrop-filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.gradient-bg::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(
+      ellipse at 20% 30%,
+      rgba(254, 243, 226, 0.4) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 80% 70%,
+      rgba(240, 249, 255, 0.4) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 50% 50%,
+      rgba(240, 253, 244, 0.3) 0%,
+      transparent 60%
+    );
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.gradient-bg > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* === RESPONSIVE BREAKPOINTS === */
