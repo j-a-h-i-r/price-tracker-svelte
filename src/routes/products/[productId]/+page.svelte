@@ -770,9 +770,15 @@
 
         <div class="details">
             {#each externalProductsSorted as product (product.external_product_id)}
-                <div class={['price-card', {highlight: externalProductIdToHighlight === product.external_product_id}]}
+                <div class={['price-card', externalProductIdToHighlight === product.external_product_id ? 'highlighted-deal' : '']}
                     {@attach highlightExternalProduct(product)}
                 >
+                    {#if externalProductIdToHighlight === product.external_product_id}
+                        <div class="deal-pointer">
+                            <div class="pointer-arrow">👉</div>
+                            <div class="pointer-text">This is the deal you just clicked on</div>
+                        </div>
+                    {/if}
                     <div class="product-name">
                         <span>
                             {product.name}
@@ -1477,13 +1483,87 @@
         padding: 1rem 0.5rem;
     }
 
-    .highlight {
-        border-top-width: 0.5rem;
-        border-color: #2563eb;
-        border-radius: 4px;
-        font-weight: 500;
+    .deal-pointer {
+        top: -2.5rem;
+        left: -1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        z-index: 10;
+        /* animation: springBounce 1.5s ease-in-out infinite; */
     }
 
+    .pointer-arrow {
+        font-size: 2rem;
+        transform-origin: bottom right;
+        animation: pointAnimation 1s ease-in-out infinite;
+    }
+
+    .pointer-text {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 1.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        white-space: nowrap;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        animation: textBounce 1s ease-in-out infinite;
+    }
+
+    @keyframes springBounce {
+        0%, 100% {
+            transform: translateY(0) scale(1);
+        }
+        25% {
+            transform: translateY(-8px) scale(1.05);
+        }
+        50% {
+            transform: translateY(0) scale(1);
+        }
+        75% {
+            transform: translateY(-4px) scale(1.02);
+        }
+    }
+
+    @keyframes pointAnimation {
+        0%, 100% {
+            transform: rotate(0deg) scale(1);
+        }
+        25% {
+            transform: rotate(-15deg) scale(1.1);
+        }
+        50% {
+            transform: rotate(0deg) scale(1);
+        }
+        75% {
+            transform: rotate(-8deg) scale(1.05);
+        }
+    }
+
+    @keyframes textBounce {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.02);
+        }
+    }
+
+    /* Responsive adjustments for mobile */
+    @media (max-width: 640px) {
+        .pointer-arrow {
+            font-size: 1.5rem;
+            transform: rotate(90deg);
+            transform-origin: center;
+        }
+
+        .pointer-text {
+            font-size: 0.75rem;
+            padding: 0.375rem 0.75rem;
+            white-space: normal;
+        }
+    }
 
     .price-card {
         background: white;
@@ -1495,6 +1575,24 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
+        position: relative;
+    }
+
+    .price-card.highlighted-deal {
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2), 
+                    0 8px 16px rgba(37, 99, 235, 0.15);
+        animation: pulseGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulseGlow {
+        0%, 100% {
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2), 
+                        0 8px 16px rgba(37, 99, 235, 0.15);
+        }
+        50% {
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3), 
+                        0 12px 24px rgba(37, 99, 235, 0.2);
+        }
     }
 
     .price-card:hover {
