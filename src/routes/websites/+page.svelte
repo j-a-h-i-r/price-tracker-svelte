@@ -80,6 +80,7 @@
 </div>
 
 <svelte:head>
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html generateSEOConfig({
         title: 'Supported retailers and websites for price tracking',
         description: 'These are the websites currently being tracked to find the best deals and prices. Retailers include StarTech, Techland, Pickaboo, and more.',
@@ -88,12 +89,6 @@
 </svelte:head>
 
 <style>
-    .websites-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 2rem;
-    }
-
     .websites-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));

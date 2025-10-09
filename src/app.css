@@ -1,8 +1,10 @@
 @import 'tailwindcss';
+@import './fonts.css';
 
 /* ===== DESIGN SYSTEM - CSS CUSTOM PROPERTIES ===== */
 
 :root {
+  font-family: 'Rubik', ui-sans-serif, sans-serif, system-ui;
   /* === COLOR PALETTE === */
   
   /* Primary Colors */
