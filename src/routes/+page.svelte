@@ -5,9 +5,12 @@
     import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
     import DealCard from '$lib/components/DealCard.svelte';
     import type { ProductWithLastPrice, } from '$lib/types/Product.js';
-    import { fetchProducts, } from '$lib/api/products.js';
+    import { fetchExternalProductBadges, fetchProducts, type ProductBadge, } from '$lib/api/products.js';
     import { generateLdJSON, generateOrganizationStructuredData, generateSEOConfig, generateWebsiteStructuredData } from '$lib/seo.js';
     import type { PageProps } from './$types.js';
+    import { SvelteMap } from 'svelte/reactivity';
+    import type { Deal } from '$lib/types/Deal.js';
+    import { ResultAsync } from 'neverthrow';
         
     let searchQuery = $state<string>('');
     let pagedProducts: ProductWithLastPrice[] = $state([]);
@@ -24,14 +27,28 @@
     let dealCountToShow = Math.floor(data.deals.length / 10) * 10;
     let deals = data.deals.slice(0, 10); // Limit to first 10 deals
 
+    let externalProductBadgesMap: SvelteMap<number, ProductBadge[]> = new SvelteMap();
+
     onMount(() => {
         startAutoScroll();
+        fetchDealBadges(deals);
         return () => {
             if (autoScrollInterval) {
                 clearInterval(autoScrollInterval);
             }
         };
     });
+
+    function fetchDealBadges(deals: Deal[]) {
+        const badgeReqs = deals.map((deal) => {
+            return fetchExternalProductBadges(deal.external_product_id)
+        })
+        ResultAsync.combine(badgeReqs).map((badgesArray) => {
+            badgesArray.forEach((badges, index) => {
+                externalProductBadgesMap.set(deals[index].external_product_id, badges);
+            });
+        });
+    }
 
     function startAutoScroll() {
         autoScrollInterval = setInterval(() => {
@@ -188,7 +205,7 @@
             aria-label="Deals carousel"
         >
             {#each deals as deal (deal.external_product_id)}
-                <DealCard {deal} />
+                <DealCard {deal} badges={externalProductBadgesMap.get(deal.external_product_id) ?? []} />
             {/each}
         </div>
     {:else}
@@ -288,14 +305,17 @@
 {/if}
 
 <svelte:head>
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html generateSEOConfig({
         title: 'Best prices and deals on Bangladeshi products (StarTech etc)',
         description: 'Best price comparison website in Bangladesh. Check the best deals and track the lowest prices from top retailers like Startech, Techland etc.',
     })}
     
     <!-- Structured Data -->
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html generateLdJSON(JSON.stringify(generateWebsiteStructuredData(), null, 2)) }
     
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html generateLdJSON(JSON.stringify(generateOrganizationStructuredData(), null, 2))}
 </svelte:head>
 

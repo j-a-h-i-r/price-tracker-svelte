@@ -2,19 +2,47 @@
     import type { Deal } from '$lib/types/Deal.js';
     import { formatPrice } from '$lib/util.js';
     import { goto } from '$app/navigation';
+    import { onMount } from 'svelte';
+    import type { ProductBadge } from '$lib/api/products.js';
 
     interface Props {
         deal: Deal;
         showFullProductName?: boolean;
         manufacturerMap?: Map<number, { name: string }>;
         categoryMap?: Map<number, { name: string }>;
+        // Refactor: Should I just fetch the badges directly here from 
+        // the API? Maybe add a flag?
+        onScrollToViewOnce?: (deal: Deal) => void;
+        badges?: ProductBadge[];
     }
 
-    let { deal, showFullProductName = false, manufacturerMap, categoryMap }: Props = $props();
+    let { deal,
+        showFullProductName = false,
+        manufacturerMap,
+        categoryMap,
+        onScrollToViewOnce,
+        badges = [],
+    }: Props = $props();
+
+    let element: HTMLElement;
+    onMount(() => {
+        if (!onScrollToViewOnce) return;
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                onScrollToViewOnce(deal);
+                observer.disconnect();
+            }
+        }, {
+            threshold: 0.1,
+        })
+        observer.observe(element)
+        return () => observer.disconnect();
+    });
 </script>
 
 <a
     href="/products/{deal.product_id}"
+    bind:this={element}
     onclick={() =>
         goto(`/products/${deal.product_id}`, {
             state: {
@@ -25,6 +53,13 @@
     class="deal-card"
 >
     <div class="deal-content">
+        {#if badges.length > 0}
+            <div class="badges-container">
+                {#each badges as badge (badge.key)}
+                    <span class="badge">{badge.label}</span>
+                {/each}
+            </div>
+        {/if}
         {#if deal.current_price}
             <span class="discount discount-top">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="discount-icon">
@@ -193,4 +228,32 @@
         background: #f3f4f6;
         color: #4b5563;
     }
+
+    .badges-container {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.75rem;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.75rem;
+        /* font-weight: 600; */
+        padding: 0.25rem 0.625rem;
+        border-radius: 9999px;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+        /* text-transform: uppercase; */
+        letter-spacing: 0.025em;
+        transition: all 0.2s ease;
+    }
+
+    .badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+    }
 </style>
+

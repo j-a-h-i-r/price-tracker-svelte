@@ -11,6 +11,8 @@
     import Loader from '$lib/components/Loader.svelte';
     import { generateSEOConfig } from '$lib/seo.js';
     import type { PageProps } from '../$types.js';
+    import { fetchExternalProductBadges, type ProductBadge } from '$lib/api/products.js';
+    import { SvelteMap } from 'svelte/reactivity';
 
     let { data }: PageProps = $props();
 
@@ -18,6 +20,7 @@
     let sortBy = $state<'value' | 'percentage'>('value');
     let selectedCategoryId: string | number = $state('all');
     let selectedManufacturerId: string | number = $state('all');
+    let externalProductBadgesMap: SvelteMap<number, ProductBadge[]> = new SvelteMap();
 
     onMount(() => {
         const urlCategoryId = page.url.searchParams.get('category_id');
@@ -56,6 +59,13 @@
         
         return fetchDeals(filters);
     });
+
+    function handleDealIntoView(deal: Deal) {
+        fetchExternalProductBadges(deal.external_product_id)
+        .map((badges) => {
+            externalProductBadgesMap.set(deal.external_product_id, badges);
+        })
+    }
 </script>
 
 <div class="">
@@ -121,7 +131,14 @@
                 </div>
             {:else if deals.isOk() && deals.value.length > 0}
                 {#each deals.value as deal (deal.external_product_id)}
-                    <DealCard {deal} categoryMap={data.categoryMap} manufacturerMap={data.manufacturerMap} showFullProductName={true} />
+                    <DealCard
+                        {deal}
+                        badges={externalProductBadgesMap.get(deal.external_product_id) || []}
+                        categoryMap={data.categoryMap}
+                        manufacturerMap={data.manufacturerMap}
+                        showFullProductName={true}
+                        onScrollToViewOnce={(deal) => handleDealIntoView(deal)}
+                    />
                 {/each}
             {:else if deals.isErr()}
                 <div class="col-span-full">

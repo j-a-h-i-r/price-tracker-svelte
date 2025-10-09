@@ -189,3 +189,16 @@ export function fetchExternalPricesOfProduct(internalProductId: number, superFet
         last_checked_at: string
     }[]>(`/api/products/${internalProductId}/externalprices`, { superFetch });
 }
+
+export type ProductBadge =
+    | {
+          key: 'new_product';
+          label: 'New Product';
+      }
+    | {
+          key: 'lowest_price';
+          label: 'Lowest Price';
+      };
+export function fetchExternalProductBadges(externalProductId: number) {
+    return api.get<ProductBadge[]>(`/api/externals/${externalProductId}/badges`);
+}
