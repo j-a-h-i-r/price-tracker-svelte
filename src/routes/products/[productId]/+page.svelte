@@ -1,6 +1,7 @@
 <script lang="ts">
     import { page } from '$app/state';
     import {
+    fetchExternalProductBadges,
     fetchExternalProductMetadata,
         fetchExternalProductPrices,
         fetchExternalProductsByInternalId,
@@ -11,6 +12,7 @@
         untrackProduct,
         updateProductName,
         type ExternalProduct,
+        type ProductBadge,
     } from '$lib/api/products.js';
     import type {
         ExternalProductPrice,
@@ -32,8 +34,11 @@
     import { goto } from '$app/navigation';
     import Loader from '$lib/components/Loader.svelte';
     import Pill from '$lib/components/Pill.svelte';
+    import Badge from '$lib/components/Badge.svelte';
     import { generateLdJSON, generateProductStructuredData, generateSEOConfig } from '$lib/seo.js';
     import type { PageProps } from './$types.js';
+    import { SvelteMap } from 'svelte/reactivity';
+    import { ResultAsync } from 'neverthrow';
 
     let { data }: PageProps = $props();
 
@@ -44,11 +49,25 @@
     let externalProducts: ExternalProduct[] = $state(data.externalProducts ?? []);
     let externalPrices = $state(data.externalPrices ?? []);
 
+    let externalProductBadgesMap: SvelteMap<number, ProductBadge[]> = new SvelteMap();
+
     onMount(() => {
         variants.forEach((variant) => {
             selectedVariants![variant.name] = 'unselected';
         });
+        fetchExternalProductsBadges(externalProducts)
     })
+
+    function fetchExternalProductsBadges(externalProducts: ExternalProduct[]) {
+        const badgeReqs = externalProducts.map((product) => {
+            return fetchExternalProductBadges(product.external_product_id)
+        })
+        ResultAsync.combine(badgeReqs).map((badgesArray) => {
+            externalProducts.forEach((externalProduct, index) => {
+                externalProductBadgesMap.set(externalProduct.external_product_id, badgesArray[index]);
+            });
+        });
+    }
 
     let productId = Number(page.params.productId);
     let externalProductPrices: Map<number, ExternalProductPrice[]> = $state(new Map());
@@ -777,6 +796,14 @@
                         <div class="deal-pointer">
                             <div class="pointer-arrow">👉</div>
                             <div class="pointer-text">This is the deal you just clicked on</div>
+                        </div>
+                    {/if}
+
+                    {#if externalProductBadgesMap.has(product.external_product_id) && externalProductBadgesMap.get(product.external_product_id)!.length > 0}
+                        <div class="badges-container">
+                            {#each externalProductBadgesMap.get(product.external_product_id) ?? [] as badge (badge.key)}
+                                <Badge label={badge.label} />
+                            {/each}
                         </div>
                     {/if}
                     <div class="product-name">
@@ -1597,6 +1624,13 @@
 
     .price-card:hover {
         transform: translateY(-2px);
+    }
+
+    .badges-container {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.5rem;
     }
 
     .product-name {

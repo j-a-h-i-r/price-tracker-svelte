@@ -44,8 +44,8 @@
             return fetchExternalProductBadges(deal.external_product_id)
         })
         ResultAsync.combine(badgeReqs).map((badgesArray) => {
-            badgesArray.forEach((badges, index) => {
-                externalProductBadgesMap.set(deals[index].external_product_id, badges);
+            deals.forEach((deal, index) => {
+                externalProductBadgesMap.set(deal.external_product_id, badgesArray[index]);
             });
         });
     }
