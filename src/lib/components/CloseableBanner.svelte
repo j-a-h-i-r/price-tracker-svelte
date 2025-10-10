@@ -2,22 +2,22 @@
     import { onMount } from 'svelte';
 
     let { children, name } = $props();
-    let isClosed = $state(false);
+    let isOpen = $state(false);
 
     onMount(() => {
         const closed = localStorage.getItem(`closeable-banner-${name}`);
-        if (closed) {
-            isClosed = true;
+        if (!closed) {
+            isOpen = true;
         }
     })
 
     function onclose() {
-        isClosed = true;
+        isOpen = false;
         localStorage.setItem(`closeable-banner-${name}`, 'true');
     }
 </script>
 
-{#if !isClosed}
+{#if isOpen}
     <div class="closeable-banner" role="status" aria-live="polite" data-name={name}>
         <div class="closeable-banner__content">
             {@render children()}
