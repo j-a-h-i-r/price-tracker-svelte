@@ -11,6 +11,7 @@
     import { SvelteMap } from 'svelte/reactivity';
     import type { Deal } from '$lib/types/Deal.js';
     import { ResultAsync } from 'neverthrow';
+    import CloseableBanner from '$lib/components/CloseableBanner.svelte';
         
     let searchQuery = $state<string>('');
     let pagedProducts: ProductWithLastPrice[] = $state([]);
@@ -155,6 +156,16 @@
         });
     }
 </script>
+
+<CloseableBanner name="homepage-url-lookup">
+    <div class="homepage-banner">
+        <div class="homepage-banner__copy">
+            <p class="homepage-banner__description">
+                Have a link? Use the <a class="homepage-banner__link" href="/url">URL lookup tool</a> to check price history and find related products
+            </p>
+        </div>
+    </div>
+</CloseableBanner>
 
 <div class="stats-header">
     <h1>
@@ -324,6 +335,51 @@
         text-align: center;
         margin: var(--spacing-lg) 0;
         padding: 0 var(--spacing-lg);
+    }
+
+    .homepage-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin: 0 auto;
+    }
+
+    .homepage-banner__copy {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        color: #1e3a8a;
+    }
+
+    .homepage-banner__description {
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: rgba(29, 78, 216, 0.75);
+    }
+
+    .homepage-banner__link {
+        font-weight: 600;
+        color: #1e3a8a;
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+        text-underline-offset: 4px;
+        transition: color 0.15s ease;
+    }
+
+    .homepage-banner__link:hover {
+        color: #1d4ed8;
+    }
+
+    @media (max-width: 640px) {
+        .homepage-banner {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .homepage-banner__description {
+            font-size: 0.85rem;
+        }
     }
 
     .stats-header h1 {

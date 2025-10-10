@@ -79,11 +79,11 @@ export function fetchExternalProductsByInternalId(
         const variantQs = Object.keys(variants).map(key => `variants[${key}]=${variants[key]}`).join('&');
         url += `?${variantQs}`;
     }
-    return api.get<ExternalProduct[]>(url, { superFetch });
+    return api.get<ExternalProductOfInternal[]>(url, { superFetch });
 }
 
-export function fetchExternalProductPrices(externalId: number) {
-    return api.get<ExternalProductPrice[]>(`/api/externals/${externalId}/prices`);
+export function fetchExternalProductPrices(externalId: number, superFetch?: typeof fetch) {
+    return api.get<ExternalProductPrice[]>(`/api/externals/${externalId}/prices`, { superFetch });
 }
 
 export interface Category {
@@ -95,8 +95,8 @@ export function fetchCategories(superFetch?: typeof fetch) {
     return api.get<Category[]>('/api/categories', { superFetch });
 }
 
-export function fetchExternalProductMetadata(externalId: number) {
-    return api.get<ExternalProductMetadata[]>(`/api/externals/${externalId}/metadata`);
+export function fetchExternalProductMetadata(externalId: number, superFetch?: typeof fetch) {
+    return api.get<ExternalProductMetadata[]>(`/api/externals/${externalId}/metadata`, { superFetch });
 }
 
 export function fetchVariantAttributes(productId: number | string, superFetch?: typeof fetch) {
@@ -124,22 +124,22 @@ export function unmergeProducts(internalProductId: number, externalProductId: nu
         (`/api/products/${internalProductId}/unmerge`, { external_product_id: externalProductId });
 }
 
-// export interface ExternalProduct {
-//     id: number;
-//     internal_product_id: number;
-//     category_id: number;
-//     website_id: number;
-//     name: string;
-//     url: string;
-//     created_at: string;
-//     updated_at: string;
-//     parsed_metadata: Record<string, any>;
-//     product_id: number;
-//     latest_price: number;
-//     is_available: boolean;
-// }
-
 export interface ExternalProduct {
+    id: number;
+    internal_product_id: number;
+    category_id: number;
+    website_id: number;
+    name: string;
+    url: string;
+    created_at: string;
+    updated_at: string;
+    parsed_metadata: Record<string, any>;
+    product_id: number;
+    latest_price: number;
+    is_available: boolean;
+}
+
+export interface ExternalProductOfInternal {
     external_product_id: number,
     website_id: number,
     name: string,
@@ -147,9 +147,11 @@ export interface ExternalProduct {
 }
 
 export function fetchExternalProducts(filter: {
-    brandId?: number | 'all', categoryId?: number | 'all', minPrice?: number, maxPrice?: number,
+    brandId?: number | 'all', categoryId?: number | 'all',
+    url?: string,
+    minPrice?: number, maxPrice?: number,
     metadata?: Record<string, any>
-} = {}) {
+} = {}, superFetch?: typeof fetch) {
     const params = new URLSearchParams();
     if (filter.brandId && filter.brandId !== 'all')
         params.append('manufacturer_id', filter.brandId.toString());
@@ -157,6 +159,7 @@ export function fetchExternalProducts(filter: {
         params.append('category_id', filter.categoryId.toString());
     if (filter.minPrice) params.append('price[gt]', `${filter.minPrice}`);
     if (filter.maxPrice) params.append('price[lt]', `${filter.maxPrice}`);
+    if (filter.url) params.append('url', filter.url);
 
     Object.entries(filter.metadata ?? {}).forEach(([key, value]) => {
         if (value?.min || value?.max) {
@@ -170,12 +173,7 @@ export function fetchExternalProducts(filter: {
             params.append(`metadata[${key}]`, value.toString());
         }
     });
-    return api.get<ExternalProduct[]>(`/api/externals?${params.toString()}`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
+    return api.get<ExternalProduct[]>(`/api/externals?${params.toString()}`, { superFetch });
 }
 
 export function fetchExternalPricesOfProduct(internalProductId: number, superFetch?: typeof fetch) {
@@ -199,6 +197,6 @@ export type ProductBadge =
           key: 'lowest_price';
           label: 'Lowest Price';
       };
-export function fetchExternalProductBadges(externalProductId: number) {
-    return api.get<ProductBadge[]>(`/api/externals/${externalProductId}/badges`);
+export function fetchExternalProductBadges(externalProductId: number, superFetch?: typeof fetch) {
+    return api.get<ProductBadge[]>(`/api/externals/${externalProductId}/badges`, { superFetch });
 }

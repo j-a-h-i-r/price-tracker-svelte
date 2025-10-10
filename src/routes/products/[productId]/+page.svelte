@@ -12,6 +12,7 @@
         untrackProduct,
         updateProductName,
         type ExternalProduct,
+        type ExternalProductOfInternal,
         type ProductBadge,
     } from '$lib/api/products.js';
     import type {
@@ -46,7 +47,7 @@
     let product: Product | undefined = $state(data.product);
     let variants: ProductVariant[] = $state(data.variantAttributes ?? []);
     let productNotFound = data.exists === false;
-    let externalProducts: ExternalProduct[] = $state(data.externalProducts ?? []);
+    let externalProducts: ExternalProductOfInternal[] = $state(data.externalProducts ?? []);
     let externalPrices = $state(data.externalPrices ?? []);
 
     let externalProductBadgesMap: SvelteMap<number, ProductBadge[]> = new SvelteMap();

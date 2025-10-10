@@ -37,6 +37,10 @@
 		path: string,
 	): Array<{ path: string; url: string }> {
 		const pathArray = path.split('/').filter((p) => p !== '');
+		// Refactor: Let child pages handle the breadcrumbs
+		if (pathArray?.[0] === 'url') {
+			return [{path: 'URL', url: '/url'}];
+		}
 		let urlSoFar = '';
 		return pathArray.map((p) => {
 			urlSoFar += `/${p}`;
