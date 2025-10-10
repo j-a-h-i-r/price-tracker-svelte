@@ -3,8 +3,12 @@ import type { TrackedProduct } from "$lib/types/Product.js";
 
 class TrackedProducts {
     #trackedProducts: TrackedProduct[] = $state([]);
-    constructor() {
-        this.#trackedProducts = [];
+    constructor(products: TrackedProduct[] = []) {
+        this.#trackedProducts = products;
+    }
+
+    setProducts(products: TrackedProduct[]) {
+        this.#trackedProducts = products;
     }
 
     get products() {

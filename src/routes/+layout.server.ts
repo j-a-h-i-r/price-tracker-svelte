@@ -4,7 +4,8 @@ import { getManufacturers } from "$lib/api/manufacturers.js";
 import { fetchCategories } from "$lib/api/products.js";
 import { fetchWebsites } from "$lib/api/websites.js";
 import { arrayToPerIdMap } from "$lib/util.js";
-import { getMyInfo } from "$lib/api/me.js";
+import { getMyInfo, getMyTrackedProducts } from "$lib/api/me.js";
+import type { TrackedProduct } from "$lib/types/Product.js";
 
 type User = {
     isExistingUser: false;
@@ -18,6 +19,7 @@ export const load: LayoutServerLoad = async ({ fetch, cookies }) => {
     console.log(Date.now(),"[In server layout load]");
     const isExistingUser = cookies.get('LoggedInAt') !== undefined;
     let user: User = { isExistingUser: false }
+    let trackedProducts: TrackedProduct[] = [];
     if (isExistingUser) {
         const me = await getMyInfo(fetch);
         if (me.isOk()) {
@@ -26,6 +28,11 @@ export const load: LayoutServerLoad = async ({ fetch, cookies }) => {
                 ...me.value,
                 isExistingUser: true,
             }
+        }
+
+        const userTrackedProducts = await getMyTrackedProducts(fetch);
+        if (userTrackedProducts.isOk()) {
+            trackedProducts = userTrackedProducts.value;
         }
     }
     console.log("Is existing user:", user);
@@ -39,6 +46,7 @@ export const load: LayoutServerLoad = async ({ fetch, cookies }) => {
     const websiteMap = arrayToPerIdMap(websites);
     return {
         user,
+        trackedProducts,
         categories,
         manufacturers,
         websites,

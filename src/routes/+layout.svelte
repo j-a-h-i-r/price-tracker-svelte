@@ -8,6 +8,7 @@
     import { browser } from '$app/environment';
     import { toasts } from '$lib/states/toast.js';
     import { page } from '$app/state';
+    import { trackedProducts } from '$lib/states/tracked.svelte.js';
 
 	let { children, data } = $props();
 
@@ -15,6 +16,10 @@
 	if (data.user.isExistingUser && !data.user.email && page.url.pathname !== '/accounts/verify') {
 		toasts.error('Failed to fetch user info. Please sign in again.');
 	} 
+	if (data.user.email && data.trackedProducts.length > 0) {
+		trackedProducts.setProducts(data.trackedProducts);
+	}
+	
 	let pathname = $derived(page.url.pathname || '/');
 
 	function gotoAccount() {
