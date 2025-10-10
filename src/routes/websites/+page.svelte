@@ -1,5 +1,7 @@
 <script lang="ts">
     import { fetchWebsiteNewProductsCount, fetchWebsites, fetchWebsiteStats } from '$lib/api/websites.js';
+    import Loader from '$lib/components/Loader.svelte';
+    import NoResult from '$lib/components/NoResult.svelte';
     import { generateSEOConfig } from '$lib/seo.js';
     import type { WebsiteWithStat } from '$lib/types/Website.js';
     import { ok, ResultAsync } from 'neverthrow';
@@ -30,7 +32,9 @@
                 loading = false;
             },
             (err) => {
-                error = err.message ? err.message : 'An error occurred';
+                error = err.data.error 
+                    ? err.data.error : err.message
+                    ? err.message : 'An error occurred';
                 loading = false;
             }
         )
@@ -38,15 +42,30 @@
 </script>
 
 <div>
-    <h1 class="text-2xl font-bold text-gray-900 mb-6">Websites</h1>
-
     {#if loading}
-        <p>Loading websites...</p>
+        <Loader headerText="Loading websites..." />
     {:else if error}
         <p class="error">{error}</p>
     {:else if websites.length === 0}
-        <p>No websites available</p>
+        <NoResult message="No websites available" />
     {:else}
+        <section class="websites-info" aria-label="Request a new website">
+            <div class="websites-info__icon hidden md:inline-flex" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                    <circle cx="12" cy="12" r="10" />
+                </svg>
+            </div>
+            <div class="websites-info__copy">
+                <h2>Missing a retailer?</h2>
+                <p>
+                    Let us know what you'd like to track by opening an
+                    <a href="https://github.com/j-a-h-i-r/price-tracker-svelte/issues/new" target="_blank" rel="noopener noreferrer">issue on GitHub</a>.
+                </p>
+            </div>
+        </section>
+
         <div class="websites-grid">
             {#each websites as website (website.id)}
                 <div class="website-card">
@@ -181,5 +200,71 @@
         padding: 1rem;
         background-color: #fee2e2;
         border-radius: 4px;
+    }
+
+    .websites-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
+        border: 1px solid rgba(37, 99, 235, 0.15);
+        background: rgba(219, 234, 254, 0.45);
+        color: #1f3d8a;
+    }
+
+    .websites-info__icon {
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(37, 99, 235, 0.12);
+        color: inherit;
+        flex-shrink: 0;
+    }
+
+    .websites-info__copy {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .websites-info__copy h2 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: inherit;
+    }
+
+    .websites-info__copy p {
+        margin: 0;
+        font-size: 0.95rem;
+        color: rgba(30, 64, 175, 0.9);
+    }
+
+    .websites-info__copy a {
+        font-weight: 600;
+        color: #1d4ed8;
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+        text-underline-offset: 4px;
+    }
+
+    .websites-info__copy a:hover {
+        color: #1e40af;
+    }
+
+    @media (max-width: 640px) {
+        .websites-info {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .websites-info__icon {
+            width: 38px;
+            height: 38px;
+        }
     }
 </style>

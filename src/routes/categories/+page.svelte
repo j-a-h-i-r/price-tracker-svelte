@@ -4,6 +4,7 @@
     import { onMount } from 'svelte';
     import { ok, ResultAsync } from 'neverthrow';
     import { generateSEOConfig } from '$lib/seo.js';
+    import Loader from '$lib/components/Loader.svelte';
 
     interface CategoryWithNewProducts extends Category {
         newProductsCount?: number;
@@ -39,8 +40,24 @@
 
 <div>
     {#if loading}
-        <p>Loading categories...</p>
+        <Loader headerText="Loading categories..." />
     {:else}
+        <section class="categories-info" aria-label="Request a new category">
+            <div class="categories-info__icon hidden md:inline-flex" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                    <circle cx="12" cy="12" r="10" />
+                </svg>
+            </div>
+            <div class="categories-info__copy">
+                <h2>Missing a category?</h2>
+                <p>
+                    Let us know what you'd like to track by opening an
+                    <a href="https://github.com/j-a-h-i-r/price-tracker-svelte/issues/new" target="_blank" rel="noopener noreferrer">issue on GitHub</a>.
+                </p>
+            </div>
+        </section>
         <div class="categories-grid">
             {#each categories as category (category.id)}
                 <div class="category-card">
@@ -81,6 +98,72 @@
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 1.5rem;
+    }
+
+    .categories-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
+        border: 1px solid rgba(37, 99, 235, 0.15);
+        background: rgba(219, 234, 254, 0.45);
+        color: #1f3d8a;
+    }
+
+    .categories-info__icon {
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(37, 99, 235, 0.12);
+        color: inherit;
+        flex-shrink: 0;
+    }
+
+    .categories-info__copy {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .categories-info__copy h2 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: inherit;
+    }
+
+    .categories-info__copy p {
+        margin: 0;
+        font-size: 0.95rem;
+        color: rgba(30, 64, 175, 0.9);
+    }
+
+    .categories-info__copy a {
+        font-weight: 600;
+        color: #1d4ed8;
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+        text-underline-offset: 4px;
+    }
+
+    .categories-info__copy a:hover {
+        color: #1e40af;
+    }
+
+    @media (max-width: 640px) {
+        .categories-info {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .categories-info__icon {
+            width: 38px;
+            height: 38px;
+        }
     }
 
     .category-card {

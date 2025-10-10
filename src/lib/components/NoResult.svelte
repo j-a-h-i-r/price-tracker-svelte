@@ -1,5 +1,5 @@
 <script lang="ts">
-    const { message, suggestion }: { message: string, suggestion: string } = $props();
+    const { message, suggestion }: { message: string, suggestion?: string } = $props();
 </script>
 
 <div class="no-results">
@@ -7,7 +7,9 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
     <p>{message}</p>
-    <p class="suggestion">{suggestion}</p>
+    {#if suggestion}
+        <p class="suggestion">{suggestion}</p>
+    {/if}
 </div>
 
 <style>
