@@ -118,7 +118,7 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.375rem 0.75rem;
-        background: white;
+        background: var(--color-bg-primary);
         border: 1px solid #e5e7eb;
         border-radius: 6px;
         color: #374151;
@@ -182,7 +182,7 @@
         right: -0.75rem;
         min-width: 200px;
         margin-top: 0.5rem;
-        background: white;
+        background: var(--color-bg-primary);
         border: 1px solid #e5e7eb;
         border-radius: 6px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);

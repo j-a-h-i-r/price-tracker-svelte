@@ -434,7 +434,7 @@
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        background: white;
+        background: var(--color-bg-primary);
         border: 1px solid #e5e7eb;
         border-radius: 8px;
         padding: 1rem;
@@ -453,7 +453,7 @@
         padding: 0.5rem 1rem;
         border: 1px solid #e5e7eb;
         border-radius: 6px;
-        background: white;
+        background: var(--color-bg-primary);
         color: #374151;
         font-size: 0.875rem;
         font-weight: 500;
@@ -471,7 +471,7 @@
     .filter-menu {
         position: absolute;
         margin-top: 0.5rem;
-        background: white;
+        background: var(--color-bg-primary);
         border: 1px solid #e5e7eb;
         border-radius: 8px;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
@@ -503,7 +503,7 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.75rem;
-        background: #f9fafb;
+        background: var(--color-bg-primary);
         border: 1px solid #e5e7eb;
         border-radius: 6px;
         transition: all 0.15s ease;
@@ -532,7 +532,7 @@
         height: 24px;
         border: 1px solid #d1d5db;
         border-radius: 4px;
-        background: white;
+        background: var(--color-bg-primary);
         color: #6b7280;
         cursor: pointer;
         transition: all 0.15s ease;
@@ -681,7 +681,7 @@
         height: 1rem;
         border-radius: 4px;
         border: 1px solid #d1d5db;
-        background-color: white;
+        background-color: var(--color-bg-primary);
         cursor: pointer;
         position: relative;
         margin: 0;
@@ -745,7 +745,7 @@
 
     /* Results Section Styling */
     .results-section {
-        background: white;
+        background: var(--color-bg-primary);
         border-radius: 12px;
         padding: 2rem;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -788,7 +788,7 @@
         border: 1px solid #e5e7eb;
         border-radius: 8px;
         padding: 1.5rem;
-        background: #fafafa;
+        background: var(--color-bg-primary);
         transition: all 0.2s;
     }
 
@@ -808,7 +808,7 @@
     .product-name {
         font-size: 1.125rem;
         font-weight: 600;
-        color: #111827;
+        color: var(--color-text-primary);
         margin: 0;
         line-height: 1.4;
         flex: 1;
@@ -890,7 +890,7 @@
     }
 
     .view-details-btn {
-        background-color: #f3f4f6;
+        background-color: var(--color-bg-primary);
         color: #374151;
         border: 1px solid #d1d5db;
     }

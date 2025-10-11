@@ -53,7 +53,7 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.375rem 0.75rem;
-        background: white;
+        background: var(--color-bg-primary);
         border: 1px solid #e5e7eb;
         border-radius: 6px;
         color: #374151;
@@ -77,7 +77,7 @@
     }
 
     .filter-chip.active {
-        background: #eef2ff;
+        background: var(--color-bg-primary);
         border-color: #6366f1;
         color: #4f46e5;
     }
@@ -114,7 +114,7 @@
     }
 
     .label {
-        background: #f5f5f5;
+        background: var(--color-bg-primary);
         padding: 0.375rem 0.5rem 0.375rem 0.75rem;
         border-radius: 5px 0 0 5px;
         font-weight: 500;

@@ -81,7 +81,7 @@
 
     .hero-card,
     .tips-card {
-        background: white;
+        background: var(--color-bg-primary);
         border: 1px solid #e5e7eb;
         border-radius: 12px;
         padding: 1.75rem;
@@ -108,7 +108,7 @@
     h1 {
         font-size: clamp(1.75rem, 2vw + 1.25rem, 2.5rem);
         margin: 0;
-        color: #0f172a;
+        color: var(--color-text-primary);
     }
 
     .subtitle {
@@ -148,7 +148,7 @@
         padding: 0.85rem 1rem;
         border-radius: 10px;
         border: 1px solid #d1d5db;
-        background: white;
+        background: var(--color-bg-primary);
         font-size: 1rem;
         transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }

@@ -96,7 +96,7 @@
 <style>
     .deal-card {
         flex: 0 0 280px;
-        background: white;
+        background: var(--color-bg-primary);
         padding: 1.5rem;
         border-radius: 12px;
         text-decoration: none;
@@ -124,7 +124,7 @@
     .deal-content h3 {
         margin: 0 0 1rem 0;
         font-size: 1.1rem;
-        color: #1f2937;
+        color: var(--color-text-primary);
         line-height: 1.4;
         display: -webkit-box;
         -webkit-box-orient: vertical;

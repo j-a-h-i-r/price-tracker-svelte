@@ -4,11 +4,11 @@
 	import { goto } from '$app/navigation';
 	import Toast from '$lib/components/Toast.svelte';
 	import posthog from 'posthog-js';
-    import { onMount } from 'svelte';
-    import { browser } from '$app/environment';
-    import { toasts } from '$lib/states/toast.js';
-    import { page } from '$app/state';
-    import { trackedProducts } from '$lib/states/tracked.svelte.js';
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
+	import { toasts } from '$lib/states/toast.js';
+	import { page } from '$app/state';
+	import { trackedProducts } from '$lib/states/tracked.svelte.js';
 
 	let { children, data } = $props();
 
@@ -21,6 +21,26 @@
 	}
 	
 	let pathname = $derived(page.url.pathname || '/');
+	let theme = $state<'light' | 'dark'>('light');
+
+	function syncDocumentTheme(mode: 'light' | 'dark') {
+		if (!browser) return;
+		const root = document.documentElement;
+		root.classList.toggle('dark', mode === 'dark');
+		root.style.setProperty('color-scheme', mode);
+	}
+
+	function applyTheme(mode: 'light' | 'dark', { persist } = { persist: true }) {
+		theme = mode;
+		syncDocumentTheme(mode);
+		if (browser && persist) {
+			localStorage.setItem('theme', mode);
+		}
+	}
+
+	function toggleTheme() {
+		applyTheme(theme === 'dark' ? 'light' : 'dark');
+	}
 
 	function gotoAccount() {
 		goto('/accounts');
@@ -60,6 +80,20 @@
 				}
 			)
 		}
+	})
+
+	onMount(() => {
+		if (!browser) return;
+		const storedTheme = localStorage.getItem('theme');
+		const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+		const initialTheme: 'light' | 'dark' = storedTheme === 'dark'
+			? 'dark'
+			: storedTheme === 'light'
+				? 'light'
+				: prefersDark
+					? 'dark'
+					: 'light';
+		applyTheme(initialTheme, { persist: false });
 	})
 </script>
 
@@ -111,6 +145,57 @@
 						</ol>
 					</nav>
 					<div class="flex items-center gap-md">
+						<button
+							type="button"
+							onclick={toggleTheme}
+							class="btn btn-ghost theme-toggle"
+							aria-pressed={theme === 'dark'}
+							title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+						>
+							{#if theme === 'dark'}
+								<svg
+									class="theme-icon"
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+								>
+									<path d="M12 3v2" />
+									<path d="M12 19v2" />
+									<path d="M5.22 5.22 6.64 6.64" />
+									<path d="M17.36 17.36 18.78 18.78" />
+									<path d="M3 12h2" />
+									<path d="M19 12h2" />
+									<path d="M5.22 18.78 6.64 17.36" />
+									<path d="M17.36 6.64 18.78 5.22" />
+									<circle cx="12" cy="12" r="4" />
+								</svg>
+								<span class="hidden sm:inline text-sm">Light</span>
+							{:else}
+								<svg
+									class="theme-icon"
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+								>
+									<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+								</svg>
+								<span class="hidden sm:inline text-sm">Dark</span>
+							{/if}
+						</button>
 						<a
 							href="https://github.com/j-a-h-i-r/price-tracker-svelte"
 							target="_blank"
@@ -165,7 +250,7 @@
 	</header>
 	<main class="container py-4 px-4 lg:px-16 min-[400px]:px-8 mx-auto">
 		<div class="sm:max-w-4/5 mx-auto">
-		{@render children()}
+			{@render children()}
 		</div>
 	</main>
 </div>
@@ -210,6 +295,24 @@
 		color: var(--color-text-primary);
 		background-color: var(--color-bg-tertiary);
 		font-weight: var(--font-semibold);
+	}
+
+	.theme-toggle {
+		gap: var(--spacing-sm);
+		padding-inline: var(--spacing-sm);
+	}
+
+	.theme-toggle .theme-icon {
+		width: 1.25rem;
+		height: 1.25rem;
+	}
+
+	.theme-toggle span {
+		color: var(--color-text-secondary);
+	}
+
+	.theme-toggle:hover span {
+		color: var(--color-text-primary);
 	}
 
 	.breadcrumb-separator {

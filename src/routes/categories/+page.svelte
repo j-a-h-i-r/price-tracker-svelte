@@ -167,7 +167,7 @@
     }
 
     .category-card {
-        background: white;
+        background: var(--color-bg-primary);
         border: 1px solid #e5e7eb;
         border-radius: 8px;
         padding: 1.5rem;
@@ -190,7 +190,7 @@
 
     .category-card h2 {
         margin: 0;
-        color: #374151;
+        color: var(--color-text-primary);
         font-size: 1.25rem;
         font-weight: 600;
         flex: 1;

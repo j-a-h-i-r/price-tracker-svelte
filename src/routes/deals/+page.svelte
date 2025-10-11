@@ -172,7 +172,7 @@
     .deals-header h1 {
         font-size: 2rem;
         font-weight: 700;
-        color: #1f2937;
+        color: var(--color-text-primary);
         margin: 0;
         line-height: 1.2;
     }
@@ -180,7 +180,7 @@
     .deals-header h2 {
         font-size: 1.125rem;
         font-weight: 400;
-        color: #6b7280;
+        color: var(--color-text-primary);
         margin: 0;
         line-height: 1.5;
     }
@@ -221,7 +221,7 @@
         padding: 0.5rem;
         border: 1px solid #e5e7eb;
         border-radius: 8px;
-        background: white;
+        background: var(--color-bg-primary);
         color: #4b5563;
         font-size: 0.875rem;
         cursor: pointer;
@@ -269,7 +269,7 @@
         align-items: center;
         margin-top: 1rem;
         padding: 1rem;
-        background: white;
+        background: var(--color-bg-primary);
         border-radius: 12px;
         border: 1px solid #e5e7eb;
     }

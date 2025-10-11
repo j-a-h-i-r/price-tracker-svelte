@@ -1594,7 +1594,7 @@
     }
 
     .price-card {
-        background: white;
+        background: var(--color-bg-primary);
         border-radius: 8px;
         padding: 1.5rem;
         margin-bottom: 1rem;
@@ -1907,7 +1907,7 @@
     }
 
     .price-stats {
-        background: linear-gradient(180deg, #f8fafc, transparent);
+        background: linear-gradient(180deg, var(--color-bg-primary), transparent);
         border-radius: 8px;
         padding: 1rem;
         margin-top: 1rem;

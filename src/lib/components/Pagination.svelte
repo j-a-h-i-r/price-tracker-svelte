@@ -71,7 +71,7 @@
         display: flex;
         gap: 0.5rem;
         align-items: center;
-        background: white;
+        background: var(--color-bg-primary);
         border-radius: 0.5rem;
         padding: 0.25rem;
         box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
@@ -96,7 +96,7 @@
     }
 
     .pagination-btn:hover:not(:disabled) {
-        background-color: #f3f4f6;
+        background-color: var(--color-bg-primary);
         color: #1f2937;
         transform: translateY(-1px);
         box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);

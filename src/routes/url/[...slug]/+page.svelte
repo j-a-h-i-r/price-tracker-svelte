@@ -168,7 +168,7 @@
     }
 
     .summary-card {
-        background: white;
+        background: var(--color-bg-primary);
         border: 1px solid #e5e7eb;
         border-radius: 12px;
         padding: 1.5rem;
@@ -204,7 +204,7 @@
     .summary-title {
         font-size: clamp(1.5rem, 2vw + 1rem, 2.5rem);
         font-weight: 700;
-        color: #0f172a;
+        color: var(--color-text-primary);
         margin: 0;
     }
 
@@ -309,7 +309,7 @@
     }
 
     .card {
-        background: white;
+        background: var(--color-bg-primary);
         border: 1px solid #e5e7eb;
         border-radius: 12px;
         padding: 1.5rem;
@@ -380,7 +380,7 @@
         border: 1px solid #e2e8f0;
         border-radius: 10px;
         padding: 0.75rem 1rem;
-        background: white;
+        background: var(--color-bg-primary);
         display: flex;
         flex-direction: column;
         gap: 0.3rem;
@@ -397,7 +397,7 @@
     .metadata-value {
         font-size: 1rem;
         font-weight: 600;
-        color: #111827;
+        color: var(--color-text-primary);
     }
 
     .metadata-unit {
