@@ -3,14 +3,23 @@ import {
     fetchExternalProductMetadata,
     fetchExternalProductPrices,
     fetchExternalProducts,
+    fetchExternalProductsByInternalId,
+    fetchSimilarExternalProducts,
     type Category,
     type ExternalProduct,
+    type ExternalProductOfInternal,
     type ProductBadge,
 } from '$lib/api/products.js';
 import type { ExternalProductMetadata, ExternalProductPrice } from '$lib/types/Product.js';
 import type { Website } from '$lib/types/Website.js';
 import { ResultAsync } from 'neverthrow';
 import type { PageServerLoad } from './$types';
+
+type ExternalProductWithDetails = ExternalProductOfInternal & {
+    metadata: ExternalProductMetadata[];
+    badges: ProductBadge[];
+    latest_price: ExternalProductPrice | null;
+}
 
 type PageData = {
     exists: boolean;
@@ -20,6 +29,8 @@ type PageData = {
     prices: ExternalProductPrice[];
     metadata: ExternalProductMetadata[];
     badges: ProductBadge[];
+    variantProducts: ExternalProductWithDetails[];
+    similarProducts: ExternalProductWithDetails[];
     website: Website | null;
     category: Category | null;
 };
@@ -34,6 +45,8 @@ export const load: PageServerLoad<PageData> = async ({ params, fetch, parent }) 
             prices: [],
             metadata: [],
             badges: [],
+            variantProducts: [],
+            similarProducts: [],
             website: null,
             category: null,
         } satisfies PageData;
@@ -60,22 +73,71 @@ export const load: PageServerLoad<PageData> = async ({ params, fetch, parent }) 
             prices: [],
             metadata: [],
             badges: [],
+            variantProducts: [],
+            similarProducts: [],
             website: null,
             category: null,
         } satisfies PageData;
     }
 
-    const [prices, metadata, badges] = await ResultAsync.combine([
+    const [prices, metadata, badges, siblingExternals, similarExternals] = await ResultAsync.combine([
         fetchExternalProductPrices(externalProduct.id, fetch),
         fetchExternalProductMetadata(externalProduct.id, fetch),
         fetchExternalProductBadges(externalProduct.id, fetch),
+        fetchExternalProductsByInternalId(
+            externalProduct.internal_product_id,
+            {},
+            fetch
+        ),
+        fetchSimilarExternalProducts(externalProduct.id, fetch),
     ]).match(
         (values) => values,
         (err) => {
             error = err.message ?? 'Failed to fetch supporting data.';
-            return [[], [], []] as [ExternalProductPrice[], ExternalProductMetadata[], ProductBadge[]];
+            return [
+                [], [], [], [], [],
+            ] as [
+                ExternalProductPrice[],
+                ExternalProductMetadata[],
+                ProductBadge[],
+                ExternalProductOfInternal[],
+                ExternalProductOfInternal[],
+            ];
         }
     );
+
+    const siblingExtras = await ResultAsync.combine(siblingExternals.map((p) => {
+        return ResultAsync.combine([
+            fetchExternalProductMetadata(p.external_product_id, fetch),
+            fetchExternalProductBadges(p.external_product_id, fetch),
+            fetchExternalProductPrices(p.external_product_id, fetch),
+        ])
+        .map(([metadata, badges, prices]) => ({ metadata, badges, latest_price: prices[0] ?? null }))
+        .mapErr((err) => ({ metadata: [], badges: [] }))
+    })).match(
+        (values) => values,
+        (err) => {
+            console.error('Failed to fetch sibling products:', err);
+            return [];
+        }
+    );
+
+    const siblingProducts = siblingExternals.map((p, idx) => {
+        return {
+            ...p,
+            ...siblingExtras[idx],
+        }
+    })
+
+    siblingProducts.sort((a, b) => {
+        const priceA = a.latest_price?.price ?? Number.MAX_VALUE;
+        const priceB = b.latest_price?.price ?? Number.MAX_VALUE;
+        return priceA - priceB;
+    })
+
+    const similarProductIds = new Set(similarExternals.map(p => p.external_product_id));
+    const similarProducts = siblingProducts.filter(p => similarProductIds.has(p.external_product_id));
+    const variantProducts = siblingProducts.filter(p => !similarProductIds.has(p.external_product_id));
 
     return {
         exists: true,
@@ -85,6 +147,8 @@ export const load: PageServerLoad<PageData> = async ({ params, fetch, parent }) 
         prices,
         metadata,
         badges,
+        variantProducts,
+        similarProducts,
         website: parentData.websiteMap?.get(externalProduct.website_id) ?? null,
         category: parentData.categoryMap?.get(externalProduct.category_id) ?? null,
     } satisfies PageData;

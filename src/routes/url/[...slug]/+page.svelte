@@ -2,8 +2,11 @@
     import Badge from '$lib/components/Badge.svelte';
     import NoResult from '$lib/components/NoResult.svelte';
     import { formatPrice, linkWithUtmSource } from '$lib/util.js';
-    import dayjs from 'dayjs';
     import type { PageProps } from './$types.js';
+    import PriceChart from '$lib/components/PriceChart.svelte';
+    import PriceStat from '$lib/components/PriceStat.svelte';
+    import Pill from '$lib/components/Pill.svelte';
+    import type { ExternalProductPrice } from '$lib/types/Product.js';
 
     let { data }: PageProps = $props();
 
@@ -12,6 +15,29 @@
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )
     );
+
+    let priceStats30Day = calculate30DayStats();
+
+    function calculate30DayStats() {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const recentPrices = data.prices
+            .filter(price => price.price != null && new Date(price.created_at) >= thirtyDaysAgo)
+            .map(price => price.price);
+        
+        if (recentPrices.length > 0) {
+            const high = Math.max(...recentPrices);
+            const low = Math.min(...recentPrices);
+            const average = Math.ceil(recentPrices.reduce((sum, price) => sum + price, 0) / recentPrices.length);
+            return {
+                high,
+                low,
+                average,
+                count: recentPrices.length
+            }
+        }
+        return null;
+    }
 
     const latestPrice = $derived.by(() => priceHistory[0] ?? null);
     const isAvailable = $derived.by(() =>
@@ -22,7 +48,35 @@
     );
     const badges = $derived.by(() => data.badges ?? []);
     const metadata = $derived.by(() => data.metadata ?? []);
+
+    function getPriceOrNotAvailable(price: ExternalProductPrice) {
+        if (!price) return 'Not Available';
+        if (!price.is_available) return 'Not Available';
+        if (price.price == null) return 'Not Available';
+        return formatPrice(price.price);
+    }
 </script>
+
+{#snippet productDetail(product: typeof data.similarProducts[number])}
+    <div class={['similar-product-card', product.latest_price?.price < latestPrice?.price ? 'highlight' : '']}>
+        <h3 class="similar-product-title">{product.name}</h3>
+        <h4>{getPriceOrNotAvailable(product.latest_price)}</h4>
+        {#if product.metadata.length > 0}
+            <div class="similar-metadata">
+                {#each product.metadata as metadata (metadata.name)}
+                    <Pill label={metadata.name_display_text} value={metadata.value_display_text} />
+                {/each}
+            </div>
+        {/if}
+        {#if product.badges.length > 0}
+            <div class="badges-row">
+                {#each product.badges as badge (badge.key)}
+                    <Badge label={badge.label} />
+                {/each}
+            </div>
+        {/if}
+    </div>
+{/snippet}
 
 <div class="url-page">
     {#if !data.exists}
@@ -34,7 +88,7 @@
         {#if data.error}
             <div class="error-banner">
                 <strong>Heads up:</strong>
-                <span>{data.error}</span>
+                <span>{data?.error}</span>
             </div>
         {/if}
 
@@ -98,50 +152,49 @@
             {/if}
         </section>
 
-        <section class="content-grid">
-            <div class="card">
-                <h2>Price history</h2>
-                {#if priceHistory.length > 0}
-                    <ul class="price-list">
-                        {#each priceHistory as price (price.created_at)}
-                            <li class="price-item">
-                                <div class="price-head">
-                                    <span class="price-amount">{formatPrice(price.price)}</span>
-                                    <span class:available={price.is_available} class:unavailable={!price.is_available}>
-                                        {price.is_available ? 'Available' : 'Unavailable'}
-                                    </span>
-                                </div>
-                                <p class="price-date">{dayjs(price.created_at).format('MMM D, YYYY • h:mm A')}</p>
-                            </li>
-                        {/each}
-                    </ul>
-                {:else}
-                    <p class="empty-state">No price data recorded yet.</p>
-                {/if}
-            </div>
+        {#if data.prices.length > 0}
+            <section aria-label="Price chart">
+                <div class="card">
+                    <h2>Price History</h2>
 
+                    {#if priceStats30Day}
+                        <div>
+                            <PriceStat stats={priceStats30Day} />
+                        </div>
+                    {/if}
+                    <div class="price-chart">
+                        <PriceChart product={data.externalProduct} prices={data.prices} />
+                    </div>
+                </div>
+            </section>
+        {/if}
+
+        <section aria-label="Similar products">
             <div class="card">
-                <h2>Metadata</h2>
-                {#if metadata.length > 0}
-                    <div class="metadata-grid">
-                        {#each metadata as item (item.name + item.value)}
-                            <div class="metadata-item">
-                                <p class="metadata-label">{item.name_display_text ?? item.name}</p>
-                                <p class="metadata-value">
-                                    {#if item.value_display_text}
-                                        {item.value_display_text}
-                                    {:else}
-                                        {item.value}
-                                        {#if item.unit}
-                                            <span class="metadata-unit">{item.unit}</span>
-                                        {/if}
-                                    {/if}
-                                </p>
-                            </div>
+                <h2>Similar Products</h2>
+                {#if data.similarProducts && data.similarProducts.length > 0}
+                    <h3>We found {data.similarProducts.length} similar products that share the same configuration</h3>
+                    <h4>
+                        {#each metadata as item (item.name)}
+                            <Pill label={item.name_display_text} value={item.value_display_text} />
+                        {/each}
+                    </h4>
+                    <div class="similar-products-grid">
+                        {#each data.similarProducts as similar (similar.external_product_id)}
+                            {@render productDetail(similar)}
                         {/each}
                     </div>
+
+                    {#if data.variantProducts.length > data.similarProducts.length}
+                        <h3>We found {data.variantProducts.length} products that have different configurations</h3>
+                        <div class="similar-products-grid">
+                            {#each data.variantProducts as variant (variant.external_product_id)}
+                                {@render productDetail(variant)}
+                            {/each}
+                        </div>
+                    {/if}
                 {:else}
-                    <p class="empty-state">No metadata available for this product.</p>
+                    <p class="empty-state">No similar products found.</p>
                 {/if}
             </div>
         </section>
@@ -326,44 +379,6 @@
         margin: 0;
     }
 
-    .price-list {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .price-item {
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        background: linear-gradient(135deg, rgba(248, 250, 252, 0.65), rgba(226, 232, 240, 0.35));
-    }
-
-    .price-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-
-    .price-amount {
-        font-size: 1.35rem;
-        font-weight: 700;
-        color: #111827;
-    }
-
-    .price-date {
-        font-size: 0.9rem;
-        color: #4b5563;
-    }
-
     .empty-state {
         font-size: 0.95rem;
         color: #6b7280;
@@ -405,4 +420,67 @@
         margin-left: 0.35rem;
         color: #6b7280;
     }
+
+    .price-chart {
+        background: linear-gradient(180deg, #f8fafc, transparent);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .similar-products-grid {
+        display: grid;
+        gap: 1rem;
+    }
+
+    @media (min-width: 640px) {
+        .similar-products-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .similar-products-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    .similar-product-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 1rem;
+        background: linear-gradient(135deg, rgba(248, 250, 252, 0.65), rgba(255, 255, 255, 1));
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        transition: all 0.2s ease;
+    }
+
+    .similar-product-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+        transform: translateY(-2px);
+    }
+
+    .similar-product-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #0f172a;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .similar-metadata {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .highlight {
+        border-color: #34d399;
+        background: linear-gradient(135deg, rgba(236, 253, 245, 0.8), rgba(209, 250, 229, 0.6));
+        box-shadow: 0 8px 24px rgba(52, 211, 153, 0.2);
+    }
+
 </style>

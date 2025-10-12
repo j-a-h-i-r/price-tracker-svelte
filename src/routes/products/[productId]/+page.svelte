@@ -40,6 +40,8 @@
     import type { PageProps } from './$types.js';
     import { SvelteMap } from 'svelte/reactivity';
     import { ResultAsync } from 'neverthrow';
+    import PriceChart from '$lib/components/PriceChart.svelte';
+    import PriceStat from '$lib/components/PriceStat.svelte';
 
     let { data }: PageProps = $props();
 
@@ -857,28 +859,11 @@
                     </div>
 
                     {#if priceStats30Day.get(product.external_product_id)}
-                        <div class="price-stats">
-                            <div class="price-stats-grid">
-                                <div class="price-stat">
-                                    <span class="price-stat-label">30-Day High</span>
-                                    <span class="price-stat-value price-high">{formatPrice(priceStats30Day.get(product.external_product_id)!.high)}</span>
-                                </div>
-                                <div class="price-stat">
-                                    <span class="price-stat-label">30-Day Avg</span>
-                                    <span class="price-stat-value price-avg">{formatPrice(priceStats30Day.get(product.external_product_id)!.average)}</span>
-                                </div>
-                                <div class="price-stat">
-                                    <span class="price-stat-label">30-Day Low</span>
-                                    <span class="price-stat-value price-low">{formatPrice(priceStats30Day.get(product.external_product_id)!.low)}</span>
-                                </div>
-                            </div>
-                            <div class="price-stats-footer">
-                                Based on {priceStats30Day.get(product.external_product_id)!.count} price points
-                            </div>
+                        <PriceStat stats={priceStats30Day.get(product.external_product_id)!}>
                             <div style="padding-top: 0.5rem;">
-                                <canvas {@attach attachInlineChart(product)}></canvas>
+                                <PriceChart {product} prices={externalProductPrices.get(product.external_product_id) ?? []} />
                             </div>
-                        </div>
+                        </PriceStat>
                     {/if}
 
                     {#if (externalProductMetadatas.get(product.external_product_id) ?? []).length > 0}
@@ -1903,71 +1888,6 @@
         100% {
             transform: scale(0.95);
             box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-        }
-    }
-
-    .price-stats {
-        background: linear-gradient(180deg, #f8fafc, transparent);
-        border-radius: 8px;
-        padding: 1rem;
-        margin-top: 1rem;
-        border: 1px solid #e2e8f0;
-    }
-
-    .price-stats-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-    }
-
-    .price-stat {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-
-    .price-stat-label {
-        font-size: 0.75rem;
-        color: #6b7280;
-        font-weight: 500;
-        letter-spacing: 0.05em;
-        margin-bottom: 0.25rem;
-    }
-
-    .price-stat-value {
-        font-size: 0.875rem;
-        font-weight: 700;
-    }
-
-    .price-high {
-        color: #dc2626;
-    }
-
-    .price-avg {
-        color: #374151;
-    }
-
-    .price-low {
-        color: #059669;
-    }
-
-    .price-stats-footer {
-        margin-top: 0.75rem;
-        font-size: 0.75rem;
-        color: #6b7280;
-        text-align: center;
-        font-style: italic;
-    }
-
-    @media (max-width: 640px) {
-        .price-stats-grid {
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.75rem;
-        }
-        
-        .price-stat-value {
-            font-size: 0.75rem;
         }
     }
 

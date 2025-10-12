@@ -200,3 +200,7 @@ export type ProductBadge =
 export function fetchExternalProductBadges(externalProductId: number, superFetch?: typeof fetch) {
     return api.get<ProductBadge[]>(`/api/externals/${externalProductId}/badges`, { superFetch });
 }
+
+export function fetchSimilarExternalProducts(externalProductId: number, superFetch?: typeof fetch) {
+    return api.get<ExternalProductOfInternal[]>(`/api/externals/${externalProductId}/similar`, { superFetch });
+}
