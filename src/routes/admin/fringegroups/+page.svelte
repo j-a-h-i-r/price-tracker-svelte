@@ -14,6 +14,7 @@
     let percentThreshold = $state<number>(5);
     let inputValue = $state('5');
     let sortOrder = $state<'asc' | 'desc'>('asc');
+    let excludeMerged = $state(false);
 
     onMount(async () => {
         if (!userState.isAdmin) {
@@ -26,7 +27,7 @@
     async function fetchFringeGroups() {
         isLoading = true;
         const threshold = percentThreshold || undefined;
-        fringeGroups = await getFringeGroups(threshold, sortOrder)
+        fringeGroups = await getFringeGroups(threshold, sortOrder, excludeMerged)
             .orTee(() => {
                 toasts.error('Failed to fetch fringe groups');
             })
@@ -179,7 +180,7 @@
                         id="threshold"
                         type="number"
                         min="0"
-                        step="0.1"
+                        step="1"
                         bind:value={inputValue}
                         onkeypress={handleKeyPress}
                         placeholder="Enter threshold"
@@ -191,6 +192,11 @@
                 <span class="threshold-help">
                     Show groups where GP percentage is below this threshold
                 </span>
+            </div>
+
+            <div>
+                <label for="merged-input">Exclude Merged Products:</label>
+                <input type="checkbox" name="merged-input" bind:checked={excludeMerged} onchange={fetchFringeGroups} />
             </div>
 
             <div class="sort-control">
@@ -240,22 +246,29 @@
                     <div class="card">
                         <div class="card-header">
                             <div class="group-id">Group #{group.group_id}</div>
-                            <div class="percentage-badge">{formatPercentage(group.gp_percent)}</div>
+                            <div class="group-id">External #{group.external_product_id}</div>
+                            <div class="percentage-badge ml-auto">{formatPercentage(group.gp_percent)}</div>
                         </div>
                         
                         <div class="card-content">
                             <h3 class="group-name">{group.group_name}</h3>
                             <p class="product-name">{group.external_product_name}</p>
                         </div>
+
+                        {#if group.merged}
+                            <div>
+                                <p>This product is merged into Group (#{group.group_id}). The internal product is <a href="/products/{group.merged_internal_product_id}">{group.merged_internal_product_id}</a></p>
+                            </div>
+                        {/if}
                         
                         <div class="card-stats">
                             <div class="stat">
-                                <span class="stat-label">Group Count</span>
-                                <span class="stat-value">{group.gp_count}</span>
+                                <span class="stat-label">Count in All Groups</span>
+                                <span class="stat-value">{group.count_in_all_groups}</span>
                             </div>
                             <div class="stat">
-                                <span class="stat-label">Product Count</span>
-                                <span class="stat-value">{group.p_count}</span>
+                                <span class="stat-label">Count in This Group</span>
+                                <span class="stat-value">{group.count_in_this_group}</span>
                             </div>
                         </div>
 
@@ -356,6 +369,7 @@
         display: flex;
         gap: 2rem;
         align-items: flex-start;
+        flex-wrap: wrap;
     }
 
     .threshold-control {
@@ -513,7 +527,6 @@
 
     .search-input {
         width: 100%;
-        max-width: 400px;
         padding: 0.75rem;
         border: 1px solid #d1d5db;
         border-radius: 0.375rem;
@@ -549,9 +562,9 @@
 
     .card-header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
         margin-bottom: 1rem;
+        gap: 0.25rem;
     }
 
     .group-id {
