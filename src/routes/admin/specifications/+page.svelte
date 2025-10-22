@@ -4,6 +4,7 @@
     import { toasts } from '$lib/states/toast.js';
     import type { GeneratedSpec } from '$lib/types/GeneratedSpec';
     import { onMount } from 'svelte';
+    import { api } from '$lib/core/api.js';
 
     let specs: GeneratedSpec[] = $state([]);
     let loading = $state(true);
@@ -13,6 +14,8 @@
     let savingProducts = $state<Set<number>>(new Set());
     // Track selected values for each product's conflicting fields: productId -> fieldKey -> selectedValue
     let selectedValues = $state<Map<number, Map<string, unknown>>>(new Map());
+    let stats = $state<{ total: string; same: string; different: string } | null>(null);
+    let mergingAll = $state(false);
 
     let filteredSpecs = $derived(
         specs.filter(spec => 
@@ -21,14 +24,22 @@
     );
 
     onMount(async () => {
-        const specsResp = await fetchGeneratedSpecs();
+        const [specsResp, statsResp] = await Promise.all([
+            fetchGeneratedSpecs(),
+            api.get<{ total: string; same: string; different: string }>('/api/generatedspecs/stats')
+        ]);
+        
         if (specsResp.isOk()) {
             specs = specsResp.value;
-            loading = false;
         } else {
-            loading = false;
             error = specsResp.error.message ?? 'An error occurred';
         }
+        
+        if (statsResp.isOk()) {
+            stats = statsResp.value;
+        }
+        
+        loading = false;
     });
 
     function toggleProduct(productId: number) {
@@ -101,6 +112,39 @@
         }
     }
 
+    async function mergeAllSame() {
+        mergingAll = true;
+        
+        try {
+            const result = await api.put('/api/generatedspecs/mergeall', {});
+
+            if (result.isErr()) {
+                throw new Error(result.error.message);
+            }
+            
+            toasts.success('All matching specifications merged successfully');
+            
+            // Refresh the data
+            const [specsResp, statsResp] = await Promise.all([
+                fetchGeneratedSpecs(),
+                api.get<{ total: string; same: string; different: string }>('/api/generatedspecs/stats')
+            ]);
+            
+            if (specsResp.isOk()) {
+                specs = specsResp.value;
+            }
+            
+            if (statsResp.isOk()) {
+                stats = statsResp.value;
+            }
+        } catch (err) {
+            console.error('Error merging specifications:', err);
+            toasts.error(`Error merging specifications: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        } finally {
+            mergingAll = false;
+        }
+    }
+
     function compareMetadata(metadatas: { model: string; metadata: Record<string, unknown> }[]) {
         if (metadatas.length === 0) return { allMatch: true, differences: [] };
         
@@ -142,6 +186,35 @@
 <div class="specs-container">
     <h1>Specifications Review</h1>
     <p class="subtitle">Compare generated metadata by LLM models</p>
+
+    {#if stats}
+        <div class="stats-container">
+            <div class="stat-card">
+                <span class="stat-label">Total</span>
+                <span class="stat-value">{stats.total}</span>
+            </div>
+            <div class="stat-card match">
+                <span class="stat-label">Same</span>
+                <span class="stat-value">{stats.same}</span>
+            </div>
+            <div class="stat-card differ">
+                <span class="stat-label">Different</span>
+                <span class="stat-value">{stats.different}</span>
+            </div>
+        </div>
+        
+        {#if parseInt(stats.same) > 0}
+            <div class="merge-all-container">
+                <button
+                    class="merge-all-btn"
+                    onclick={mergeAllSame}
+                    disabled={mergingAll}
+                >
+                    {mergingAll ? 'Merging...' : 'Merge all Same'}
+                </button>
+            </div>
+        {/if}
+    {/if}
 
     <div class="search-container">
         <input
@@ -305,8 +378,85 @@
 
     .subtitle {
         color: #6b7280;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
         font-size: 1rem;
+    }
+
+    .stats-container {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .stat-card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 1.5rem;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.75rem;
+        min-width: 150px;
+        flex: 1;
+    }
+
+    .stat-card.match {
+        border-color: #86efac;
+        background: #f0fdf4;
+    }
+
+    .stat-card.differ {
+        border-color: #fde68a;
+        background: #fffbeb;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #111827;
+    }
+
+    .stat-card.match .stat-value {
+        color: #166534;
+    }
+
+    .stat-card.differ .stat-value {
+        color: #92400e;
+    }
+
+    .merge-all-container {
+        margin-bottom: 2rem;
+    }
+
+    .merge-all-btn {
+        padding: 0.75rem 1.5rem;
+        background: #16a34a;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .merge-all-btn:hover:not(:disabled) {
+        background: #15803d;
+    }
+
+    .merge-all-btn:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
     }
 
     .search-container {
