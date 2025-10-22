@@ -14,6 +14,8 @@
     let savingProducts = $state<Set<number>>(new Set());
     // Track selected values for each product's conflicting fields: productId -> fieldKey -> selectedValue
     let selectedValues = $state<Map<number, Map<string, unknown>>>(new Map());
+    // Track ignored fields for each product: productId -> Set of fieldKeys
+    let ignoredFields = $state<Map<number, Set<string>>>(new Map());
     let stats = $state<{ total: string; same: string; different: string } | null>(null);
     let mergingAll = $state(false);
 
@@ -65,22 +67,49 @@
         return selectedValues.get(productId)?.get(fieldKey);
     }
 
+    function toggleIgnoreField(productId: number, fieldKey: string) {
+        if (!ignoredFields.has(productId)) {
+            ignoredFields.set(productId, new Set());
+        }
+        const ignored = ignoredFields.get(productId)!;
+        if (ignored.has(fieldKey)) {
+            ignored.delete(fieldKey);
+        } else {
+            ignored.add(fieldKey);
+            // Also remove any selection for this field
+            selectedValues.get(productId)?.delete(fieldKey);
+        }
+        // Trigger reactivity
+        ignoredFields = new Map(ignoredFields);
+        selectedValues = new Map(selectedValues);
+    }
+
+    function isFieldIgnored(productId: number, fieldKey: string): boolean {
+        return ignoredFields.get(productId)?.has(fieldKey) ?? false;
+    }
+
     function canSaveWithConflicts(productId: number, differences: { key: string; hasConflict: boolean }[]): boolean {
         const conflicts = differences.filter(d => d.hasConflict);
         if (conflicts.length === 0) return false;
         
         const selections = selectedValues.get(productId);
-        if (!selections) return false;
+        const ignored = ignoredFields.get(productId);
         
-        // Check if all conflicts have a selection
-        return conflicts.every(c => selections.has(c.key));
+        // Check if all conflicts are either selected or ignored
+        return conflicts.every(c => selections?.has(c.key) || ignored?.has(c.key));
     }
 
     function buildMetadataFromSelections(productId: number, differences: { key: string; values: { model: string; value: unknown }[]; hasConflict: boolean }[]): Record<string, unknown> {
         const metadata: Record<string, unknown> = {};
         const selections = selectedValues.get(productId);
+        const ignored = ignoredFields.get(productId);
         
         differences.forEach(diff => {
+            // Skip ignored fields
+            if (ignored?.has(diff.key)) {
+                return;
+            }
+            
             if (diff.hasConflict && selections?.has(diff.key)) {
                 // Use selected value for conflicts
                 metadata[diff.key] = selections.get(diff.key);
@@ -303,19 +332,33 @@
                                 {:else}
                                     <div class="comparison-table">
                                         {#each comparison.differences as diff (diff.key)}
-                                            <div class="field-row {diff.hasConflict ? 'conflict' : 'match'}">
+                                            <div class="field-row {diff.hasConflict ? 'conflict' : 'match'} {isFieldIgnored(spec.external_product_id, diff.key) ? 'ignored' : ''}">
                                                 <div class="field-header">
-                                                    <strong>{diff.key}</strong>
+                                                    <div class="field-header-left">
+                                                        <strong>{diff.key}</strong>
+                                                        {#if diff.hasConflict}
+                                                            {#if isFieldIgnored(spec.external_product_id, diff.key)}
+                                                                <span class="ignored-badge">Ignored</span>
+                                                            {:else}
+                                                                <span class="conflict-badge">Conflict</span>
+                                                            {/if}
+                                                        {:else}
+                                                            <span class="match-badge">Match</span>
+                                                        {/if}
+                                                    </div>
                                                     {#if diff.hasConflict}
-                                                        <span class="conflict-badge">Conflict</span>
-                                                    {:else}
-                                                        <span class="match-badge">Match</span>
+                                                        <button
+                                                            class="ignore-btn"
+                                                            onclick={() => toggleIgnoreField(spec.external_product_id, diff.key)}
+                                                        >
+                                                            {isFieldIgnored(spec.external_product_id, diff.key) ? 'Unignore' : 'Ignore'}
+                                                        </button>
                                                     {/if}
                                                 </div>
                                                 <div class="field-values">
                                                     {#each diff.values as { model, value } (model)}
                                                         <div class="value-item">
-                                                            {#if diff.hasConflict}
+                                                            {#if diff.hasConflict && !isFieldIgnored(spec.external_product_id, diff.key)}
                                                                 <label class="value-selector">
                                                                     <input
                                                                         type="radio"
@@ -697,11 +740,24 @@
         border-color: #fde68a;
     }
 
+    .field-row.ignored {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+        opacity: 0.7;
+    }
+
     .field-header {
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 0.5rem;
         margin-bottom: 0.75rem;
+    }
+
+    .field-header-left {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
     .field-header strong {
@@ -709,11 +765,36 @@
         font-size: 0.875rem;
     }
 
+    .ignore-btn {
+        padding: 0.25rem 0.75rem;
+        background: #6b7280;
+        color: white;
+        border: none;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .ignore-btn:hover {
+        background: #4b5563;
+    }
+
     .conflict-badge {
         font-size: 0.75rem;
         padding: 0.125rem 0.5rem;
         background: #fbbf24;
         color: #78350f;
+        border-radius: 0.25rem;
+        font-weight: 500;
+    }
+
+    .ignored-badge {
+        font-size: 0.75rem;
+        padding: 0.125rem 0.5rem;
+        background: #9ca3af;
+        color: #1f2937;
         border-radius: 0.25rem;
         font-weight: 500;
     }

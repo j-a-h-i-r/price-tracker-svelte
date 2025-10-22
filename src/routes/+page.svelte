@@ -705,6 +705,7 @@
         justify-content: center;
         border-radius: 2rem;
         padding: 0.5rem 1.5rem;
+        cursor: pointer;
     }
 
     .load-more-btn::before {
