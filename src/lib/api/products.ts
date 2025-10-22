@@ -204,3 +204,7 @@ export function fetchExternalProductBadges(externalProductId: number, superFetch
 export function fetchSimilarExternalProducts(externalProductId: number, superFetch?: typeof fetch) {
     return api.get<ExternalProductOfInternal[]>(`/api/externals/${externalProductId}/similar`, { superFetch });
 }
+
+export function updateExternalProductMetadata(externalProductId: number, llmMetadata: Record<string, any>) {
+    return api.put(`/api/externals/${externalProductId}`, { llm_metadata: llmMetadata });
+}

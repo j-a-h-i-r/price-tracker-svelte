@@ -32,6 +32,12 @@
 			description: 'Manage metadata parsing'
 		},
 		{
+			path: '/admin/specifications',
+			title: 'Specifications Review',
+			icon: '🔍',
+			description: 'Compare generated specifications by LLM models'
+		},
+		{
 			path: '/admin/users',
 			title: 'Users',
 			icon: '👥',
