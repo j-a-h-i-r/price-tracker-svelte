@@ -16,7 +16,17 @@
     let selectedValues = $state<Map<number, Map<string, unknown>>>(new Map());
     // Track ignored fields for each product: productId -> Set of fieldKeys
     let ignoredFields = $state<Map<number, Set<string>>>(new Map());
-    let stats = $state<{ total: string; same: string; different: string } | null>(null);
+    let stats = $state<{
+        total: string;
+        total_same: string;
+        total_different: string;
+        merged_total: string;
+        merged_same: string;
+        merged_different: string;
+        unmerged_total: string;
+        unmerged_same: string;
+        unmerged_different: string;
+    } | null>(null);
     let mergingAll = $state(false);
 
     let filteredSpecs = $derived(
@@ -28,7 +38,17 @@
     onMount(async () => {
         const [specsResp, statsResp] = await Promise.all([
             fetchGeneratedSpecs(),
-            api.get<{ total: string; same: string; different: string }>('/api/generatedspecs/stats')
+            api.get<{
+                total: string;
+                total_same: string;
+                total_different: string;
+                merged_total: string;
+                merged_same: string;
+                merged_different: string;
+                unmerged_total: string;
+                unmerged_same: string;
+                unmerged_different: string;
+            }>('/api/generatedspecs/stats')
         ]);
         
         if (specsResp.isOk()) {
@@ -156,7 +176,17 @@
             // Refresh the data
             const [specsResp, statsResp] = await Promise.all([
                 fetchGeneratedSpecs(),
-                api.get<{ total: string; same: string; different: string }>('/api/generatedspecs/stats')
+                api.get<{
+                    total: string;
+                    total_same: string;
+                    total_different: string;
+                    merged_total: string;
+                    merged_same: string;
+                    merged_different: string;
+                    unmerged_total: string;
+                    unmerged_same: string;
+                    unmerged_different: string;
+                }>('/api/generatedspecs/stats')
             ]);
             
             if (specsResp.isOk()) {
@@ -221,25 +251,40 @@
             <div class="stat-card">
                 <span class="stat-label">Total</span>
                 <span class="stat-value">{stats.total}</span>
+                <div class="stat-breakdown">
+                    <span class="stat-breakdown-item match-text">{stats.total_same} same</span>
+                    <span class="stat-breakdown-separator">•</span>
+                    <span class="stat-breakdown-item differ-text">{stats.total_different} different</span>
+                </div>
             </div>
-            <div class="stat-card match">
-                <span class="stat-label">Same</span>
-                <span class="stat-value">{stats.same}</span>
+            <div class="stat-card merged">
+                <span class="stat-label">Merged</span>
+                <span class="stat-value">{stats.merged_total}</span>
+                <div class="stat-breakdown">
+                    <span class="stat-breakdown-item match-text">{stats.merged_same} same</span>
+                    <span class="stat-breakdown-separator">•</span>
+                    <span class="stat-breakdown-item differ-text">{stats.merged_different} different</span>
+                </div>
             </div>
-            <div class="stat-card differ">
-                <span class="stat-label">Different</span>
-                <span class="stat-value">{stats.different}</span>
+            <div class="stat-card unmerged">
+                <span class="stat-label">Unmerged</span>
+                <span class="stat-value">{stats.unmerged_total}</span>
+                <div class="stat-breakdown">
+                    <span class="stat-breakdown-item match-text">{stats.unmerged_same} same</span>
+                    <span class="stat-breakdown-separator">•</span>
+                    <span class="stat-breakdown-item differ-text">{stats.unmerged_different} different</span>
+                </div>
             </div>
         </div>
         
-        {#if parseInt(stats.same) > 0}
+        {#if parseInt(stats.unmerged_same) > 0}
             <div class="merge-all-container">
                 <button
                     class="merge-all-btn"
                     onclick={mergeAllSame}
                     disabled={mergingAll}
                 >
-                    {mergingAll ? 'Merging...' : 'Merge all Same'}
+                    {mergingAll ? 'Merging...' : `Merge all Same (${stats.unmerged_same})`}
                 </button>
             </div>
         {/if}
@@ -444,14 +489,14 @@
         flex: 1;
     }
 
-    .stat-card.match {
-        border-color: #86efac;
-        background: #f0fdf4;
+    .stat-card.merged {
+        border-color: #93c5fd;
+        background: #eff6ff;
     }
 
-    .stat-card.differ {
-        border-color: #fde68a;
-        background: #fffbeb;
+    .stat-card.unmerged {
+        border-color: #fda4af;
+        background: #fff1f2;
     }
 
     .stat-label {
@@ -468,12 +513,36 @@
         color: #111827;
     }
 
-    .stat-card.match .stat-value {
+    .stat-breakdown {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+
+    .stat-breakdown-item {
+        font-weight: 500;
+    }
+
+    .stat-breakdown-separator {
+        color: #d1d5db;
+    }
+
+    .match-text {
         color: #166534;
     }
 
-    .stat-card.differ .stat-value {
+    .differ-text {
         color: #92400e;
+    }
+
+    .stat-card.merged .stat-value {
+        color: #1e40af;
+    }
+
+    .stat-card.unmerged .stat-value {
+        color: #be123c;
     }
 
     .merge-all-container {
