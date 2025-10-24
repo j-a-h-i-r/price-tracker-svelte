@@ -30,7 +30,7 @@
         <header class="hero-header">
             <p class="eyebrow">Direct Lookup</p>
             <h1>Check a product by URL</h1>
-            <p class="subtitle">Paste a store link to see the latest prices, availability, metadata, and badges collected by Daam.</p>
+            <p class="subtitle">Paste a product link to see the latest prices, availability, metadata, and badges.</p>
         </header>
 
     <form class="lookup-form" onsubmit={handleSubmit}>
@@ -56,31 +56,39 @@
         </form>
     </section>
 
-    <section class="tips-card">
-        <h2>What to expect</h2>
-        <ul>
-            <li>Matching is exact—use the full product URL from the source website.</li>
-            <li>If we can't find the product, you'll see guidance on other ways to search.</li>
-        </ul>
-    </section>
+    <div class="tip-box">
+        <div class="tip-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tip-icon">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span class="tip-title">Pro Tip</span>
+        </div>
+        <p class="tip-text">You can just add <code>https://daam.deals/url/</code> in front of any product URL</p>
+        <div class="tip-example">
+            <div class="example-row">
+                <span class="example-label">Original:</span>
+                <code class="example-code">https://startech.com.bd/iphone-15-pro</code>
+            </div>
+            <div class="example-arrow">↓</div>
+            <div class="example-row">
+                <span class="example-label">Result:</span>
+                <code class="example-code highlight">https://daam.deals/url/https://startech.com.bd/iphone-15-pro</code>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
     .url-landing {
-        display: grid;
+        display: flex;
+        flex-direction: column;
         gap: 1.5rem;
         padding: 1.5rem 0;
     }
 
-    @media (min-width: 900px) {
-        .url-landing {
-            grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-            align-items: start;
-        }
-    }
-
-    .hero-card,
-    .tips-card {
+    .hero-card {
         background: white;
         border: 1px solid #e5e7eb;
         border-radius: 12px;
@@ -89,6 +97,7 @@
         display: flex;
         flex-direction: column;
         gap: 1.25rem;
+        width: 100%;
     }
 
     .hero-header {
@@ -199,23 +208,114 @@
         margin: 0;
     }
 
-    .tips-card h2 {
-        font-size: 1.25rem;
-        margin: 0;
-        color: #0f172a;
+    code {
+        background: #f3f4f6;
+        color: #ff6767;
+        padding: 0.2rem 0.4rem;
+        border-radius: 6px;
+        font-family: 'Fira Code', monospace;
+        font-size: 0.875rem;
     }
 
-    .tips-card ul {
-        list-style: disc;
-        padding-left: 1.25rem;
-        margin: 0;
+    .tip-box {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 1px solid #bae6fd;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 8px rgba(56, 189, 248, 0.08);
+    }
+
+    .tip-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .tip-icon {
+        color: #0284c7;
+        flex-shrink: 0;
+    }
+
+    .tip-title {
+        font-weight: 600;
+        color: #0c4a6e;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .tip-text {
+        color: #075985;
+        font-size: 0.9rem;
+        margin: 0 0 1rem 0;
+        line-height: 1.5;
+    }
+
+    .tip-text code {
+        background: #fff;
+        color: #0284c7;
+        border: 1px solid #bae6fd;
+        font-weight: 500;
+    }
+
+    .tip-example {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-        color: #475569;
+        background: #fff;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #e0f2fe;
     }
 
-    .tips-card li {
-        line-height: 1.5;
+    .example-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    @media (min-width: 640px) {
+        .example-row {
+            flex-direction: row;
+            align-items: center;
+            gap: 0.75rem;
+        }
+    }
+
+    .example-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        min-width: 70px;
+    }
+
+    .example-code {
+        background: #f8fafc;
+        color: #475569;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8rem;
+        border: 1px solid #e2e8f0;
+        word-break: break-all;
+        flex: 1;
+    }
+
+    .example-code.highlight {
+        background: #fef3c7;
+        border-color: #fde047;
+        color: #78350f;
+        font-weight: 500;
+    }
+
+    .example-arrow {
+        text-align: center;
+        color: #0284c7;
+        font-size: 1.25rem;
+        font-weight: bold;
+        margin: 0.25rem 0;
     }
 </style>
