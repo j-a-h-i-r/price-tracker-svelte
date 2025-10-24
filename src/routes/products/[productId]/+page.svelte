@@ -36,6 +36,7 @@
     import Loader from '$lib/components/Loader.svelte';
     import Pill from '$lib/components/Pill.svelte';
     import Badge from '$lib/components/Badge.svelte';
+    import ImageCarouselModal from '$lib/components/ImageCarouselModal.svelte';
     import { generateLdJSON, generateProductStructuredData, generateSEOConfig } from '$lib/seo.js';
     import type { PageProps } from './$types.js';
     import { SvelteMap } from 'svelte/reactivity';
@@ -99,6 +100,7 @@
     let allProductImages: string[] = $state([]);
     let currentImageIndex = $state(0);
     let carouselInterval: ReturnType<typeof setInterval> | null = null;
+    let showImageModal = $state(false);
 
     onMount(() => {
         const { highlight_external_product_id } = page.state as { highlight_external_product_id: number | null };
@@ -136,6 +138,14 @@
             }, 3000);
         }
     })
+
+    function openImageModal() {
+        showImageModal = true;
+    }
+
+    function closeImageModal() {
+        showImageModal = false;
+    }
 
     function highlightExternalProduct(externalProduct: ExternalProduct): Attachment<HTMLElement> {
         return (element: HTMLElement) => {
@@ -707,7 +717,7 @@
         {:else}
             <!-- Left: Thumbnail -->
             {#if allProductImages.length > 0}
-                <div class="product-thumbnail-carousel">
+                <button class="product-thumbnail-carousel" onclick={openImageModal}>
                     <div class="thumbnail-image-container">
                         <img 
                             src={allProductImages[currentImageIndex]} 
@@ -715,7 +725,7 @@
                             class="thumbnail-image"
                         />
                     </div>
-                </div>
+                </button>
             {/if}
 
             <!-- Right: Product Info -->
@@ -1139,6 +1149,14 @@
     </div>
 {/if}
 
+<!-- Image Modal -->
+<ImageCarouselModal 
+    images={allProductImages}
+    show={showImageModal}
+    initialIndex={currentImageIndex}
+    onClose={closeImageModal}
+/>
+
 <style>
     .product-thumbnail-carousel {
         width: 120px;
@@ -1156,6 +1174,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        cursor: pointer;
     }
 
     .thumbnail-image {
