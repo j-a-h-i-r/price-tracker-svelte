@@ -95,10 +95,45 @@
     let externalProductIdToHighlight: number | null = $state(null);
     let alreadyScrolledOnce = $state(false);
 
+    // Image carousel state
+    let allProductImages: string[] = $state([]);
+    let currentImageIndex = $state(0);
+    let carouselInterval: ReturnType<typeof setInterval> | null = null;
+
     onMount(() => {
         const { highlight_external_product_id } = page.state as { highlight_external_product_id: number | null };
         if (highlight_external_product_id) {
             externalProductIdToHighlight = Number(highlight_external_product_id);
+        }
+
+        return () => {
+            if (carouselInterval) {
+                clearInterval(carouselInterval);
+            }
+        };
+    })
+
+    // Collect all images from external products
+    $effect(() => {
+        const images: string[] = [];
+        externalProducts.forEach(product => {
+            if (product.image_urls && product.image_urls.length > 0) {
+                images.push(...product.image_urls);
+            }
+        });
+        allProductImages = images;
+        currentImageIndex = 0;
+
+        // Clear existing interval
+        if (carouselInterval) {
+            clearInterval(carouselInterval);
+        }
+
+        // Start carousel if there are images
+        if (images.length > 1) {
+            carouselInterval = setInterval(() => {
+                currentImageIndex = (currentImageIndex + 1) % allProductImages.length;
+            }, 3000);
         }
     })
 
@@ -655,7 +690,7 @@
             </div>
         </div>
     {:else}
-    <div class="product-header">
+    <div class="product-header-container">
         {#if isEditingMainProduct}
             <div class="edit-name-container">
                 <input
@@ -670,45 +705,70 @@
                 </div>
             </div>
         {:else}
-            <h1>{product?.name}</h1>
-            {#if userState.isAdmin}
-                <div class="admin-actions">
-                    <button class="btn btn-primary" onclick={startEditingMain}>Edit</button>
-                    <button class="btn" onclick={handleMergeProduct}>Merge</button>
+            <!-- Left: Thumbnail -->
+            {#if allProductImages.length > 0}
+                <div class="product-thumbnail-carousel">
+                    <div class="thumbnail-image-container">
+                        <img 
+                            src={allProductImages[currentImageIndex]} 
+                            alt={product?.name || 'Product image'}
+                            class="thumbnail-image"
+                        />
+                    </div>
                 </div>
             {/if}
-        {/if}
 
-        {#if isExternalProductsLoaded}
-            <div class="availability-indicator">
-                <span class="dot" class:available={isAvailable}></span>
-                <span class="status-text"
-                    >{isAvailable ? 'Available' : 'Unavailable'}</span
-                >
-            </div>
-            {#if userState.email}
-                {#if trackedProducts.isTracked(productId)}
-                    <button class="btn btn-danger" onclick={handleUntrack}> Untrack </button>
-                {:else}
-                    <button class="btn btn-primary" onclick={handleTrack}>Track</button>
+            <!-- Right: Product Info -->
+            <div class="product-header-right">
+                <!-- Row 1: Name (and Availability/Track on desktop) -->
+                <div class="product-header-row-1">
+                    <h1>{product?.name}</h1>
+                </div>
+                <!-- Row 2 -->
+                {#if isExternalProductsLoaded}
+                    <div class="product-header-row-2 justify-between">
+                        <div class="availability-indicator">
+                            <span class="dot" class:available={isAvailable}></span>
+                            <span class="status-text"
+                                >{isAvailable ? 'Available' : 'Unavailable'}</span
+                            >
+                        </div>
+                        {#if userState.email}
+                            {#if trackedProducts.isTracked(productId)}
+                                <button class="btn btn-danger" onclick={handleUntrack}> Untrack </button>
+                            {:else}
+                                <button class="btn btn-primary" onclick={handleTrack}>Track</button>
+                            {/if}
+                        {:else}
+                            <button class="btn btn-primary" onclick={handleTrack}>Track</button>
+                        {/if}
+                    </div>
                 {/if}
-            {:else}
-                <button class="btn btn-primary" onclick={handleTrack}>Track</button>
-            {/if}
+            </div>
         {/if}
     </div>
 
-    {#if product?.manufacturer_name}
-        <div class="category-badge">
-            <span class="category-label">Brand</span>
-            <span class="category-value">{product.manufacturer_name}</span>
-        </div>
-    {/if}
+    <!-- Row 3: Category and Brand Badges -->
+    <div class="my-4">
+        {#if product?.manufacturer_name}
+            <div class="category-badge">
+                <span class="category-label">Brand</span>
+                <span class="category-value">{product.manufacturer_name}</span>
+            </div>
+        {/if}
 
-    {#if product?.category_name}
-        <div class="category-badge">
-            <span class="category-label">Category</span>
-            <span class="category-value">{product.category_name}</span>
+        {#if product?.category_name}
+            <div class="category-badge">
+                <span class="category-label">Category</span>
+                <span class="category-value">{product.category_name}</span>
+            </div>
+        {/if}
+    </div>
+
+    {#if userState.isAdmin}
+        <div class="admin-actions">
+            <button class="btn btn-primary" onclick={startEditingMain}>Edit</button>
+            <button class="btn" onclick={handleMergeProduct}>Merge</button>
         </div>
     {/if}
 
@@ -809,21 +869,35 @@
                             {/each}
                         </div>
                     {/if}
-                    <div class="product-name">
-                        <span>
-                            {product.name}
-                        </span>
-                        <button 
-                            class="flag-btn" 
-                            onclick={() => handleFlagIncorrectGrouping(product.external_product_id)}
-                            title="Flag incorrect information"
-                            aria-label="Flag incorrect information"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-                                <line x1="4" y1="22" x2="4" y2="15"/>
-                            </svg>
-                        </button>
+                    
+                    <div class="product-info-row">
+                        <!-- {#if product.image_urls && product.image_urls.length > 0}
+                            <div class="product-image-container">
+                                <img 
+                                    src={product.image_urls[0]} 
+                                    alt={product.name}
+                                    class="product-image"
+                                    loading="lazy"
+                                />
+                            </div>
+                        {/if} -->
+                        
+                        <div class="product-name">
+                            <span>
+                                {product.name}
+                            </span>
+                            <button 
+                                class="flag-btn" 
+                                onclick={() => handleFlagIncorrectGrouping(product.external_product_id)}
+                                title="Flag incorrect information"
+                                aria-label="Flag incorrect information"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                                    <line x1="4" y1="22" x2="4" y2="15"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="price-container">
                         <div
@@ -1066,6 +1140,101 @@
 {/if}
 
 <style>
+    .product-thumbnail-carousel {
+        width: 120px;
+        height: 120px;
+        flex-shrink: 0;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .thumbnail-image-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .thumbnail-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 0.5rem;
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .thumbnail-indicators {
+        position: absolute;
+        bottom: 0.25rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 9999px;
+        backdrop-filter: blur(4px);
+    }
+
+    .thumbnail-indicator-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        padding: 0;
+    }
+
+    .thumbnail-indicator-dot:hover {
+        background: rgba(255, 255, 255, 0.8);
+        transform: scale(1.3);
+    }
+
+    .thumbnail-indicator-dot.active {
+        background: white;
+        width: 12px;
+        border-radius: 2px;
+    }
+
+    @media (max-width: 640px) {
+        .product-thumbnail-carousel {
+            width: 80px;
+            height: 80px;
+        }
+
+        .thumbnail-image {
+            padding: 0.25rem;
+        }
+
+        .thumbnail-indicators {
+            bottom: 0.125rem;
+            padding: 0.125rem 0.375rem;
+        }
+
+        .thumbnail-indicator-dot {
+            width: 3px;
+            height: 3px;
+        }
+
+        .thumbnail-indicator-dot.active {
+            width: 9px;
+        }
+    }
+
     .variants-header {
         margin-top: 2rem;
     }
@@ -1591,6 +1760,36 @@
         position: relative;
     }
 
+    .product-image-container {
+        width: 80px;
+        height: 80px;
+        flex-shrink: 0;
+        overflow: hidden;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #e5e7eb;
+    }
+
+    .product-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        transition: transform 0.2s ease;
+    }
+
+    .product-image:hover {
+        transform: scale(1.1);
+    }
+
+    @media (max-width: 640px) {
+        .product-image-container {
+            width: 60px;
+            height: 60px;
+        }
+    }
+
     .price-card.highlighted-deal {
         box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2), 
                     0 8px 16px rgba(37, 99, 235, 0.15);
@@ -1619,6 +1818,12 @@
         margin-bottom: 0.5rem;
     }
 
+    .product-info-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
     .product-name {
         color: #6b7280;
         font-size: 0.875rem;
@@ -1626,6 +1831,7 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        flex: 1;
     }
 
     .flag-btn {
@@ -1778,43 +1984,64 @@
         text-decoration: underline;
     }
 
-    .product-header {
+    .product-header-container {
+        display: flex;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+        width: 100%;
+        align-items: flex-start;
+    }
+
+    .product-header-right {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .product-header-row-1 {
         display: flex;
         align-items: center;
         gap: 1rem;
-        margin-bottom: 1rem;
-        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .product-header-row-1 h1 {
+        flex: 1;
+        margin: 0;
+        min-width: 200px;
+    }
+
+    .product-header-row-2 {
+        display: flex;
+        gap: 0.5rem;
         flex-wrap: wrap;
     }
 
     @media (max-width: 640px) {
-        .product-header {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.5rem;
+        .product-header-container {
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
 
-        .product-header > h1 {
-            margin-bottom: 0;
+        .product-header-right {
+            gap: 0.75rem;
         }
 
-        .product-header > h1,
-        .product-header > .edit-name-container {
+        .product-header-row-1 {
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .product-header-row-1 h1 {
+            flex: 1;
+            min-width: unset;
+            font-size: 1.25rem;
+        }
+
+        .product-header-row-2 {
             width: 100%;
-            order: -1;
-        }
-
-        .product-header > .availability-indicator {
-            margin-left: 0;
-            order: 1;
-            align-self: flex-end;
-        }
-
-        .product-header > .track-btn {
-            margin-top: 0.5rem;
-            width: 100%;
-            margin-left: 0;
-            order: 2;
         }
 
         .edit-name-container {
@@ -1832,7 +2059,6 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        margin-left: auto;
     }
 
     .dot {
@@ -1861,7 +2087,6 @@
         padding: 0.375rem 0.75rem;
         border-radius: 9999px;
         font-size: 0.875rem;
-        margin-bottom: 1rem;
         width: fit-content;
     }
 

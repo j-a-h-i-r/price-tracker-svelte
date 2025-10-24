@@ -144,6 +144,7 @@ export interface ExternalProductOfInternal {
     website_id: number,
     name: string,
     url: string,
+    image_urls: string[],
 }
 
 export function fetchExternalProducts(filter: {
