@@ -137,7 +137,7 @@ export const load: PageServerLoad<PageData> = async ({ params, fetch, parent }) 
 
     const similarProductIds = new Set(similarExternals.map(p => p.external_product_id));
     const similarProducts = siblingProducts.filter(p => similarProductIds.has(p.external_product_id));
-    const variantProducts = siblingProducts.filter(p => !similarProductIds.has(p.external_product_id));
+    const variantProducts = siblingProducts.filter(p => !similarProductIds.has(p.external_product_id) && p.external_product_id !== externalProduct.id);
 
     return {
         exists: true,

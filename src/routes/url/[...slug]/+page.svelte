@@ -101,7 +101,7 @@
                 <div class="summary-actions">
                     {#if internalProductUrl}
                         <a class="button secondary" href={internalProductUrl}>
-                            View internal product
+                            View product
                         </a>
                     {/if}
                     {#if data.externalProduct?.url}
@@ -174,7 +174,7 @@
                 <h2>Similar Products</h2>
                 {#if data.similarProducts && data.similarProducts.length > 0}
                     <h3>We found {data.similarProducts.length} similar products that share the same configuration</h3>
-                    <h4>
+                    <h4 class="flex gap-1 flex-wrap">
                         {#each metadata as item (item.name)}
                             <Pill label={item.name_display_text} value={item.value_display_text} />
                         {/each}
