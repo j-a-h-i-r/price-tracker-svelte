@@ -32,7 +32,8 @@
     let isLoading = $state(false);
     let searchResults: ExternalProduct[] = $state([]);
     let hasSearched = $state(false);
-    let isFilterMenuOpen = $state(false);
+    // Mobile additional filters disclosure
+    let isMobileFiltersOpen = $state(false);
 
     export const snapshot: Snapshot<string> = {
         capture: () =>
@@ -68,41 +69,60 @@
         });
     });
 
+    function isNeutral(meta: MetadataFilter, val: MetadataValueType | undefined): boolean {
+        if (val === undefined || val === null) return true;
+        if (meta.type === 'set') return val === 'all';
+        if (meta.type === 'boolean') return val !== true; // only true actively filters
+        if (meta.type === 'range' && typeof val === 'object') {
+            const v = val as { min?: number; max?: number };
+            const bothUndefined = v.min === undefined && v.max === undefined;
+            const bothBounds = v.min === meta.value.min && v.max === meta.value.max;
+            return bothUndefined || bothBounds;
+        }
+        return false;
+    }
+
     function handleMetadataChange(metadataKey: string, value: MetadataValueType) {
         const currentFilter = selectedFilters.get(metadataKey);
-        if (!currentFilter) return;
-        if (typeof value === 'object' && Object.keys(value).length > 0) {
-            selectedFilters.set(metadataKey, {
-                ...currentFilter,
-                inputValue: {
-                    min: currentFilter.inputValue?.min,
-                    max: currentFilter.inputValue?.max,
-                    ...value,
-                }
-            })
+        const meta = metadataFilters.find((m) => m.key === metadataKey);
+        if (!meta) return;
+
+        let nextValue: MetadataValueType | undefined = value;
+        if (typeof value === 'object' && value !== null) {
+            const prev = (currentFilter && typeof currentFilter.inputValue === 'object' && currentFilter.inputValue !== null)
+                ? (currentFilter.inputValue as { min?: number; max?: number })
+                : {};
+            nextValue = { ...prev, ...(value as { min?: number; max?: number }) };
+        }
+
+        if (isNeutral(meta, nextValue)) {
+            selectedFilters.delete(metadataKey);
+            return;
+        }
+
+        if (currentFilter) {
+            selectedFilters.set(metadataKey, { ...currentFilter, inputValue: nextValue });
         } else {
-            selectedFilters.set(metadataKey, {
-                ...currentFilter,
-                inputValue: value,
-            })
+            selectedFilters.set(metadataKey, { ...meta, inputValue: nextValue });
         }
     }
 
-    function handleClickOutside(event: MouseEvent) {
-        const target = event.target as HTMLElement;
-        if (
-            !target.closest('.add-filter-btn') &&
-            !target.closest('.filter-menu')
-        ) {
-            isFilterMenuOpen = false;
+    function getRangeValue(key: string, kind: 'min' | 'max'): number | undefined {
+        const v = selectedFilters.get(key)?.inputValue;
+        if (typeof v === 'object' && v !== null) {
+            const r = v as { min?: number; max?: number };
+            return r[kind];
         }
+        return undefined;
     }
 
     async function findProducts() {
         isLoading = true;
-        const metadataFilters: Record<string, any> = {};
+        const metadataFilters: Record<string, MetadataValueType> = {};
         selectedFilters.entries().forEach(([key, filter]) => {
-            metadataFilters[key] = filter.inputValue;
+            if (!isNeutral(filter, filter.inputValue)) {
+                metadataFilters[key] = filter.inputValue as MetadataValueType;
+            }
         })
         fetchExternalProducts({
             brandId: selectedBrandId, categoryId: selectedCategoryId,
@@ -124,293 +144,317 @@
         })
     }
 
-    function addFilter(metadata: MetadataFilter) {
-        const defaultInputValue = metadata.type === 'range' 
-            ? { min: metadata.value.min, max: metadata.value.max }
-            : metadata.type === 'boolean' ? false : 'all'
-        const metadataWithValue = {
-            inputValue: defaultInputValue,
-            ...metadata, // Existing inputValue takes precedence
-        };
-        selectedFilters.set(metadata.key, metadataWithValue);
-    }
+    // addFilter no longer required (mobile uses drawer with direct controls)
 
-    function removeFilter(metadata: MetadataFilter) {
-        selectedFilters.delete(metadata.key);
-    }
+    // removeFilter no longer used; sidebar controls write directly to selection
 
     function isValueSet(value: unknown) {
         return value !== undefined && value !== null && value !== '';
     }
 </script>
 
-<svelte:window onmousedown={handleClickOutside} />
+
 
 <div class="configurator-container">
     <div class="header">
         <p>Find the perfect product by configuring your preferences</p>
     </div>
 
-    <div class="filter-bar">
-        <!-- Default Filters -->
-        <div class="filter-item-bar" class:active={selectedBrandId !== 'all'}>
-            <SearchableSelect
-                label="Brand"
-                allLabel="All Brands"
-                bind:value={selectedBrandId}
-                options={manufacturers.map((m) => ({ id: m.id, name: m.name }))}
-            />
-        </div>
-
-        <div
-            class="filter-item-bar"
-            class:active={selectedCategoryId !== 'all'}
-        >
-            <SearchableSelect
-                label="Category"
-                allLabel="All Categories"
-                bind:value={selectedCategoryId}
-                options={categories.map((m) => ({ id: m.id, name: m.name }))}
-            />
-        </div>
-
-        <div
-            class="filter-item-bar"
-            class:active={isValueSet(minPrice) || isValueSet(maxPrice)}
-        >
-            <RangeInput
-                label="Price Range"
-                bind:minValue={minPrice}
-                bind:maxValue={maxPrice}
-                unit="৳"
-            />
-        </div>
-
-        <div class="optional-filters">
-            {#each selectedFilters.entries() as [key, metadata] (key) }
-                <div class="optional-filter-item">
-                    <div class="filter-component">
-                        {#if metadata.type === 'set'}
-                            <SearchableSelect
-                                label={metadata.display_text}
-                                allLabel={`All ${metadata.display_text}`}
-                                bind:value={
-                                    () => selectedFilters.get(metadata.key)?.inputValue?.toString() || 'all',
-                                    (val: string) => handleMetadataChange(metadata.key, val)
-                                }
-                                options={metadata.value.map(m => ({ id: m, name: m }))}
-                            />
-                        {:else if metadata.type === 'range'}
-                            <RangeInput
-                                label={metadata.display_text}
-                                minAllowed={metadata.value.min}
-                                maxAllowed={metadata.value.max}
-                                bind:minValue={
-                                    () => selectedFilters.get(metadata.key)?.inputValue?.min,
-                                    (val) => handleMetadataChange(metadata.key, {min: val})
-                                }
-                                bind:maxValue={
-                                    () => selectedFilters.get(metadata.key)?.inputValue?.max,
-                                    (val) => handleMetadataChange(metadata.key, {max: val})
-                                }
-                                unit={metadata.unit || ''}
-                            />
-                        {:else if metadata.type === 'boolean'}
-                            <div class="checkbox-container">
-                                <label class="checkbox-label">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={selectedFilters.get(metadata.key)?.inputValue == true}
-                                        onchange={(e: Event) => handleMetadataChange(metadata.key, (e.target as HTMLInputElement).checked)}
-                                    />
-                                    <span class="checkbox-text">{metadata.display_text}</span>
-                                </label>
-                            </div>
-                        {/if}
-                    </div>
-
-                    <button
-                        class="remove-filter-btn"
-                        onclick={() => removeFilter(metadata)}
-                        title="Remove {metadata.display_text} filter"
-                        aria-label="Remove {metadata.display_text} filter"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 6L6 18M6 6l12 12"/>
-                        </svg>
-                    </button>
+    <div class="main-layout">
+        <!-- Desktop/Tablet Left Sidebar for Additional Filters -->
+        <aside class="filters-sidebar" aria-label="Additional filters">
+            <div class="filters-sidebar-card">
+                <div class="filters-sidebar-header">
+                    <h3>Additional Filters</h3>
                 </div>
-            {/each}
-        </div>
-
-        <!-- Add Filter Button -->
-        <div class="filter-menu-container">
-            <button
-                class="add-filter-btn"
-                onclick={() => (isFilterMenuOpen = !isFilterMenuOpen)}
-            >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path d="M12 5v14m7-7H5" />
-                </svg>
-                Add Filter
-            </button>
-
-            <!-- Filter Menu Dropdown -->
-            {#if isFilterMenuOpen}
-                <div class="filter-menu">
-                    <h3>Add Filter</h3>
-                    <div class="filter-menu-items">
-                        {#each metadataFilters as metadata (metadata.key)}
-                            {#if !selectedFilters.has(metadata.key)}
-                                <div class="filter-add-item">
-                                    <span class="filter-add-name">
-                                        {metadata.display_text}
-                                    </span>
-                                    <button class="filter-add-btn"
-                                        onclick={() => addFilter(metadata)}
-                                        aria-label="Add {metadata.display_text} filter"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M12 5v14m7-7H5"/>
-                                        </svg>
-                                    </button>
-                                </div>    
-                            {/if}
-                        {/each}
-                    </div>
-                </div>
-            {/if}
-        </div>
-    </div>
-
-    <div class="results-section">
-        <!-- Action Buttons -->
-        <div class="actions">
-            <button
-                class="find-btn"
-                onclick={findProducts}
-                disabled={isLoading}
-            >
-                {isLoading ? 'Searching...' : 'Find Products'}
-            </button>
-        </div>
-
-        {#if hasSearched}
-            <div class="results-header">
-                <h3>Search Results</h3>
-                <span class="results-count">
-                    {searchResults.length} product{searchResults.length === 1
-                        ? ''
-                        : 's'} found
-                </span>
-            </div>
-
-            {#if searchResults.length > 0}
-                <div class="results-grid">
-                    {#each searchResults as product (product.id)}
-                        <div class="product-card">
-                            <div class="product-header">
-                                <h3 class="product-name">{product.name}</h3>
-                            </div>
-
-                            {#if product.latest_price}
-                                <div class="price-section">
-                                    <div class="current-price">
-                                        <span>
-                                            {formatPrice(product.latest_price)}
-                                        </span>
-
-                                        {#if product.is_available}
-                                            <span
-                                                class="availability-badge available"
-                                                >Available</span
-                                            >
-                                        {:else}
-                                            <span
-                                                class="availability-badge unavailable"
-                                                >Out of Stock</span
-                                            >
-                                        {/if}
-                                    </div>
-                                    
-                                </div>
-                            {:else}
-                                <div class="price-section">
-                                    <div class="no-price">
-                                        Price not available
-                                    </div>
+                <div class="filters-sidebar-content">
+                    {#each metadataFilters as metadata (metadata.key)}
+                        <div class="sidebar-filter">
+                            <div class="sidebar-filter-label">{metadata.display_text}{metadata.type === 'range' && metadata.unit ? ` (${metadata.unit})` : ''}</div>
+                            {#if metadata.type === 'set'}
+                                <SearchableSelect
+                                    label={metadata.display_text}
+                                    allLabel={`All ${metadata.display_text}`}
+                                    bind:value={
+                                        () => selectedFilters.get(metadata.key)?.inputValue?.toString() || 'all',
+                                        (val: string) => handleMetadataChange(metadata.key, val)
+                                    }
+                                    options={metadata.value.map(m => ({ id: m, name: m }))}
+                                />
+                            {:else if metadata.type === 'range'}
+                                <RangeInput
+                                    label={metadata.display_text}
+                                    minAllowed={metadata.value.min}
+                                    maxAllowed={metadata.value.max}
+                                    bind:minValue={
+                                        () => getRangeValue(metadata.key, 'min'),
+                                        (val) => handleMetadataChange(metadata.key, { min: val })
+                                    }
+                                    bind:maxValue={
+                                        () => getRangeValue(metadata.key, 'max'),
+                                        (val) => handleMetadataChange(metadata.key, { max: val })
+                                    }
+                                    unit={null}
+                                />
+                            {:else if metadata.type === 'boolean'}
+                                <div class="checkbox-container">
+                                    <label class="checkbox-label">
+                                        <input 
+                                            type="checkbox"
+                                            aria-label={metadata.display_text}
+                                            checked={selectedFilters.get(metadata.key)?.inputValue == true}
+                                            onchange={(e: Event) => handleMetadataChange(metadata.key, (e.target as HTMLInputElement).checked)}
+                                        />
+                                    </label>
                                 </div>
                             {/if}
-
-                            {#if product.parsed_metadata && Object.keys(product.parsed_metadata).length > 0}
-                                <div class="metadata-section">
-                                    <h4 class="metadata-title">
-                                        Specifications
-                                    </h4>
-                                    <div class="metadata-pills">
-                                        {#each metadataFilters as filter (filter.key)}
-                                            {#if product.parsed_metadata[filter.key]}
-                                                <Pill
-                                                    label={filter.display_text}
-                                                    value={`${product.parsed_metadata[filter.key]}${filter.unit ? ` ${filter.unit}` : ''}`}
-                                                />
-                                            {/if}
-                                        {/each}
-                                    </div>
-                                </div>
-                            {/if}
-
-                            <div class="product-actions">
-                                <a
-                                    href="/products/{product.product_id}"
-                                    onclick={() =>
-                                        goto(
-                                            `/products/${product.product_id}`,
-                                            {
-                                                state: {
-                                                    highlight_external_product_id:
-                                                        product.id,
-                                                },
-                                            },
-                                        )}
-                                    class="view-details-btn"
-                                >
-                                    View Details
-                                </a>
-                                {#if product.url}
-                                    <a
-                                        href={linkWithUtmSource(product.url)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="external-link-btn"
-                                    >
-                                        Buy Now →
-                                    </a>
-                                {/if}
-                            </div>
                         </div>
                     {/each}
                 </div>
-            {:else}
-                <div class="no-results">
-                    <div class="no-results-icon">🔍</div>
-                    <h3>No products found</h3>
-                    <p>Try adjusting your filters to find more products.</p>
+            </div>
+        </aside>
+
+        <!-- Main content: default filters, selected filters, actions, and results -->
+        <main class="main-content">
+            <div class="filter-bar">
+                <!-- Default Filters -->
+                <div class="filter-item-bar" class:active={selectedBrandId !== 'all'}>
+                    <SearchableSelect
+                        label="Brand"
+                        allLabel="All Brands"
+                        bind:value={selectedBrandId}
+                        options={manufacturers.map((m) => ({ id: m.id, name: m.name }))}
+                    />
+                </div>
+
+                <div
+                    class="filter-item-bar"
+                    class:active={selectedCategoryId !== 'all'}
+                >
+                    <SearchableSelect
+                        label="Category"
+                        allLabel="All Categories"
+                        bind:value={selectedCategoryId}
+                        options={categories.map((m) => ({ id: m.id, name: m.name }))}
+                    />
+                </div>
+
+                <div
+                    class="filter-item-bar"
+                    class:active={isValueSet(minPrice) || isValueSet(maxPrice)}
+                >
+                    <RangeInput
+                        label="Price Range"
+                        bind:minValue={minPrice}
+                        bind:maxValue={maxPrice}
+                        unit="৳"
+                    />
+                </div>
+
+                <!-- optional filters moved to sidebar -->
+            </div>
+
+            <!-- Mobile-only: hamburger menu for Additional Filters -->
+            <div class="mobile-filters">
+                <button class="mobile-filters-toggle" onclick={() => (isMobileFiltersOpen = true)} aria-expanded={isMobileFiltersOpen} aria-controls="mobile-filters-drawer">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    Filters
+                </button>
+            </div>
+
+            {#if isMobileFiltersOpen}
+                <div
+                    class="mobile-filters-overlay"
+                    role="button"
+                    tabindex="0"
+                    onclick={() => (isMobileFiltersOpen = false)}
+                    onkeydown={(e) => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') { isMobileFiltersOpen = false; } }}
+                >
+                    <div
+                        id="mobile-filters-drawer"
+                        class="mobile-filters-drawer"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="mobile-filters-title"
+                        tabindex="0"
+                        onclick={(e) => e.stopPropagation()}
+                        onkeydown={(e) => e.stopPropagation()}
+                    >
+                        <div class="mobile-filters-header">
+                            <h3 id="mobile-filters-title">Filters</h3>
+                            <button class="mobile-filters-close" onclick={() => (isMobileFiltersOpen = false)} aria-label="Close filters">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                            </button>
+                        </div>
+                        <div class="mobile-filters-content">
+                            {#each metadataFilters as metadata (metadata.key)}
+                                <div class="drawer-filter">
+                                    <div class="drawer-filter-label">{metadata.display_text}{metadata.type === 'range' && metadata.unit ? ` (${metadata.unit})` : ''}</div>
+                                    {#if metadata.type === 'set'}
+                                        <SearchableSelect
+                                            label={metadata.display_text}
+                                            allLabel={`All ${metadata.display_text}`}
+                                            bind:value={
+                                                () => selectedFilters.get(metadata.key)?.inputValue?.toString() || 'all',
+                                                (val: string) => handleMetadataChange(metadata.key, val)
+                                            }
+                                            options={metadata.value.map(m => ({ id: m, name: m }))}
+                                        />
+                                    {:else if metadata.type === 'range'}
+                                        <RangeInput
+                                            label={metadata.display_text}
+                                            minAllowed={metadata.value.min}
+                                            maxAllowed={metadata.value.max}
+                                            bind:minValue={
+                                                () => getRangeValue(metadata.key, 'min'),
+                                                (val) => handleMetadataChange(metadata.key, { min: val })
+                                            }
+                                            bind:maxValue={
+                                                () => getRangeValue(metadata.key, 'max'),
+                                                (val) => handleMetadataChange(metadata.key, { max: val })
+                                            }
+                                            unit={null}
+                                        />
+                                    {:else if metadata.type === 'boolean'}
+                                        <div class="checkbox-container">
+                                            <label class="checkbox-label">
+                                                <input 
+                                                    type="checkbox"
+                                                    aria-label={metadata.display_text}
+                                                    checked={selectedFilters.get(metadata.key)?.inputValue == true}
+                                                    onchange={(e: Event) => handleMetadataChange(metadata.key, (e.target as HTMLInputElement).checked)}
+                                                />
+                                            </label>
+                                        </div>
+                                    {/if}
+                                </div>
+                            {/each}
+                        </div>
+                    </div>
                 </div>
             {/if}
-        {/if}
+
+            <div class="results-section">
+        
+                <!-- Action Buttons -->
+                <div class="actions">
+                    <button
+                        class="find-btn"
+                        onclick={findProducts}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? 'Searching...' : 'Find Products'}
+                    </button>
+                </div>
+
+                {#if hasSearched}
+                    <div class="results-header">
+                        <h3>Search Results</h3>
+                        <span class="results-count">
+                            {searchResults.length} product{searchResults.length === 1
+                                ? ''
+                                : 's'} found
+                        </span>
+                    </div>
+
+                    {#if searchResults.length > 0}
+                        <div class="results-grid">
+                            {#each searchResults as product (product.id)}
+                                <div class="product-card">
+                                    <div class="product-header">
+                                        <h3 class="product-name">{product.name}</h3>
+                                    </div>
+
+                                    {#if product.latest_price}
+                                        <div class="price-section">
+                                            <div class="current-price">
+                                                <span>
+                                                    {formatPrice(product.latest_price)}
+                                                </span>
+
+                                                {#if product.is_available}
+                                                    <span
+                                                        class="availability-badge available"
+                                                        >Available</span
+                                                    >
+                                                {:else}
+                                                    <span
+                                                        class="availability-badge unavailable"
+                                                        >Out of Stock</span
+                                                    >
+                                                {/if}
+                                            </div>
+                                            
+                                        </div>
+                                    {:else}
+                                        <div class="price-section">
+                                            <div class="no-price">
+                                                Price not available
+                                            </div>
+                                        </div>
+                                    {/if}
+
+                                    {#if product.parsed_metadata && Object.keys(product.parsed_metadata).length > 0}
+                                        <div class="metadata-section">
+                                            <h4 class="metadata-title">
+                                                Specifications
+                                            </h4>
+                                            <div class="metadata-pills">
+                                                {#each metadataFilters as filter (filter.key)}
+                                                    {#if product.parsed_metadata[filter.key]}
+                                                        <Pill
+                                                            label={filter.display_text}
+                                                            value={`${product.parsed_metadata[filter.key]}${filter.unit ? ` ${filter.unit}` : ''}`}
+                                                        />
+                                                    {/if}
+                                                {/each}
+                                            </div>
+                                        </div>
+                                    {/if}
+
+                                    <div class="product-actions">
+                                        <a
+                                            href="/products/{product.product_id}"
+                                            onclick={() =>
+                                                goto(
+                                                    `/products/${product.product_id}`,
+                                                    {
+                                                        state: {
+                                                            highlight_external_product_id:
+                                                                product.id,
+                                                        },
+                                                    },
+                                                )}
+                                            class="view-details-btn"
+                                        >
+                                            View Details
+                                        </a>
+                                        {#if product.url}
+                                            <a
+                                                href={linkWithUtmSource(product.url)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="external-link-btn"
+                                            >
+                                                Buy Now →
+                                            </a>
+                                        {/if}
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    {:else}
+                        <div class="no-results">
+                            <div class="no-results-icon">🔍</div>
+                            <h3>No products found</h3>
+                            <p>Try adjusting your filters to find more products.</p>
+                        </div>
+                    {/if}
+                {/if}
+            </div>
+        </main>
     </div>
-</div>
+    </div>
 
 <style>
     .configurator-container {
@@ -430,6 +474,184 @@
         margin: 0;
     }
 
+    /* Layout: sidebar + main */
+    .main-layout {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .filters-sidebar {
+        display: block;
+    }
+
+    .filters-sidebar-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
+        position: sticky;
+        top: 0.75rem;
+    }
+
+    .filters-sidebar-header h3 {
+        margin: 0 0 0.75rem 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .filters-sidebar-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .sidebar-filter {
+        padding: 0.5rem 0.25rem;
+        border-bottom: 1px dashed #e5e7eb;
+    }
+
+    .sidebar-filter:last-child {
+        border-bottom: none;
+    }
+
+    /* Ensure controls fit within sidebar width */
+    .filters-sidebar-content :global(.filter-control),
+    .filters-sidebar-content :global(.filter-chip) {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+        flex: 0 1 auto;
+    }
+
+    /* Move component labels out of the inline chips in the sidebar */
+    .filters-sidebar-content :global(.filter-chip .label) {
+        display: none;
+    }
+    .filters-sidebar-content :global(.filter-control .select-label) {
+        display: none;
+    }
+
+    .sidebar-filter-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.375rem;
+        font-size: 0.9rem;
+    }
+
+    /* (legacy) mobile inline additional filters removed */
+
+    /* Mobile additional filters toggle */
+    .mobile-filters {
+        display: none;
+        margin-top: 0.75rem;
+    }
+
+    .mobile-filters-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        background: white;
+        color: #374151;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .mobile-filters-toggle:hover {
+        border-color: #2563eb;
+        color: #2563eb;
+        background: #f8fafc;
+    }
+
+    /* Mobile drawer overlay */
+    .mobile-filters-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1000;
+    }
+
+    .mobile-filters-drawer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 80vw;
+        max-width: 340px;
+        background: white;
+        box-shadow: 2px 0 12px rgba(0,0,0,0.2);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .mobile-filters-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .mobile-filters-header h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .mobile-filters-close {
+        background: transparent;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 0.25rem 0.5rem;
+        cursor: pointer;
+    }
+
+    .mobile-filters-content {
+        padding: 0.75rem 1rem 1rem;
+        overflow-y: auto;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .drawer-filter {
+        padding: 0.5rem 0.25rem;
+        border-bottom: 1px dashed #e5e7eb;
+    }
+
+    .drawer-filter:last-child { border-bottom: none; }
+
+    .drawer-filter-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.375rem;
+        font-size: 0.9rem;
+    }
+
+    .mobile-filters-content :global(.filter-control),
+    .mobile-filters-content :global(.filter-chip) {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+        flex: 0 1 auto;
+    }
+
+    .mobile-filters-content :global(.filter-chip .label),
+    .mobile-filters-content :global(.filter-control .select-label) {
+        display: none;
+    }
+
     .filter-bar {
         display: flex;
         align-items: center;
@@ -446,198 +668,13 @@
         position: relative;
     }
 
-    .add-filter-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        background: white;
-        color: #374151;
-        font-size: 0.875rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        white-space: nowrap;
-    }
+    /* Removed legacy Add Filter button and dropdown styles */
 
-    .add-filter-btn:hover {
-        border-color: #2563eb;
-        color: #2563eb;
-        background: #f8fafc;
-    }
+    /* removed old add-filter item styles */
 
-    .filter-menu {
-        position: absolute;
-        margin-top: 0.5rem;
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        z-index: 50;
-        min-width: max-content;
-        max-width: 400px;
-        padding: 1rem;
-        max-height: 60vh;
-        overflow-y: auto;
-    }
+    /* removed optional-filters inline chips UI */
 
-    .filter-menu h3 {
-        margin: 0 0 1rem 0;
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #374151;
-        border-bottom: 1px solid #e5e7eb;
-        padding-bottom: 0.5rem;
-    }
-
-    .filter-menu-items {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .filter-add-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.75rem;
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        transition: all 0.15s ease;
-        cursor: pointer;
-    }
-
-    .filter-add-item:hover {
-        background: #f3f4f6;
-        border-color: #d1d5db;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .filter-add-name {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #374151;
-        flex: 1;
-    }
-
-    .filter-add-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        border: 1px solid #d1d5db;
-        border-radius: 4px;
-        background: white;
-        color: #6b7280;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        flex-shrink: 0;
-    }
-
-    .filter-add-btn:hover {
-        background: #2563eb;
-        border-color: #2563eb;
-        color: white;
-        transform: scale(1.05);
-    }
-
-    .filter-add-btn svg {
-        width: 12px;
-        height: 12px;
-    }
-
-    .optional-filters {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-    }
-
-    .optional-filter-item {
-        display: flex;
-        align-items: center;
-        transition: all 0.15s ease;
-        position: relative;
-    }
-
-    .optional-filter-item:hover {
-        background: #f1f5f9;
-        border-color: #cbd5e1;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .filter-component {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .remove-filter-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        border: 1px solid #e2e8f0;
-        border-radius: 4px;
-        background: white;
-        color: #6b7280;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        flex-shrink: 0;
-        margin-left: 0.25rem;
-    }
-
-    .remove-filter-btn:hover {
-        background: #dc2626;
-        border-color: #dc2626;
-        color: white;
-        transform: scale(1.05);
-    }
-
-    .remove-filter-btn svg {
-        width: 12px;
-        height: 12px;
-    }
-
-    /* Override component styles in optional filters */
-    .optional-filters :global(.filter-control),
-    .optional-filters :global(.filter-chip) {
-        min-width: 120px !important;
-    }
-
-    .optional-filters :global(.select-dropdown) {
-        min-width: 120px !important;
-    }
-
-    .optional-filters .checkbox-container {
-        padding: 0.25rem 0.5rem;
-        margin: 0;
-    }
-
-    .optional-filters .checkbox-label {
-        margin: 0;
-        font-size: 0.8125rem;
-    }
-
-    /* Override component styles in filter menu */
-    .filter-menu :global(.filter-control),
-    .filter-menu :global(.filter-chip) {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        flex: 1 !important;
-    }
-
-    .filter-menu :global(.select-dropdown) {
-        left: 0 !important;
-        right: 0 !important;
-        min-width: 0 !important;
-    }
+    /* Removed legacy dropdown overrides */
 
     .checkbox-container {
         padding: 0.5rem 0;
@@ -650,11 +687,7 @@
         cursor: pointer;
     }
 
-    .checkbox-text {
-        font-size: 0.875rem;
-        color: #374151;
-        font-weight: 500;
-    }
+    /* .checkbox-text removed from sidebar boolean where external label is used */
 
     .results-section {
         margin-top: 2rem;
@@ -708,9 +741,7 @@
         box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
     }
 
-    .checkbox-text {
-        user-select: none;
-    }
+    /* .checkbox-text removed */
 
     .actions {
         display: flex;
@@ -763,12 +794,7 @@
         padding-bottom: 0.5rem;
     }
 
-    .results-header h2 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #111827;
-        margin: 0;
-    }
+    /* Heading is h3 in markup */
 
     .results-count {
         font-size: 0.875rem;
@@ -932,10 +958,20 @@
         margin: 0;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         .configurator-container {
             padding: 0 0.5rem;
         }
+
+        .main-layout {
+            display: block;
+        }
+
+        .filters-sidebar {
+            display: none;
+        }
+
+        .mobile-filters { display: block; }
 
         .filter-bar {
             flex-direction: column;
@@ -948,16 +984,7 @@
             width: 100%;
         }
 
-        .add-filter-btn {
-            width: 100%;
-            justify-content: center;
-        }
-
-        .filter-menu {
-            right: 0;
-            left: 0;
-            min-width: auto;
-        }
+        /* remove legacy dropdown adjustments */
     }
 
     .actions {
@@ -989,9 +1016,5 @@
         flex-direction: column;
     }
 
-    .filter-menu-container {
-        position: relative;
-        margin-left: auto;
-        align-self: baseline;
-    }
+    /* legacy dropdown container removed */
 </style>

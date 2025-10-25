@@ -90,15 +90,17 @@
         display: flex;
         align-items: center;
         gap: 0.25rem;
+        flex-grow: 1;
     }
 
     .chip-input {
-        width: auto;
+        width: 100%;
         border: none;
         background: transparent;
         padding: 0;
         font-size: 0.875rem;
         color: inherit;
+        text-align: center;
     }
 
     .chip-input:focus {

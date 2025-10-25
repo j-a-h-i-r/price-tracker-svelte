@@ -117,7 +117,7 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.375rem 0.75rem;
+        padding: var(--spacing-xs) var(--spacing-md);
         background: white;
         border: 1px solid #e5e7eb;
         border-radius: 6px;
@@ -199,7 +199,7 @@
 
     .search-container input {
         width: 100%;
-        padding: 0.375rem 0.5rem;
+        padding: var(--spacing-xs) var(--spacing-md);
         border: 1px solid #e5e7eb;
         border-radius: 4px;
         font-size: 1rem;
