@@ -1,12 +1,13 @@
 import { fetchExternalPricesOfProduct, fetchExternalProductsByInternalId, fetchProductById, fetchVariantAttributes } from '$lib/api/products.js'
 import { ResultAsync } from 'neverthrow';
 import type { PageServerLoad } from './$types.js';
+import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, fetch }) => {
     const productId = Number(params.productId);
     const product = await fetchProductById(productId, fetch).orTee((error) => {console.log(error)}).unwrapOr(null);
     if (!product) {
-        return { exists: false };
+        error(404, 'Product not found');
     }
     const resp = await ResultAsync.combine([
         fetchVariantAttributes(productId, fetch),
