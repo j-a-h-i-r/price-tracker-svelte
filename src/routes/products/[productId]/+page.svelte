@@ -11,7 +11,6 @@
         unmergeProducts,
         untrackProduct,
         updateProductName,
-        type ExternalProduct,
         type ExternalProductOfInternal,
         type ProductBadge,
     } from '$lib/api/products.js';
@@ -49,7 +48,6 @@
     let websiteMap = data.websiteMap;
     let product: Product | undefined = $state(data.product);
     let variants: ProductVariant[] = $state(data.variantAttributes ?? []);
-    let productNotFound = data.exists === false;
     let externalProducts: ExternalProductOfInternal[] = $state(data.externalProducts ?? []);
     let externalPrices = $state(data.externalPrices ?? []);
 
@@ -62,7 +60,7 @@
         fetchExternalProductsBadges(externalProducts)
     })
 
-    function fetchExternalProductsBadges(externalProducts: ExternalProduct[]) {
+    function fetchExternalProductsBadges(externalProducts: ExternalProductOfInternal[]) {
         const badgeReqs = externalProducts.map((product) => {
             return fetchExternalProductBadges(product.external_product_id)
         })
@@ -147,7 +145,7 @@
         showImageModal = false;
     }
 
-    function highlightExternalProduct(externalProduct: ExternalProduct): Attachment<HTMLElement> {
+    function highlightExternalProduct(externalProduct: ExternalProductOfInternal): Attachment<HTMLElement> {
         return (element: HTMLElement) => {
             if (!element) return;
 
@@ -314,107 +312,107 @@
         return statsMap;
     });
 
-    function attachInlineChart(product: ExternalProduct): Attachment<HTMLCanvasElement> {
-        return (chartCanvas: HTMLCanvasElement) => {
-            if (!chartCanvas) return;
+    // function attachInlineChart(product: ExternalProduct): Attachment<HTMLCanvasElement> {
+    //     return (chartCanvas: HTMLCanvasElement) => {
+    //         if (!chartCanvas) return;
 
-            let priceDatasets: {label: string, data: {x: string, y: number}[]}[] = [];
+    //         let priceDatasets: {label: string, data: {x: string, y: number}[]}[] = [];
 
-            let prices = externalProductPrices.get(product.external_product_id)!.map((p) => {
-                return {
-                    x: p.created_at,
-                    y: p.price,
-                };
-            });
-            priceDatasets.push({
-                label: product.name,
-                data: prices,
-                // cubicInterpolationMode: 'monotone',
-                tension: 0.4,
-            });
+    //         let prices = externalProductPrices.get(product.external_product_id)!.map((p) => {
+    //             return {
+    //                 x: p.created_at,
+    //                 y: p.price,
+    //             };
+    //         });
+    //         priceDatasets.push({
+    //             label: product.name,
+    //             data: prices,
+    //             // cubicInterpolationMode: 'monotone',
+    //             tension: 0.4,
+    //         });
 
-            const data = {
-                datasets: priceDatasets,
-            };
+    //         const data = {
+    //             datasets: priceDatasets,
+    //         };
 
-            const chart = new Chart(chartCanvas, {
-                type: 'line',
-                data,
-                options: {
-                    elements: {
-                        point: {
-                            radius: 0,
-                        }
-                    },
-                    hover: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: false,
-                        },
-                        legend: {
-                            display: false,
-                        },
-                    },
-                    scales: {
-                        x: {
-                            border: {
-                                display: false,
-                            },
-                            display: true,
-                            type: 'time',
-                            time: {
-                                unit: 'day'
-                            },
-                            ticks: {
-                                autoSkip: false,
-                                callback: function(value, index, ticks) {
-                                    if (index === 0 || index === ticks.length - 1) {
-                                        return dayjs(value).format('MMM D');
-                                    }
-                                    return null;
-                                }
-                            },
-                            grid: {
-                                display: false,
-                            }
-                        },
-                        y: {
-                            border: {
-                                display: false,
-                            },
-                            beginAtZero: false,
-                            display: true,
-                            title: {
-                                display: false,
-                                text: 'Price (৳)',
-                            },
-                            ticks: {
-                                display: true,
-                                callback: function(value, index, ticks) {
-                                    if (index === 0 || index === ticks.length - 1) {
-                                        return formatPrice(Number(value));
-                                    }
-                                    return null;
-                                }
-                            },
-                            grid: {
-                                display: false,
-                            }
-                        },
-                    },
-                },
-            });
+    //         const chart = new Chart(chartCanvas, {
+    //             type: 'line',
+    //             data,
+    //             options: {
+    //                 elements: {
+    //                     point: {
+    //                         radius: 0,
+    //                     }
+    //                 },
+    //                 hover: {
+    //                     mode: 'index',
+    //                     intersect: false,
+    //                 },
+    //                 responsive: true,
+    //                 maintainAspectRatio: false,
+    //                 plugins: {
+    //                     title: {
+    //                         display: false,
+    //                     },
+    //                     legend: {
+    //                         display: false,
+    //                     },
+    //                 },
+    //                 scales: {
+    //                     x: {
+    //                         border: {
+    //                             display: false,
+    //                         },
+    //                         display: true,
+    //                         type: 'time',
+    //                         time: {
+    //                             unit: 'day'
+    //                         },
+    //                         ticks: {
+    //                             autoSkip: false,
+    //                             callback: function(value, index, ticks) {
+    //                                 if (index === 0 || index === ticks.length - 1) {
+    //                                     return dayjs(value).format('MMM D');
+    //                                 }
+    //                                 return null;
+    //                             }
+    //                         },
+    //                         grid: {
+    //                             display: false,
+    //                         }
+    //                     },
+    //                     y: {
+    //                         border: {
+    //                             display: false,
+    //                         },
+    //                         beginAtZero: false,
+    //                         display: true,
+    //                         title: {
+    //                             display: false,
+    //                             text: 'Price (৳)',
+    //                         },
+    //                         ticks: {
+    //                             display: true,
+    //                             callback: function(value, index, ticks) {
+    //                                 if (index === 0 || index === ticks.length - 1) {
+    //                                     return formatPrice(Number(value));
+    //                                 }
+    //                                 return null;
+    //                             }
+    //                         },
+    //                         grid: {
+    //                             display: false,
+    //                         }
+    //                     },
+    //                 },
+    //             },
+    //         });
 
-            return () => {
-                if (chart) chart.destroy();
-            }
-        };
-    }
+    //         return () => {
+    //             if (chart) chart.destroy();
+    //         }
+    //     };
+    // }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     function attachChart(): Attachment<HTMLCanvasElement> {
