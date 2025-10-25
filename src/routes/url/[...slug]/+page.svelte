@@ -1,6 +1,5 @@
 <script lang="ts">
     import Badge from '$lib/components/Badge.svelte';
-    import NoResult from '$lib/components/NoResult.svelte';
     import { formatPrice, linkWithUtmSource } from '$lib/util.js';
     import type { PageProps } from './$types.js';
     import PriceChart from '$lib/components/PriceChart.svelte';
@@ -79,126 +78,119 @@
 {/snippet}
 
 <div class="url-page">
-    {#if !data.exists}
-        <NoResult
-            message="We couldn't find a product for this link."
-            suggestion="Double-check the URL or try searching from the products page."
-        />
-    {:else}
-        {#if data.error}
-            <div class="error-banner">
-                <strong>Heads up:</strong>
-                <span>{data?.error}</span>
+    {#if data.error}
+        <div class="error-banner">
+            <strong>Heads up:</strong>
+            <span>{data?.error}</span>
+        </div>
+    {/if}
+
+    <section class="summary-card">
+        <div class="summary-header">
+            <div>
+                <p class="summary-label">Product</p>
+                <h1 class="summary-title">{data.externalProduct?.name ?? data.url}</h1>
             </div>
-        {/if}
-
-        <section class="summary-card">
-            <div class="summary-header">
-                <div>
-                    <p class="summary-label">Product</p>
-                    <h1 class="summary-title">{data.externalProduct?.name ?? data.url}</h1>
-                </div>
-                <div class="summary-actions">
-                    {#if internalProductUrl}
-                        <a class="button secondary" href={internalProductUrl}>
-                            View product
-                        </a>
-                    {/if}
-                    {#if data.externalProduct?.url}
-                        <a
-                            class="button primary"
-                            href={linkWithUtmSource(data.externalProduct.url)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            View on retailer
-                        </a>
-                    {/if}
-                </div>
-            </div>
-            <div class="summary-meta">
-                <div>
-                    <p class="meta-label">Source website</p>
-                    <p class="meta-value">{data.website?.name ?? 'Unknown'}</p>
-                </div>
-                <div>
-                    <p class="meta-label">Availability</p>
-                    <p class="meta-value" class:available={isAvailable} class:unavailable={!isAvailable}>
-                        {isAvailable ? 'In stock' : 'Unavailable'}
-                    </p>
-                </div>
-                <div>
-                    <p class="meta-label">Latest price</p>
-                    <p class="meta-value price">
-                        {#if latestPrice}
-                            {formatPrice(latestPrice.price)}
-                        {:else}
-                            Not available
-                        {/if}
-                    </p>
-                </div>
-                <div>
-                    <p class="meta-label">Tracked URL</p>
-                    <p class="meta-value url" title={data.url ?? ''}>{data.url ?? '—'}</p>
-                </div>
-            </div>
-
-            {#if badges.length > 0}
-                <div class="badges-row">
-                    {#each badges as badge (badge.key)}
-                        <Badge label={badge.label} />
-                    {/each}
-                </div>
-            {/if}
-        </section>
-
-        {#if data.prices.length > 0}
-            <section aria-label="Price chart">
-                <div class="card">
-                    <h2>Price History</h2>
-
-                    {#if priceStats30Day}
-                        <div>
-                            <PriceStat stats={priceStats30Day} />
-                        </div>
-                    {/if}
-                    <div class="price-chart">
-                        <PriceChart product={data.externalProduct} prices={data.prices} />
-                    </div>
-                </div>
-            </section>
-        {/if}
-
-        <section aria-label="Similar products">
-            <div class="card">
-                <h2>Similar Products</h2>
-                {#if data.similarProducts && data.similarProducts.length > 0}
-                    <h3>We found {data.similarProducts.length} similar products that share the same configuration</h3>
-                    <h4 class="flex gap-1 flex-wrap">
-                        {#each metadata as item (item.name)}
-                            <Pill label={item.name_display_text} value={item.value_display_text} />
-                        {/each}
-                    </h4>
-                    <div class="similar-products-grid">
-                        {#each data.similarProducts as similar (similar.external_product_id)}
-                            {@render productDetail(similar)}
-                        {/each}
-                    </div>
-
-                    {#if data.variantProducts.length > data.similarProducts.length}
-                        <h3>We found {data.variantProducts.length} products that have different configurations</h3>
-                        <div class="similar-products-grid">
-                            {#each data.variantProducts as variant (variant.external_product_id)}
-                                {@render productDetail(variant)}
-                            {/each}
-                        </div>
-                    {/if}
-                {:else}
-                    <p class="empty-state">No similar products found.</p>
+            <div class="summary-actions">
+                {#if internalProductUrl}
+                    <a class="button secondary" href={internalProductUrl}>
+                        View product
+                    </a>
                 {/if}
+                {#if data.externalProduct?.url}
+                    <a
+                        class="button primary"
+                        href={linkWithUtmSource(data.externalProduct.url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        View on retailer
+                    </a>
+                {/if}
+            </div>
+        </div>
+        <div class="summary-meta">
+            <div>
+                <p class="meta-label">Source website</p>
+                <p class="meta-value">{data.website?.name ?? 'Unknown'}</p>
+            </div>
+            <div>
+                <p class="meta-label">Availability</p>
+                <p class="meta-value" class:available={isAvailable} class:unavailable={!isAvailable}>
+                    {isAvailable ? 'In stock' : 'Unavailable'}
+                </p>
+            </div>
+            <div>
+                <p class="meta-label">Latest price</p>
+                <p class="meta-value price">
+                    {#if latestPrice}
+                        {formatPrice(latestPrice.price)}
+                    {:else}
+                        Not available
+                    {/if}
+                </p>
+            </div>
+            <div>
+                <p class="meta-label">Tracked URL</p>
+                <p class="meta-value url" title={data.url ?? ''}>{data.url ?? '—'}</p>
+            </div>
+        </div>
+
+        {#if badges.length > 0}
+            <div class="badges-row">
+                {#each badges as badge (badge.key)}
+                    <Badge label={badge.label} />
+                {/each}
+            </div>
+        {/if}
+    </section>
+
+    {#if data.prices.length > 0}
+        <section aria-label="Price chart">
+            <div class="card">
+                <h2>Price History</h2>
+
+                {#if priceStats30Day}
+                    <div>
+                        <PriceStat stats={priceStats30Day} />
+                    </div>
+                {/if}
+                <div class="price-chart">
+                    <PriceChart product={data.externalProduct} prices={data.prices} />
+                </div>
             </div>
         </section>
     {/if}
+
+    <section aria-label="Similar products">
+        <div class="card">
+            <h2>Similar Products</h2>
+            {#if data.similarProducts && data.similarProducts.length > 0}
+                <h3>We found {data.similarProducts.length} similar products that share the same configuration</h3>
+                <h4 class="flex gap-1 flex-wrap">
+                    {#each metadata as item (item.name)}
+                        <Pill label={item.name_display_text} value={item.value_display_text} />
+                    {/each}
+                </h4>
+                <div class="similar-products-grid">
+                    {#each data.similarProducts as similar (similar.external_product_id)}
+                        {@render productDetail(similar)}
+                    {/each}
+                </div>
+
+                {#if data.variantProducts.length > data.similarProducts.length}
+                    <h3>We found {data.variantProducts.length} products that have different configurations</h3>
+                    <div class="similar-products-grid">
+                        {#each data.variantProducts as variant (variant.external_product_id)}
+                            {@render productDetail(variant)}
+                        {/each}
+                    </div>
+                {/if}
+            {:else}
+                <p class="empty-state">No similar products found.</p>
+            {/if}
+        </div>
+    </section>
 </div>
 
 <style>

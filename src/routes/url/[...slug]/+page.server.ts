@@ -14,6 +14,7 @@ import type { ExternalProductMetadata, ExternalProductPrice } from '$lib/types/P
 import type { Website } from '$lib/types/Website.js';
 import { ResultAsync } from 'neverthrow';
 import type { PageServerLoad } from './$types';
+import { error as loadError } from '@sveltejs/kit';
 
 type ExternalProductWithDetails = ExternalProductOfInternal & {
     metadata: ExternalProductMetadata[];
@@ -38,18 +39,7 @@ type PageData = {
 export const load: PageServerLoad<PageData> = async ({ params, fetch, parent }) => {
     const rawSlug = params.slug;
     if (!rawSlug) {
-        return {
-            exists: false,
-            url: null,
-            error: 'Missing URL parameter.',
-            prices: [],
-            metadata: [],
-            badges: [],
-            variantProducts: [],
-            similarProducts: [],
-            website: null,
-            category: null,
-        } satisfies PageData;
+        loadError(500, 'Missing URL parameter.');
     }
 
     const productUrl = decodeURIComponent(rawSlug);
@@ -66,18 +56,7 @@ export const load: PageServerLoad<PageData> = async ({ params, fetch, parent }) 
 
     const externalProduct = products[0];
     if (!externalProduct) {
-        return {
-            exists: false,
-            url: productUrl,
-            error,
-            prices: [],
-            metadata: [],
-            badges: [],
-            variantProducts: [],
-            similarProducts: [],
-            website: null,
-            category: null,
-        } satisfies PageData;
+        loadError(404, 'Product not found.');
     }
 
     const [prices, metadata, badges, siblingExternals, similarExternals] = await ResultAsync.combine([
