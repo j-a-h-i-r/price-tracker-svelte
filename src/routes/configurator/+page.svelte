@@ -75,9 +75,9 @@
         if (meta.type === 'boolean') return val !== true; // only true actively filters
         if (meta.type === 'range' && typeof val === 'object') {
             const v = val as { min?: number; max?: number };
-            const bothUndefined = v.min === undefined && v.max === undefined;
+            const bothUndefinedOrNull = v.min == null && v.max == null;
             const bothBounds = v.min === meta.value.min && v.max === meta.value.max;
-            return bothUndefined || bothBounds;
+            return bothUndefinedOrNull || bothBounds;
         }
         return false;
     }
