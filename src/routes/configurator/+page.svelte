@@ -197,14 +197,15 @@
                                     unit={null}
                                 />
                             {:else if metadata.type === 'boolean'}
-                                <div class="checkbox-container">
-                                    <label class="checkbox-label">
+                                <div class="toggle-wrapper">
+                                    <label class="toggle-switch">
                                         <input 
                                             type="checkbox"
                                             aria-label={metadata.display_text}
                                             checked={selectedFilters.get(metadata.key)?.inputValue == true}
                                             onchange={(e: Event) => handleMetadataChange(metadata.key, (e.target as HTMLInputElement).checked)}
                                         />
+                                        <span class="toggle-track"></span>
                                     </label>
                                 </div>
                             {/if}
@@ -316,14 +317,15 @@
                                             unit={null}
                                         />
                                     {:else if metadata.type === 'boolean'}
-                                        <div class="checkbox-container">
-                                            <label class="checkbox-label">
+                                        <div class="toggle-wrapper">
+                                            <label class="toggle-switch">
                                                 <input 
                                                     type="checkbox"
                                                     aria-label={metadata.display_text}
                                                     checked={selectedFilters.get(metadata.key)?.inputValue == true}
                                                     onchange={(e: Event) => handleMetadataChange(metadata.key, (e.target as HTMLInputElement).checked)}
                                                 />
+                                                <span class="toggle-track"></span>
                                             </label>
                                         </div>
                                     {/if}
@@ -676,72 +678,65 @@
 
     /* Removed legacy dropdown overrides */
 
-    .checkbox-container {
+    .toggle-wrapper {
         padding: 0.5rem 0;
     }
 
-    .checkbox-label {
-        display: flex;
+    .toggle-switch {
+        position: relative;
+        display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
         cursor: pointer;
     }
 
-    /* .checkbox-text removed from sidebar boolean where external label is used */
+    .toggle-switch input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-track {
+        display: inline-block;
+        width: 2.5rem;
+        height: 1.25rem;
+        background: #e5e7eb;
+        border-radius: 9999px;
+        transition: background 0.2s ease;
+        position: relative;
+    }
+
+    .toggle-track::after {
+        content: "";
+        position: absolute;
+        top: 0.125rem;
+        left: 0.125rem;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 9999px;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+        transition: transform 0.2s ease;
+    }
+
+    .toggle-switch input:checked + .toggle-track {
+        background: #2563eb;
+    }
+
+    .toggle-switch input:checked + .toggle-track::after {
+        transform: translateX(1.25rem);
+    }
+
+    .toggle-switch input:focus-visible + .toggle-track {
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+    }
 
     .results-section {
         margin-top: 2rem;
     }
 
     /* Checkbox styling */
-    .checkbox-container {
-        display: flex;
-        align-items: center;
-    }
-
-    .checkbox-label {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-        font-size: 0.875rem;
-        color: #374151;
-        margin: 0;
-    }
-
-    .checkbox-label input[type="checkbox"] {
-        width: 1rem;
-        height: 1rem;
-        border-radius: 4px;
-        border: 1px solid #d1d5db;
-        background-color: white;
-        cursor: pointer;
-        position: relative;
-        margin: 0;
-        flex-shrink: 0;
-    }
-
-    .checkbox-label input[type="checkbox"]:checked {
-        background-color: #2563eb;
-        border-color: #2563eb;
-    }
-
-    .checkbox-label input[type="checkbox"]:checked::after {
-        content: "✓";
-        position: absolute;
-        top: -2px;
-        left: 2px;
-        color: white;
-        font-size: 0.75rem;
-        font-weight: bold;
-    }
-
-    .checkbox-label input[type="checkbox"]:focus {
-        outline: none;
-        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-    }
-
-    /* .checkbox-text removed */
+    /* toggle replaces previous checkbox styling */
 
     .actions {
         display: flex;

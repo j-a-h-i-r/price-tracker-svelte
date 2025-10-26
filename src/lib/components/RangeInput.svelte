@@ -27,6 +27,7 @@
             max={maxAllowed}
             placeholder="Min"
             class="chip-input"
+            title="Enter minimum value for {label}"
         />
         {#if unit}
             <span class="unit">{unit}</span>
@@ -40,6 +41,7 @@
             max={maxAllowed}
             placeholder="Max"
             class="chip-input"
+            title="Enter maximum value for {label}"
         />
         {#if unit}
             <span class="unit">{unit}</span>
@@ -98,7 +100,7 @@
         border: none;
         background: transparent;
         padding: 0;
-        font-size: 0.875rem;
+        font-size: 1rem;
         color: inherit;
         text-align: center;
     }
