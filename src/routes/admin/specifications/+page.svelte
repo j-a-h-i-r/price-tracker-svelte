@@ -28,11 +28,54 @@
         unmerged_different: string;
     } | null>(null);
     let mergingAll = $state(false);
+    let showNullMismatchOnly = $state(false);
+    let showMergeNullModal = $state(false);
+    let mergingNullDifferences = $state(false);
+    
+    let nullDifferenceStats = $derived.by(() => {
+        const nullDiffSpecs = specs.filter(spec => {
+            const comparison = compareMetadata(spec.metadatas);
+            return comparison.differences.some(d => d.hasNullMismatch) &&
+                   comparison.differences.every(d => !d.hasConflict || d.hasNullMismatch);
+        });
+        
+        let totalSameAttrs = 0;
+        let totalNullVsValueAttrs = 0;
+        
+        nullDiffSpecs.forEach(spec => {
+            const comparison = compareMetadata(spec.metadatas);
+            comparison.differences.forEach(d => {
+                if (!d.hasConflict) {
+                    totalSameAttrs++;
+                } else if (d.hasNullMismatch) {
+                    totalNullVsValueAttrs++;
+                }
+            });
+        });
+        
+        return {
+            productCount: nullDiffSpecs.length,
+            sameAttributes: totalSameAttrs,
+            nullVsValueAttributes: totalNullVsValueAttrs,
+            specs: nullDiffSpecs
+        };
+    });
 
     let filteredSpecs = $derived(
-        specs.filter(spec => 
-            spec.external_product_id.toString().includes(searchQuery.toLowerCase())
-        )
+        specs.filter(spec => {
+            // Filter by search query
+            if (!spec.external_product_id.toString().includes(searchQuery.toLowerCase())) {
+                return false;
+            }
+            
+            // If null mismatch filter is active, only show specs with null-vs-value differences
+            if (showNullMismatchOnly) {
+                const comparison = compareMetadata(spec.metadatas);
+                return comparison.differences.some(d => d.hasNullMismatch);
+            }
+            
+            return true;
+        })
     );
 
     onMount(async () => {
@@ -108,7 +151,7 @@
         return ignoredFields.get(productId)?.has(fieldKey) ?? false;
     }
 
-    function canSaveWithConflicts(productId: number, differences: { key: string; hasConflict: boolean }[]): boolean {
+    function canSaveWithConflicts(productId: number, differences: { key: string; hasConflict: boolean; hasNullMismatch: boolean }[]): boolean {
         const conflicts = differences.filter(d => d.hasConflict);
         if (conflicts.length === 0) return false;
         
@@ -119,7 +162,7 @@
         return conflicts.every(c => selections?.has(c.key) || ignored?.has(c.key));
     }
 
-    function buildMetadataFromSelections(productId: number, differences: { key: string; values: { model: string; value: unknown }[]; hasConflict: boolean }[]): Record<string, unknown> {
+    function buildMetadataFromSelections(productId: number, differences: { key: string; values: { model: string; value: unknown }[]; hasConflict: boolean; hasNullMismatch: boolean }[]): Record<string, unknown> {
         const metadata: Record<string, unknown> = {};
         const selections = selectedValues.get(productId);
         const ignored = ignoredFields.get(productId);
@@ -161,6 +204,78 @@
         }
     }
 
+    async function mergeNullDifferences() {
+        showMergeNullModal = false;
+        mergingNullDifferences = true;
+        
+        try {
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (const spec of nullDifferenceStats.specs) {
+                const comparison = compareMetadata(spec.metadatas);
+                const metadata: Record<string, unknown> = {};
+                
+                comparison.differences.forEach(diff => {
+                    if (!diff.hasConflict) {
+                        // Use common value for non-conflicts
+                        metadata[diff.key] = diff.values[0]?.value;
+                    } else if (diff.hasNullMismatch) {
+                        // For null mismatches, use the non-null value
+                        const nonNullValue = diff.values.find(v => v.value !== null && v.value !== undefined);
+                        if (nonNullValue) {
+                            metadata[diff.key] = nonNullValue.value;
+                        }
+                    }
+                });
+                
+                const result = await updateExternalProductMetadata(spec.external_product_id, metadata);
+                
+                if (result.isOk()) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                    console.error(`Failed to merge product ${spec.external_product_id}:`, result.error.message);
+                }
+            }
+            
+            if (errorCount === 0) {
+                toasts.success(`Successfully merged ${successCount} products with null differences`);
+            } else {
+                toasts.error(`Merged ${successCount} products, ${errorCount} failed`);
+            }
+            
+            // Refresh the data
+            const [specsResp, statsResp] = await Promise.all([
+                fetchGeneratedSpecs(),
+                api.get<{
+                    total: string;
+                    total_same: string;
+                    total_different: string;
+                    merged_total: string;
+                    merged_same: string;
+                    merged_different: string;
+                    unmerged_total: string;
+                    unmerged_same: string;
+                    unmerged_different: string;
+                }>('/api/generatedspecs/stats')
+            ]);
+            
+            if (specsResp.isOk()) {
+                specs = specsResp.value;
+            }
+            
+            if (statsResp.isOk()) {
+                stats = statsResp.value;
+            }
+        } catch (err) {
+            console.error('Error merging null differences:', err);
+            toasts.error(`Error merging null differences: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        } finally {
+            mergingNullDifferences = false;
+        }
+    }
+    
     async function mergeAllSame() {
         mergingAll = true;
         
@@ -217,6 +332,7 @@
             key: string;
             values: { model: string; value: unknown }[];
             hasConflict: boolean;
+            hasNullMismatch: boolean;
         }[] = [];
 
         allKeys.forEach(key => {
@@ -228,11 +344,17 @@
             // Check if all values are the same
             const firstValue = JSON.stringify(values[0].value);
             const hasConflict = values.some(v => JSON.stringify(v.value) !== firstValue);
+            
+            // Check if difference is because some are null and others are not
+            const hasNullMismatch = hasConflict && 
+                values.some(v => v.value === null || v.value === undefined) &&
+                values.some(v => v.value !== null && v.value !== undefined);
 
             differences.push({
                 key,
                 values,
-                hasConflict
+                hasConflict,
+                hasNullMismatch
             });
         });
 
@@ -277,15 +399,26 @@
             </div>
         </div>
         
-        {#if parseInt(stats.unmerged_same) > 0}
+        {#if parseInt(stats.unmerged_same) > 0 || nullDifferenceStats.productCount > 0}
             <div class="merge-all-container">
-                <button
-                    class="merge-all-btn"
-                    onclick={mergeAllSame}
-                    disabled={mergingAll}
-                >
-                    {mergingAll ? 'Merging...' : `Merge all Same (${stats.unmerged_same})`}
-                </button>
+                {#if parseInt(stats.unmerged_same) > 0}
+                    <button
+                        class="merge-all-btn"
+                        onclick={mergeAllSame}
+                        disabled={mergingAll || mergingNullDifferences}
+                    >
+                        {mergingAll ? 'Merging...' : `Merge all Same (${stats.unmerged_same})`}
+                    </button>
+                {/if}
+                {#if nullDifferenceStats.productCount > 0}
+                    <button
+                        class="merge-null-btn"
+                        onclick={() => showMergeNullModal = true}
+                        disabled={mergingAll || mergingNullDifferences}
+                    >
+                        {mergingNullDifferences ? 'Merging...' : `Merge Null Differences (${nullDifferenceStats.productCount})`}
+                    </button>
+                {/if}
             </div>
         {/if}
     {/if}
@@ -297,6 +430,12 @@
             placeholder="Search by product ID..."
             class="search-input"
         />
+        <button
+            class="filter-toggle-btn {showNullMismatchOnly ? 'active' : ''}"
+            onclick={() => showNullMismatchOnly = !showNullMismatchOnly}
+        >
+            {showNullMismatchOnly ? '✓ ' : ''}Show Null vs Value Differences
+        </button>
     </div>
 
     {#if loading}
@@ -334,7 +473,10 @@
                                 {#if comparison.allMatch}
                                     <span class="status-badge match">✓ All Match</span>
                                 {:else}
-                                    <span class="status-badge differ">⚠ Differences Found</span>
+                                    {@const onlyNullDifferences = comparison.differences.every(d => !d.hasConflict || d.hasNullMismatch)}
+                                    <span class="status-badge differ">
+                                        ⚠ {onlyNullDifferences ? 'Null value differences' : 'Differences Found'}
+                                    </span>
                                 {/if}
                                 <span class="expand-icon">{isExpanded ? '▼' : '▶'}</span>
                             </div>
@@ -386,6 +528,9 @@
                                                                 <span class="ignored-badge">Ignored</span>
                                                             {:else}
                                                                 <span class="conflict-badge">Conflict</span>
+                                                                {#if diff.hasNullMismatch}
+                                                                    <span class="null-mismatch-badge">Null vs Value</span>
+                                                                {/if}
                                                             {/if}
                                                         {:else}
                                                             <span class="match-badge">Match</span>
@@ -449,6 +594,52 @@
         </div>
     {/if}
 </div>
+
+{#if showMergeNullModal}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="modal-overlay" onclick={() => showMergeNullModal = false}>
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+            <h2>Merge Null Differences</h2>
+            <p class="modal-description">
+                This will merge products where the only differences are null vs value mismatches.
+                Non-null values will be selected automatically.
+            </p>
+            
+            <div class="modal-stats">
+                <div class="modal-stat-item">
+                    <span class="modal-stat-label">Products to update:</span>
+                    <span class="modal-stat-value">{nullDifferenceStats.productCount}</span>
+                </div>
+                <div class="modal-stat-item">
+                    <span class="modal-stat-label">Same attributes:</span>
+                    <span class="modal-stat-value">{nullDifferenceStats.sameAttributes}</span>
+                </div>
+                <div class="modal-stat-item">
+                    <span class="modal-stat-label">Null vs value attributes:</span>
+                    <span class="modal-stat-value">{nullDifferenceStats.nullVsValueAttributes}</span>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button
+                    class="modal-cancel-btn"
+                    onclick={() => showMergeNullModal = false}
+                >
+                    Cancel
+                </button>
+                <button
+                    class="modal-confirm-btn"
+                    onclick={mergeNullDifferences}
+                >
+                    Confirm Merge
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
 
 <style>
     .specs-container {
@@ -547,6 +738,9 @@
 
     .merge-all-container {
         margin-bottom: 2rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
     }
 
     .merge-all-btn {
@@ -571,12 +765,39 @@
         cursor: not-allowed;
     }
 
+    .merge-null-btn {
+        padding: 0.75rem 1.5rem;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .merge-null-btn:hover:not(:disabled) {
+        background: #2563eb;
+    }
+
+    .merge-null-btn:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+    }
+
     .search-container {
         margin-bottom: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
     }
 
     .search-input {
-        width: 100%;
+        flex: 1;
+        min-width: 250px;
         max-width: 400px;
         padding: 0.75rem 1rem;
         border: 1px solid #d1d5db;
@@ -588,6 +809,35 @@
         outline: none;
         border-color: #3b82f6;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .filter-toggle-btn {
+        padding: 0.75rem 1rem;
+        background: white;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .filter-toggle-btn:hover {
+        background: #f9fafb;
+        border-color: #9ca3af;
+    }
+
+    .filter-toggle-btn.active {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+
+    .filter-toggle-btn.active:hover {
+        background: #2563eb;
+        border-color: #2563eb;
     }
 
     .loading, .error, .no-results {
@@ -877,6 +1127,15 @@
         font-weight: 500;
     }
 
+    .null-mismatch-badge {
+        font-size: 0.75rem;
+        padding: 0.125rem 0.5rem;
+        background: #e0e7ff;
+        color: #3730a3;
+        border-radius: 0.25rem;
+        font-weight: 500;
+    }
+
     .field-values {
         display: flex;
         flex-direction: column;
@@ -935,6 +1194,123 @@
         border-radius: 0.25rem;
         font-size: 0.8125rem;
         overflow-x: auto;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 2rem;
+        max-width: 500px;
+        width: 100%;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        animation: modalSlideIn 0.2s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-content h2 {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #111827;
+        margin: 0 0 1rem 0;
+    }
+
+    .modal-description {
+        color: #6b7280;
+        margin-bottom: 1.5rem;
+        line-height: 1.5;
+    }
+
+    .modal-stats {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .modal-stat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+    }
+
+    .modal-stat-item:not(:last-child) {
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .modal-stat-label {
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .modal-stat-value {
+        color: #111827;
+        font-weight: 600;
+        font-size: 1.125rem;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+    }
+
+    .modal-cancel-btn {
+        padding: 0.625rem 1.25rem;
+        background: white;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .modal-cancel-btn:hover {
+        background: #f9fafb;
+        border-color: #9ca3af;
+    }
+
+    .modal-confirm-btn {
+        padding: 0.625rem 1.25rem;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .modal-confirm-btn:hover {
+        background: #2563eb;
     }
 
     @media (max-width: 768px) {
