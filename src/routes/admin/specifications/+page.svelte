@@ -31,6 +31,10 @@
     let showNullMismatchOnly = $state(false);
     let showMergeNullModal = $state(false);
     let mergingNullDifferences = $state(false);
+    let showRawMetadataModal = $state(false);
+    let rawMetadata: Record<string, unknown> | null = $state(null);
+    let loadingRawMetadata = $state(false);
+    let currentProductName = $state('');
     
     let nullDifferenceStats = $derived.by(() => {
         const nullDiffSpecs = specs.filter(spec => {
@@ -204,6 +208,30 @@
         }
     }
 
+    async function viewRawMetadata(productId: number, productName: string) {
+        currentProductName = productName;
+        showRawMetadataModal = true;
+        loadingRawMetadata = true;
+        rawMetadata = null;
+        
+        try {
+            const result = await api.get<{ raw_metadata: Record<string, unknown> }>(`/api/externals/${productId}`);
+            
+            if (result.isOk()) {
+                rawMetadata = result.value.raw_metadata;
+            } else {
+                toasts.error(`Failed to load raw metadata: ${result.error.message}`);
+                showRawMetadataModal = false;
+            }
+        } catch (err) {
+            console.error('Error loading raw metadata:', err);
+            toasts.error(`Error loading raw metadata: ${err instanceof Error ? err.message : 'Unknown error'}`);
+            showRawMetadataModal = false;
+        } finally {
+            loadingRawMetadata = false;
+        }
+    }
+    
     async function mergeNullDifferences() {
         showMergeNullModal = false;
         mergingNullDifferences = true;
@@ -481,6 +509,12 @@
                                 <span class="expand-icon">{isExpanded ? '▼' : '▶'}</span>
                             </div>
                         </button>
+                        <button
+                            class="view-raw-btn"
+                            onclick={() => viewRawMetadata(spec.external_product_id, spec.name)}
+                        >
+                            View Raw
+                        </button>
                         {#if comparison.allMatch}
                             <button
                                 class="save-btn"
@@ -635,6 +669,67 @@
                     onclick={mergeNullDifferences}
                 >
                     Confirm Merge
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
+
+{#if showRawMetadataModal}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="modal-overlay" onclick={() => showRawMetadataModal = false}>
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="modal-content large" onclick={(e) => e.stopPropagation()}>
+            <div class="modal-header">
+                <h2>Raw Metadata</h2>
+                <button
+                    class="modal-close-btn"
+                    onclick={() => showRawMetadataModal = false}
+                >
+                    ✕
+                </button>
+            </div>
+            <p class="modal-description">
+                Original scraped metadata for: <strong>{currentProductName}</strong>
+            </p>
+            
+            {#if loadingRawMetadata}
+                <div class="modal-loading">
+                    <p>Loading raw metadata...</p>
+                </div>
+            {:else if rawMetadata}
+                <div class="raw-metadata-content">
+                    {#if Object.keys(rawMetadata).length === 0}
+                        <p class="no-metadata">No raw metadata available.</p>
+                    {:else}
+                        <div class="metadata-grid">
+                            {#each Object.entries(rawMetadata) as [key, value] (key)}
+                                <div class="metadata-row">
+                                    <div class="metadata-key">{key}</div>
+                                    <div class="metadata-value">
+                                        {#if value === null || value === undefined}
+                                            <em class="null-value">null</em>
+                                        {:else if typeof value === 'object'}
+                                            <code>{JSON.stringify(value, null, 2)}</code>
+                                        {:else}
+                                            {value}
+                                        {/if}
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
+                </div>
+            {/if}
+            
+            <div class="modal-actions">
+                <button
+                    class="modal-cancel-btn"
+                    onclick={() => showRawMetadataModal = false}
+                >
+                    Close
                 </button>
             </div>
         </div>
@@ -951,6 +1046,38 @@
         color: #92400e;
     }
 
+    .view-raw-btn {
+        padding: 0.5rem 1rem;
+        background: #6b7280;
+        color: white;
+        border: none;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .view-raw-btn:hover {
+        background: #4b5563;
+    }
+
+    .view-raw-btn {
+        padding: 0.5rem 1rem;
+        background: #6b7280;
+        color: white;
+        border: none;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .view-raw-btn:hover {
+        background: #4b5563;
+    }
+
     .save-btn {
         padding: 0.5rem 1rem;
         background: #3b82f6;
@@ -1218,6 +1345,46 @@
         width: 100%;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         animation: modalSlideIn 0.2s ease-out;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-content.large {
+        max-width: 900px;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .modal-close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #6b7280;
+        cursor: pointer;
+        padding: 0;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.375rem;
+        transition: all 0.2s;
+    }
+
+    .modal-close-btn:hover {
+        background: #f3f4f6;
+        color: #111827;
+    }
+
+    .modal-loading {
+        padding: 2rem;
+        text-align: center;
+        color: #6b7280;
     }
 
     @keyframes modalSlideIn {
@@ -1236,6 +1403,40 @@
         font-weight: bold;
         color: #111827;
         margin: 0 0 1rem 0;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .modal-close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #6b7280;
+        cursor: pointer;
+        padding: 0;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.375rem;
+        transition: all 0.2s;
+    }
+
+    .modal-close-btn:hover {
+        background: #f3f4f6;
+        color: #111827;
+    }
+
+    .modal-loading {
+        padding: 2rem;
+        text-align: center;
+        color: #6b7280;
     }
 
     .modal-description {
@@ -1313,6 +1514,52 @@
         background: #2563eb;
     }
 
+    .raw-metadata-content {
+        margin-bottom: 1.5rem;
+    }
+
+    .metadata-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .metadata-row {
+        display: grid;
+        grid-template-columns: minmax(200px, 1fr) 2fr;
+        gap: 1rem;
+        padding: 0.75rem;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        align-items: start;
+    }
+
+    .metadata-key {
+        font-weight: 600;
+        color: #374151;
+        word-break: break-word;
+        font-family: monospace;
+        font-size: 0.875rem;
+    }
+
+    .metadata-value {
+        color: #111827;
+        word-break: break-word;
+        font-size: 0.875rem;
+    }
+
+    .metadata-value code {
+        display: block;
+        background: #1f2937;
+        color: #e5e7eb;
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+        overflow-x: auto;
+        white-space: pre-wrap;
+    }
+
     @media (max-width: 768px) {
         .specs-container {
             padding: 1rem;
@@ -1336,6 +1583,15 @@
         .value-item {
             flex-direction: column;
             gap: 0.25rem;
+        }
+
+        .metadata-row {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        .modal-content {
+            padding: 1.5rem;
         }
     }
 </style>
