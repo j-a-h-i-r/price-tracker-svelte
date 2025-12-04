@@ -786,3 +786,8 @@
         background: #c82333;
     }
 </style>
+
+<svelte:head>
+    <meta name="robots" content="noindex, nofollow" />
+    <title>My Account - daam.deals</title>
+</svelte:head>

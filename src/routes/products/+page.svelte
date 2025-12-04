@@ -5,7 +5,7 @@
     import type { ProductWithLastPrice } from '$lib/types/Product';
     import SearchableSelect from '$lib/components/SearchableSelect.svelte';
     import { formatPrice } from '$lib/util.js';
-    import { generateSEOConfig } from '$lib/seo.js';
+    import { generateSEOConfig, generateLdJSON, generateItemListStructuredData } from '$lib/seo.js';
     import Pagination from '$lib/components/Pagination.svelte';
     import Loader from '$lib/components/Loader.svelte';
     import NoResult from '$lib/components/NoResult.svelte';
@@ -746,6 +746,7 @@
 </style>
 
 <svelte:head>
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html
         generateSEOConfig({
             title: 'Search, sort and view all products and prices',
@@ -754,4 +755,18 @@
             canonical: 'https://daam.deals/products',
         })
     }
+    
+    {#if paginatedProducts.length > 0}
+        <!-- ItemList Structured Data -->
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html
+            generateLdJSON(JSON.stringify(generateItemListStructuredData(
+                paginatedProducts.slice(0, 10).map((product, index) => ({
+                    name: product.name,
+                    url: `https://daam.deals/products/${product.id}`,
+                    position: index + 1
+                }))
+            ), null, 2))
+        }
+    {/if}
 </svelte:head>

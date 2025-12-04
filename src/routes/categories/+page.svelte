@@ -3,7 +3,7 @@
     import { getCategoryNewProductsCount } from '$lib/api/categories.js';
     import { onMount } from 'svelte';
     import { ok, ResultAsync } from 'neverthrow';
-    import { generateSEOConfig } from '$lib/seo.js';
+    import { generateSEOConfig, generateLdJSON, generateItemListStructuredData } from '$lib/seo.js';
     import Loader from '$lib/components/Loader.svelte';
 
     interface CategoryWithNewProducts extends Category {
@@ -91,6 +91,20 @@
             canonical: 'https://daam.deals/categories',
         })
     }
+    
+    {#if categories.length > 0}
+        <!-- ItemList Structured Data for Categories -->
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html
+            generateLdJSON(JSON.stringify(generateItemListStructuredData(
+                categories.map((category, index) => ({
+                    name: category.name,
+                    url: `https://daam.deals/products?category_id=${category.id}`,
+                    position: index + 1
+                }))
+            ), null, 2))
+        }
+    {/if}
 </svelte:head>
 
 <style>

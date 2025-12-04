@@ -36,7 +36,7 @@
     import Pill from '$lib/components/Pill.svelte';
     import Badge from '$lib/components/Badge.svelte';
     import ImageCarouselModal from '$lib/components/ImageCarouselModal.svelte';
-    import { generateLdJSON, generateProductStructuredData, generateSEOConfig } from '$lib/seo.js';
+    import { generateLdJSON, generateProductStructuredData, generateSEOConfig, generateBreadcrumbStructuredData } from '$lib/seo.js';
     import type { PageProps } from './$types.js';
     import { SvelteMap } from 'svelte/reactivity';
     import { ResultAsync } from 'neverthrow';
@@ -665,6 +665,16 @@
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html
             generateLdJSON(JSON.stringify(generateProductStructuredData(product, externalPrices), null, 2))
+        }
+        
+        <!-- Breadcrumb Structured Data -->
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html
+            generateLdJSON(JSON.stringify(generateBreadcrumbStructuredData([
+                { name: 'Home', url: 'https://daam.deals/' },
+                { name: 'Products', url: 'https://daam.deals/products' },
+                { name: product.name, url: `https://daam.deals/products/${productId}` }
+            ]), null, 2))
         }
     {/if}
 </svelte:head>

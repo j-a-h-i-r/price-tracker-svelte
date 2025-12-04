@@ -181,3 +181,17 @@ export function generateFAQStructuredData(faqs: Array<{ question: string; answer
 		}))
 	};
 }
+
+export function generateItemListStructuredData(items: Array<{ name: string; url: string; image?: string; position?: number }>): any {
+	return {
+		"@context": "https://schema.org",
+		"@type": "ItemList",
+		"itemListElement": items.map((item, index) => ({
+			"@type": "ListItem",
+			"position": item.position ?? index + 1,
+			"name": item.name,
+			"url": item.url,
+			...(item.image && { "image": item.image })
+		}))
+	};
+}

@@ -9,7 +9,7 @@
     import { goto } from '$app/navigation';
     import { ResultAsync } from 'neverthrow';
     import Loader from '$lib/components/Loader.svelte';
-    import { generateSEOConfig } from '$lib/seo.js';
+    import { generateSEOConfig, generateLdJSON, generateItemListStructuredData, generateDealStructuredData } from '$lib/seo.js';
     import type { PageProps } from '../$types.js';
     import { fetchExternalProductBadges, type ProductBadge } from '$lib/api/products.js';
     import { SvelteMap } from 'svelte/reactivity';
@@ -159,6 +159,28 @@
             canonical: 'https://daam.deals/deals',
         })
     }
+    
+    {#await deals then dealsResult}
+        {#if dealsResult.isOk() && dealsResult.value.length > 0}
+            <!-- ItemList Structured Data for Deals -->
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+            {@html
+                generateLdJSON(JSON.stringify(generateItemListStructuredData(
+                    dealsResult.value.slice(0, 10).map((deal, index) => ({
+                        name: deal.product_name,
+                        url: `https://daam.deals/products/${deal.product_id}`,
+                        position: index + 1
+                    }))
+                ), null, 2))
+            }
+            
+            <!-- Deal Structured Data for top deals -->
+            {#each dealsResult.value.slice(0, 5) as deal(deal.external_product_id)}
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                {@html generateLdJSON(JSON.stringify(generateDealStructuredData(deal), null, 2))}
+            {/each}
+        {/if}
+    {/await}
 </svelte:head>
 
 <style>
