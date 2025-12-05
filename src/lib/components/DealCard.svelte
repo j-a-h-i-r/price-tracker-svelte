@@ -78,21 +78,19 @@
 >
     <div class="deal-content">
         <div class="card-header">
-            {#if badges.length > 0}
-                <div class="badges-container">
-                    {#each badges as badge (badge.key)}
-                        <Badge label={badge.label} />
-                    {/each}
-                </div>
-            {/if}
-            {#if discountPercent >= 25}
-                <span class="hot-badge">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2c1 3 2.5 5.5 1.5 9.5 1-1.5 1.5-3.5 1.5-5.5 3.5 3 5 7 5 11a8 8 0 1 1-16 0c0-4 1.5-8 5-11 0 2-.5 4 1.5 5.5-1-4 .5-6.5 1.5-9.5z"/>
-                    </svg>
-                    Hot
-                </span>
-            {/if}
+            <div class="badges-container">
+                {#each badges as badge (badge.key)}
+                    <Badge label={badge.label} />
+                {/each}
+                {#if discountPercent >= 25}
+                    <span class="hot-badge">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2c1 3 2.5 5.5 1.5 9.5 1-1.5 1.5-3.5 1.5-5.5 3.5 3 5 7 5 11a8 8 0 1 1-16 0c0-4 1.5-8 5-11 0 2-.5 4 1.5 5.5-1-4 .5-6.5 1.5-9.5z"/>
+                        </svg>
+                        Hot
+                    </span>
+                {/if}
+            </div>
         </div>
         
         {#if deal.current_price}
@@ -202,14 +200,15 @@
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
-        padding: 0.25rem 0.5rem;
+        padding: 0.15rem 0.5rem;
         background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         color: white;
-        font-size: 0.7rem;
-        font-weight: 700;
+        font-size: 0.65rem;
+        font-weight: 600;
         border-radius: 6px;
         text-transform: uppercase;
         letter-spacing: 0.025em;
+        border: 1px solid #dc2626;
     }
 
     .discount-row {
