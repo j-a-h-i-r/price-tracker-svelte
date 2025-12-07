@@ -13,6 +13,7 @@
     import { fetchMetadataFilters } from '$lib/api/metadata.js';
     import Pill from '$lib/components/Pill.svelte';
     import { SvelteMap } from 'svelte/reactivity';
+    import { generateSEOConfig, generateLdJSON, generateWebsiteStructuredData, generateOrganizationStructuredData } from '$lib/seo.js';
 
     type MetadataValueType = string | number | boolean | { min?: number; max?: number }
     interface MetadataValue {
@@ -152,6 +153,32 @@
         return value !== undefined && value !== null && value !== '';
     }
 </script>
+
+<svelte:head>
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    {@html generateSEOConfig({
+        title: 'Product Configurator - Filter by brand, specs, and price',
+        description: 'Find the perfect product by combining brand, category, price, and detailed spec filters in one view.',
+        canonical: 'https://daam.deals/configurator',
+    })}
+
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    {@html generateLdJSON(JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        'name': 'Product Configurator',
+        'description': 'Configure filters to discover products by brand, category, price, and metadata.',
+        'url': 'https://daam.deals/configurator'
+    }, null, 2))}
+
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    {@html generateLdJSON(JSON.stringify({
+        '@graph': [
+            generateWebsiteStructuredData(),
+            generateOrganizationStructuredData()
+        ]
+    }, null, 2))}
+</svelte:head>
 
 
 

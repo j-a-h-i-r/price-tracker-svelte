@@ -85,9 +85,9 @@
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html
         generateSEOConfig({
-            title: 'Supported Categories for tracking the best prices',
+            title: 'Find Bangladeshi products at lowest prices for many categories',
             description:
-                'A variety of categories including laptop, smartphone, tablet are currently being tracked to find the best deals and prices',
+                'Find products include laptops, smartphones, tablets, televisions and more at lowest prices from top Bangladeshi retailers.',
             canonical: 'https://daam.deals/categories',
         })
     }

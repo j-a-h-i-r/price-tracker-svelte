@@ -654,8 +654,8 @@
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html
         generateSEOConfig({
-            title: product?.name ? `${product.name} - View price history and track price drops` : 'Product Details',
-            description: `Best prices for ${product?.name || 'this product'} in Bangladesh. Track price history, get alerts on price drops and grab the best deals from top retailers.`,
+            title: product?.name ? `${product.name} - Find lowest prices in Bangladesh` : 'Product Details',
+            description: `Lowest prices for ${product?.name || 'this product'} in Bangladesh. Check price history, track price drops and grab the best deals from top retailers.`,
             canonical: `https://daam.deals/products/${productId}`,
         })
     }

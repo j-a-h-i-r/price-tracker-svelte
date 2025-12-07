@@ -1,5 +1,6 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import { generateSEOConfig } from '$lib/seo.js';
 
     let inputUrl = $state('');
     let errorMessage: string | null = $state(null);
@@ -24,6 +25,15 @@
         goto(`/url/${encoded}`);
     }
 </script>
+
+<svelte:head>
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    {@html generateSEOConfig({
+        title: 'Check a product by URL | daam.deals',
+        description: 'Paste any retailer product link to view price, availability, and badges.',
+        canonical: 'https://daam.deals/url',
+    })}
+</svelte:head>
 
 <div class="url-landing">
     <section class="hero-card">

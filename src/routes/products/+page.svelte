@@ -749,7 +749,7 @@
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html
         generateSEOConfig({
-            title: 'Search, sort and view all products and prices',
+            title: 'Find Bangladeshi products at lowest prices from top retailers',
             description:
                 'Browse thousands of products and compare prices from top Bangladeshi retailers. Find the best deals on electronics, gadgets, and more.',
             canonical: 'https://daam.deals/products',

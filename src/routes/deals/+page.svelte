@@ -185,7 +185,7 @@
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html
         generateSEOConfig({
-            title: 'Current Deals - Find the hottest deals on Bangladeshi products',
+            title: 'Find the hottest deals on Bangladeshi products',
             description:
                 'Discover the best deals available right now on Bangladeshi products. Updated every day',
             canonical: 'https://daam.deals/deals',

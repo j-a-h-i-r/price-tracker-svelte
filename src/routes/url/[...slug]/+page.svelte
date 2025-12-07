@@ -6,6 +6,7 @@
     import PriceStat from '$lib/components/PriceStat.svelte';
     import Pill from '$lib/components/Pill.svelte';
     import type { ExternalProductPrice } from '$lib/types/Product.js';
+    import { generateSEOConfig, generateLdJSON, generateBreadcrumbStructuredData } from '$lib/seo.js';
 
     let { data }: PageProps = $props();
 
@@ -47,6 +48,25 @@
     );
     const badges = $derived.by(() => data.badges ?? []);
     const metadata = $derived.by(() => data.metadata ?? []);
+
+    const pageTitle = $derived.by(() => {
+        if (data.externalProduct?.name) {
+            return `${data.externalProduct.name} price history and availability`;
+        }
+        return 'Product URL details';
+    });
+
+    const pageDescription = $derived.by(() => {
+        const website = data.website?.name ? ` on ${data.website.name}` : '';
+        return data.externalProduct?.name
+            ? `Track prices, availability, and badges for ${data.externalProduct.name}${website}.`
+            : 'See price history, availability, and similar products for this tracked URL.';
+    });
+
+    const canonicalUrl = $derived.by(() => {
+        const encoded = data.url ? encodeURIComponent(data.url) : '';
+        return `https://daam.deals/url/${encoded}`;
+    });
 
     function getPriceOrNotAvailable(price: ExternalProductPrice) {
         if (!price) return 'Not Available';
@@ -192,6 +212,22 @@
         </div>
     </section>
 </div>
+
+<svelte:head>
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    {@html generateSEOConfig({
+        title: pageTitle,
+        description: pageDescription,
+        canonical: canonicalUrl,
+    })}
+
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    {@html generateLdJSON(JSON.stringify(generateBreadcrumbStructuredData([
+        { name: 'Home', url: 'https://daam.deals/' },
+        { name: 'URL lookup', url: 'https://daam.deals/url' },
+        { name: data.externalProduct?.name || data.url || 'URL detail', url: canonicalUrl }
+    ]), null, 2))}
+</svelte:head>
 
 <style>
     .url-page {

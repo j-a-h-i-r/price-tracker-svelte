@@ -2,7 +2,7 @@
     import { fetchWebsiteNewProductsCount, fetchWebsites, fetchWebsiteStats } from '$lib/api/websites.js';
     import Loader from '$lib/components/Loader.svelte';
     import NoResult from '$lib/components/NoResult.svelte';
-    import { generateSEOConfig } from '$lib/seo.js';
+    import { generateSEOConfig, generateLdJSON, generateItemListStructuredData } from '$lib/seo.js';
     import type { WebsiteWithStat } from '$lib/types/Website.js';
     import { ok, ResultAsync } from 'neverthrow';
     import { onMount } from 'svelte';
@@ -101,10 +101,21 @@
 <svelte:head>
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html generateSEOConfig({
-        title: 'Supported retailers and websites for price tracking',
-        description: 'These are the websites currently being tracked to find the best deals and prices. Retailers include StarTech, Techland, Pickaboo, and more.',
+        title: 'Find lowest prices from top Bangladeshi retailers',
+        description: 'Find lowest prices and the hottest deals from StarTech, Techland, Pickaboo, and more.',
         canonical: 'https://daam.deals/websites',
     })}
+
+    {#if websites.length > 0}
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html generateLdJSON(JSON.stringify(generateItemListStructuredData(
+            websites.map((website, index) => ({
+                name: website.name,
+                url: website.url,
+                position: index + 1
+            }))
+        ), null, 2))}
+    {/if}
 </svelte:head>
 
 <style>

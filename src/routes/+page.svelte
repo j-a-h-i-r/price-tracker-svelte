@@ -318,8 +318,8 @@
 <svelte:head>
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html generateSEOConfig({
-        title: 'Best prices and deals on Bangladeshi products (StarTech etc)',
-        description: 'Best price comparison website in Bangladesh. Check the best deals and track the lowest prices from top retailers like Startech, Techland etc.',
+        title: 'Find lowest prices and deals on Bangladeshi products (StarTech etc)',
+        description: 'Best price comparison website in Bangladesh. Discover the best deals, find lowest prices and track price drops from top retailers like Startech, Techland etc.',
         canonical: 'https://daam.deals/',
     })}
     
