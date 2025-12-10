@@ -63,10 +63,10 @@
 </script>
 
 <a
-    href="/products/{deal.product_id}"
+    href="/products/{deal.product_slug}"
     bind:this={element}
     onclick={() =>
-        goto(`/products/${deal.product_id}`, {
+        goto(`/products/${deal.product_slug}`, {
             state: {
                 highlight_external_product_id:
                     deal.external_product_id,
