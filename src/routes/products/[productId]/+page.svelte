@@ -25,7 +25,7 @@
     import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
     import { trackedProducts } from '$lib/states/tracked.svelte.js';
     import { userState } from '$lib/user.svelte.js';
-    import { formatPrice, linkWithUtmSource } from '$lib/util.js';
+    import { formatPrice, getProductIdFromSlug, linkWithUtmSource } from '$lib/util.js';
     import dayjs from 'dayjs';
     import type { Attachment } from 'svelte/attachments';
     import type { FlaggingOption } from '$lib/types/Flagging.js';
@@ -71,7 +71,7 @@
         });
     }
 
-    let productId = Number(page.params.productId);
+    let productId = getProductIdFromSlug(page.params.productId);
     let externalProductPrices: Map<number, ExternalProductPrice[]> = $state(new Map());
     let isEditingMainProduct = $state(false);
     let editedMainName = $state('');

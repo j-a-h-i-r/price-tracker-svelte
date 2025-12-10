@@ -34,6 +34,7 @@ type PageData = {
     similarProducts: ExternalProductWithDetails[];
     website: Website | null;
     category: Category | null;
+    breadcrumb: Array<{ path: string; url: string }>;
 };
 
 export const load: PageServerLoad<PageData> = async ({ params, fetch, parent }) => {
@@ -130,5 +131,9 @@ export const load: PageServerLoad<PageData> = async ({ params, fetch, parent }) 
         similarProducts,
         website: parentData.websiteMap?.get(externalProduct.website_id) ?? null,
         category: parentData.categoryMap?.get(externalProduct.category_id) ?? null,
+        breadcrumb: [
+            { path: 'URL Lookup', url: '/url' },
+            { path: externalProduct.name, url: `/url/${rawSlug}` }
+        ]
     } satisfies PageData;
 };

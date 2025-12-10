@@ -12,6 +12,7 @@ export interface Product {
     manufacturer_id: number;
     category_name?: string;
     manufacturer_name?: string;
+    slug: string;
 }
 
 export interface ProductWithLastPrice extends Product {

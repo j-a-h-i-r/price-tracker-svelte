@@ -232,7 +232,7 @@
             />
             <div class="products-grid">
                 {#each paginatedProducts as product (product.id)}
-                    <a href="/products/{product.id}" class="product-card">
+                    <a href="/products/{product.slug}" class="product-card">
                         <div class="product-header">
                             <h3 class="product-name">{product.name}</h3>
                             <div class="product-price">
@@ -763,7 +763,7 @@
             generateLdJSON(JSON.stringify(generateItemListStructuredData(
                 paginatedProducts.slice(0, 10).map((product, index) => ({
                     name: product.name,
-                    url: `https://daam.deals/products/${product.id}`,
+                    url: `https://daam.deals/products/${product.slug}`,
                     position: index + 1
                 }))
             ), null, 2))

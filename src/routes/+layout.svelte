@@ -33,18 +33,31 @@
 		);
 	}
 
+	/**
+	 * Generate breadcrumb items for the current page.
+	 * Pages can provide custom breadcrumb data via page.data.breadcrumb
+	 * in their +page.ts or +page.server.ts load functions.
+	 * 
+	 * Example breadcrumb data:
+	 * breadcrumb: [
+	 *   { path: 'Products', url: '/products' },
+	 *   { path: 'iPhone 15', url: '/products/123-iphone-15' }
+	 * ]
+	 */
 	function generateBreadCrumbs(
 		path: string,
 	): Array<{ path: string; url: string }> {
-		const pathArray = path.split('/').filter((p) => p !== '');
-		// Refactor: Let child pages handle the breadcrumbs
-		if (pathArray?.[0] === 'url') {
-			return [{path: 'URL', url: '/url'}];
+		// Check if page provides custom breadcrumb data
+		if (page.data?.breadcrumb) {
+			return page.data.breadcrumb;
 		}
+
+		// Default: generate from URL path with title casing
+		const pathArray = path.split('/').filter((p) => p !== '');
 		let urlSoFar = '';
 		return pathArray.map((p) => {
 			urlSoFar += `/${p}`;
-			return { path: p, url: urlSoFar };
+			return { path: toTitleCase(p), url: urlSoFar };
 		});
 	}
 
@@ -103,7 +116,7 @@
 											pathname
 												? 'active'
 												: ''}"
-											>{toTitleCase(urlpath.path)}</a
+											>{urlpath.path}</a
 										>
 									</li>
 								{/each}

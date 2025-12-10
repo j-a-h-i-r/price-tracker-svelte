@@ -36,3 +36,13 @@ export function arrayToPerIdMap<T extends { id: number }>(array: T[]): Map<numbe
 export function linkWithUtmSource(url: string, source: string = 'daam.deals'): string {
     return `${url}${url.includes('?') ? '&' : '?'}utm_source=${source}`;
 }
+
+/**
+ * Extracts the numeric ID from a slug formatted as "id-rest-of-slug"
+ * @param slug - The slug string (e.g., "123-product-name")
+ * @returns The numeric ID
+ */
+export function getProductIdFromSlug(slug: string): number {
+    const parts = slug.split('-');
+    return Number(parts[0]);
+}
