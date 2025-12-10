@@ -656,7 +656,8 @@
         generateSEOConfig({
             title: product?.name ? `${product.name} - Find lowest prices in Bangladesh` : 'Product Details',
             description: `Lowest prices for ${product?.name || 'this product'} in Bangladesh. Check price history, track price drops and grab the best deals from top retailers.`,
-            canonical: `https://daam.deals/products/${productId}`,
+            canonical: `https://daam.deals/products/${page.params.productId}`,
+            ogImage: (externalProducts ?? []).map(ep => ep.image_urls).flat()[0] || undefined,
         })
     }
     
@@ -673,7 +674,7 @@
             generateLdJSON(JSON.stringify(generateBreadcrumbStructuredData([
                 { name: 'Home', url: 'https://daam.deals/' },
                 { name: 'Products', url: 'https://daam.deals/products' },
-                { name: product.name, url: `https://daam.deals/products/${productId}` }
+                { name: product.name, url: `https://daam.deals/products/${page.params.productId}` }
             ]), null, 2))
         }
     {/if}
