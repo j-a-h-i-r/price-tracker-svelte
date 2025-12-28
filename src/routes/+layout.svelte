@@ -34,6 +34,16 @@
 	}
 
 	/**
+	 * Truncate text to a maximum length and add ellipsis if needed
+	 */
+	function truncateText(text: string, maxLength: number = 30): string {
+		if (text.length <= maxLength) {
+			return text;
+		}
+		return text.substring(0, maxLength) + '...';
+	}
+
+	/**
 	 * Generate breadcrumb items for the current page.
 	 * Pages can provide custom breadcrumb data via page.data.breadcrumb
 	 * in their +page.ts or +page.server.ts load functions.
@@ -116,7 +126,8 @@
 											pathname
 												? 'active'
 												: ''}"
-											>{urlpath.path}</a
+											title={urlpath.path}
+											>{truncateText(urlpath.path)}</a
 										>
 									</li>
 								{/each}
