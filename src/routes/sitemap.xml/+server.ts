@@ -3,6 +3,7 @@ import { API_URL } from '$env/static/private';
 interface ProductWithDate {
     id: number;
     updated_at?: string;
+    slug: string;
 }
 
 async function fetchAllProducts(): Promise<ProductWithDate[]> {
@@ -50,7 +51,7 @@ export async function GET() {
     const productUrls = products.map((product) => {
         const lastmod = product.updated_at ? formatDate(new Date(product.updated_at)) : undefined;
         return generateUrl(
-            `https://daam.deals/products/${product.id}`,
+            `https://daam.deals/products/${product.slug}`,
             'daily',
             '0.8',
             lastmod
