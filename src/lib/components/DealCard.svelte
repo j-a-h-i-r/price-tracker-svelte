@@ -178,7 +178,7 @@
 
     .deal-card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
         border-color: #d1d5db;
     }
 
