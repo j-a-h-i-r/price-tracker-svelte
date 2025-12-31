@@ -266,7 +266,7 @@
         </div>
         <div class="search-results">
             {#each pagedProducts as product (product.id)}
-                <a href="/products/{product.id}" class="search-result-row">
+                <a href="/products/{product.slug}" class="search-result-row">
                     <div class="result-content">
                         <div class="first-line">
                             <h3 class="product-name">{product.name}</h3>
