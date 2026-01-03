@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { browser } from '$app/environment';
     import { page } from '$app/state';
     import {
     fetchExternalProductBadges,
@@ -20,7 +21,7 @@
         ExternalProductMetadata,
         Product,
     } from '$lib/types/Product.js';
-    import { onMount } from 'svelte';
+    import { onMount, tick } from 'svelte';
     import { Chart } from 'chart.js/auto';
     import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
     import { trackedProducts } from '$lib/states/tracked.svelte.js';
@@ -36,12 +37,12 @@
     import Pill from '$lib/components/Pill.svelte';
     import Badge from '$lib/components/Badge.svelte';
     import ImageCarouselModal from '$lib/components/ImageCarouselModal.svelte';
+    import ProductVariantCompact from '$lib/components/ProductVariantCompact.svelte';
+    import ProductVariantDetail from '$lib/components/ProductVariantDetail.svelte';
     import { generateLdJSON, generateProductStructuredData, generateSEOConfig, generateBreadcrumbStructuredData } from '$lib/seo.js';
     import type { PageProps } from './$types.js';
     import { SvelteMap } from 'svelte/reactivity';
     import { ResultAsync } from 'neverthrow';
-    import PriceChart from '$lib/components/PriceChart.svelte';
-    import PriceStat from '$lib/components/PriceStat.svelte';
 
     let { data }: PageProps = $props();
 
@@ -93,6 +94,9 @@
 
     let externalProductIdToHighlight: number | null = $state(null);
     let alreadyScrolledOnce = $state(false);
+    let expandedVariantId: number | null = $state(null);
+    let pendingCenteredVariantId: number | null = $state(null);
+    let hasInitializedExpandedVariant = $state(false);
 
     // Image carousel state
     let allProductImages: string[] = $state([]);
@@ -104,14 +108,50 @@
         const { highlight_external_product_id } = page.state as { highlight_external_product_id: number | null };
         if (highlight_external_product_id) {
             externalProductIdToHighlight = Number(highlight_external_product_id);
+            expandedVariantId = Number(highlight_external_product_id);
+            hasInitializedExpandedVariant = true;
+        }
+
+        if (browser) {
+            window.addEventListener('keydown', handleGlobalKeydown);
         }
 
         return () => {
             if (carouselInterval) {
                 clearInterval(carouselInterval);
             }
+            if (browser) {
+                window.removeEventListener('keydown', handleGlobalKeydown);
+            }
         };
     })
+    
+    // Set first card expanded by default when sorted products are ready
+    $effect(() => {
+        if (
+            expandedVariantId === null
+            && externalProductsSorted.length > 0
+            && !hasInitializedExpandedVariant
+        ) {
+            expandedVariantId = externalProductsSorted[0].external_product_id;
+            pendingCenteredVariantId = externalProductsSorted[0].external_product_id;
+            hasInitializedExpandedVariant = true;
+        }
+    });
+
+    $effect(() => {
+        if (!browser || pendingCenteredVariantId === null) {
+            return;
+        }
+
+        const targetVariantId = pendingCenteredVariantId;
+        pendingCenteredVariantId = null;
+
+        tick().then(() => {
+            const element = document.querySelector<HTMLElement>(`[data-variant-id="${targetVariantId}"]`);
+            element?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        });
+    });
 
     // Collect all images from external products
     $effect(() => {
@@ -255,6 +295,8 @@
             return aPrice - bPrice;
         });
     });
+
+
 
     let maxPrice = $derived.by(() => {
         let maxPrice = 0;
@@ -625,6 +667,13 @@
         showFlagModal = true;
     }
 
+    function handleGlobalKeydown(event: KeyboardEvent) {
+        if (event.key === 'Escape' && expandedVariantId !== null) {
+            expandedVariantId = null;
+            pendingCenteredVariantId = null;
+        }
+    }
+
     async function submitFlag() {
         if (!flaggingProductId) return;
         flagIncorrectGrouping(flaggingProductId, selectedFlaggingOptions)
@@ -841,111 +890,64 @@
             </div>
         {/if}
 
-        <div class="details">
-            {#each externalProductsSorted as product (product.external_product_id)}
-                <div class={['price-card', externalProductIdToHighlight === product.external_product_id ? 'highlighted-deal' : '']}
-                    {@attach highlightExternalProduct(product)}
-                >
-                    {#if externalProductIdToHighlight === product.external_product_id}
-                        <div class="deal-pointer">
-                            <div class="pointer-arrow">👉</div>
-                            <div class="pointer-text">This is the deal you just clicked on</div>
-                        </div>
-                    {/if}
+        <div class="variants-list">
+            {#each externalProductsSorted as product, index (product.external_product_id)}
+                {@const productLatestPrice = latestPrice.get(product.external_product_id)}
+                {@const productMetadata = externalProductMetadatas.get(product.external_product_id) ?? []}
+                {@const productPrices = externalProductPrices.get(product.external_product_id) ?? []}
+                {@const productPriceStats = priceStats30Day.get(product.external_product_id)}
+                {@const productBadges = externalProductBadgesMap.get(product.external_product_id) ?? []}
+                {@const productWebsiteName = websiteMap.get(product.website_id)?.name ?? 'Unknown'}
+                {@const isExpandedCard = expandedVariantId === product.external_product_id}
 
-                    {#if externalProductBadgesMap.has(product.external_product_id) && externalProductBadgesMap.get(product.external_product_id)!.length > 0}
-                        <div class="badges-container">
-                            {#each externalProductBadgesMap.get(product.external_product_id) ?? [] as badge (badge.key)}
-                                <Badge label={badge.label} />
-                            {/each}
-                        </div>
-                    {/if}
-                    
-                    <div class="product-info-row">
-                        <!-- {#if product.image_urls && product.image_urls.length > 0}
-                            <div class="product-image-container">
-                                <img 
-                                    src={product.image_urls[0]} 
-                                    alt={product.name}
-                                    class="product-image"
-                                    loading="lazy"
-                                />
-                            </div>
-                        {/if} -->
-                        
-                        <div class="product-name">
-                            <span>
-                                {product.name}
-                            </span>
-                            <button 
-                                class="flag-btn" 
-                                onclick={() => handleFlagIncorrectGrouping(product.external_product_id)}
-                                title="Flag incorrect information"
-                                aria-label="Flag incorrect information"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-                                    <line x1="4" y1="22" x2="4" y2="15"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="price-container">
-                        <div
-                            style="display: flex; align-items: center; gap: 0.5rem"
-                        >
-                            {#if latestPrice.get(product.external_product_id)?.price != null}
-                                <div class="price-amount">{formatPrice(latestPrice.get(product.external_product_id)!.price)}</div>
-                            {:else}
-                                <div class="price-not-found">Price not found</div>
-                            {/if}
-                            {#if latestPrice.get(product.external_product_id)?.is_available}
-                                <div class="availability-dot"></div>
-                            {/if}
-                            {#if latestPrice.get(product.external_product_id)?.price && latestPrice.get(product.external_product_id)!.price < maxPrice}
-                                <div class="savings-badge">Save {formatPrice((maxPrice - latestPrice.get(product.external_product_id)!.price))}</div>
-                            {/if}
-                        </div>
-                        {#if latestPrice.get(product.external_product_id)?.created_at}
-                            <div class="timestamp">
-                                Updated  {getLastUpdatedText(latestPrice.get(product.external_product_id)!.created_at)}
-                            </div>
-                        {/if}
-                    </div>
-                    <div class="store-info">
-                        <a
-                            href={linkWithUtmSource(product.url)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="buy-link"
-                        >
-                            View in <span class="store-name">{websiteMap.get(product.website_id)?.name}</span> →
-                        </a>
-                    </div>
-
-                    {#if priceStats30Day.get(product.external_product_id)}
-                        <PriceStat stats={priceStats30Day.get(product.external_product_id)!}>
-                            <div style="padding-top: 0.5rem;">
-                                <PriceChart {product} prices={externalProductPrices.get(product.external_product_id) ?? []} />
-                            </div>
-                        </PriceStat>
-                    {/if}
-
-                    {#if (externalProductMetadatas.get(product.external_product_id) ?? []).length > 0}
-                        <div class="metadata-pills">
-                            {#each externalProductMetadatas.get(product.external_product_id) ?? [] as metadata (metadata.name)}
-                                <Pill label={metadata.name_display_text} value={metadata.value_display_text} />
-                            {/each}
-                        </div> 
-                    {/if}
-
-                    {#if userState.isAdmin}
-                        <div class="admin-actions-product">
-                            <button class="btn btn-danger" onclick={() => handleUnmerge(product.external_product_id)}>Unmerge</button>
-                        </div>
-                    {/if}
-                </div>
-
+                {#if isExpandedCard}
+                    <ProductVariantDetail
+                        {product}
+                        stackIndex={index}
+                        badges={productBadges}
+                        latestPrice={productLatestPrice}
+                        {maxPrice}
+                        websiteName={productWebsiteName}
+                        metadata={productMetadata}
+                        prices={productPrices}
+                        priceStats={productPriceStats}
+                        {selectedVariants}
+                        isHighlighted={externalProductIdToHighlight === product.external_product_id}
+                        isAdmin={userState.isAdmin}
+                        onToggle={() => {
+                            expandedVariantId = null;
+                            pendingCenteredVariantId = null;
+                        }}
+                        onFlagIncorrectGrouping={handleFlagIncorrectGrouping}
+                        onUnmerge={handleUnmerge}
+                        onAttach={(node) => {
+                            (node as HTMLElement).setAttribute('data-variant-id', String(product.external_product_id));
+                            highlightExternalProduct(product)(node as HTMLElement);
+                        }}
+                        {getLastUpdatedText}
+                    />
+                {:else}
+                    <ProductVariantCompact
+                        stackIndex={index}
+                        isExpanded={false}
+                        onToggle={() => {
+                            expandedVariantId = product.external_product_id;
+                            pendingCenteredVariantId = product.external_product_id;
+                            hasInitializedExpandedVariant = true;
+                        }}
+                        badges={productBadges}
+                        latestPrice={productLatestPrice}
+                        {maxPrice}
+                        websiteName={productWebsiteName}
+                        metadata={productMetadata}
+                        {selectedVariants}
+                        isHighlighted={externalProductIdToHighlight === product.external_product_id}
+                        onAttach={(node) => {
+                            (node as HTMLElement).setAttribute('data-variant-id', String(product.external_product_id));
+                            highlightExternalProduct(product)(node as HTMLElement);
+                        }}
+                    />
+                {/if}
             {/each}
         </div>
 
@@ -1138,6 +1140,59 @@
 />
 
 <style>
+    /* Shared variant card styles */
+    :global(.variant-card) {
+        position: relative;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: border-color 0.2s, box-shadow 0.3s, margin-top 0.3s ease, z-index 0s;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Except the last card and the card above expanded card
+    use square corners at the bottom to create a connected look
+    */
+    :global(.variant-card:not(.expanded):has(+ .variant-card:not(.expanded))) {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    :global(.variant-card.expanded + .variant-card) {
+        margin-top: 1rem;
+    }
+
+    :global(.variant-card:not(.expanded)) {
+        margin-top: -0.5rem;
+    }
+
+    :global(.variant-card:has(+ .variant-card.expanded)) {
+        margin-bottom: 1rem;
+    }
+
+    :global(.variant-card:hover) {
+        border-color: #d1d5db;
+    }
+
+    :global(.variant-card.expanded) {
+        border-color: #2563eb;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    :global(.variant-card.highlighted) {
+        animation: highlight-pulse 2s ease-in-out;
+    }
+
+    :global(.variant-card.unavailable) {
+        opacity: 0.6;
+    }
+
+    @keyframes highlight-pulse {
+        0%, 100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+        50% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.2), 0 8px 24px rgba(0, 0, 0, 0.12); }
+    }
+
     .product-thumbnail-carousel {
         width: 120px;
         height: 120px;
@@ -1451,6 +1506,12 @@
 
     .details {
         margin: 1rem 0;
+    }
+
+    .variants-list {
+        display: flex;
+        flex-direction: column;
+        margin-top: 1rem;
     }
 
     h1 {
