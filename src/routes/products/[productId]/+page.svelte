@@ -80,7 +80,6 @@
     let externalProductMetadatas: Map<number, ExternalProductMetadata[]> = $state(new Map());
     let isExternalProductsLoaded = $state(false);
     let isExternalProductPricesLoaded = $state(false);
-    let showUnavailableProducts = $state(false);
     let showFlagModal = $state(false);
     let flaggingProductId = $state<number | null>(null);
     let flaggingProductName = $state('');
@@ -126,16 +125,24 @@
         };
     })
     
-    // Set first card expanded by default when sorted products are ready
+    // Set first available card expanded by default when sorted products are ready
     $effect(() => {
         if (
             expandedVariantId === null
             && externalProductsSorted.length > 0
             && !hasInitializedExpandedVariant
         ) {
-            expandedVariantId = externalProductsSorted[0].external_product_id;
-            pendingCenteredVariantId = externalProductsSorted[0].external_product_id;
-            hasInitializedExpandedVariant = true;
+            // Find the first available product
+            const firstAvailableProduct = externalProductsSorted.find(product => {
+                const price = latestPrice.get(product.external_product_id);
+                return price && price.is_available;
+            });
+            
+            if (firstAvailableProduct) {
+                expandedVariantId = firstAvailableProduct.external_product_id;
+                pendingCenteredVariantId = firstAvailableProduct.external_product_id;
+                hasInitializedExpandedVariant = true;
+            }
         }
     });
 
@@ -149,7 +156,18 @@
 
         tick().then(() => {
             const element = document.querySelector<HTMLElement>(`[data-variant-id="${targetVariantId}"]`);
-            element?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+
+            console.log(element?.clientHeight, window.innerHeight)
+            const cardHeight = element?.clientHeight || 0;
+            const viewportHeight = window.innerHeight;
+
+            // eslint-disable-next-line no-undef
+            let scrollBlock: ScrollLogicalPosition = 'center';
+            if (cardHeight > viewportHeight) {
+                scrollBlock = 'start';
+            }
+            
+            element?.scrollIntoView({ behavior: 'smooth', block: scrollBlock, inline: 'nearest' });
         });
     });
 
@@ -194,7 +212,11 @@
                 && externalProductIdToHighlight === externalProduct.external_product_id
                 && !alreadyScrolledOnce
             ) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // On mobile, use 'start' to ensure top of card is visible if card is taller than viewport
+                const isMobile = window.innerWidth <= 640;
+                const scrollBlock = isMobile ? 'start' : 'center';
+                
+                element.scrollIntoView({ behavior: 'smooth', block: scrollBlock });
                 if (isExternalProductPricesLoaded) {
                     alreadyScrolledOnce = true;
                 }
@@ -284,16 +306,29 @@
     });
 
     let externalProductsSorted = $derived.by(() => {
-        return externalProducts
-        .filter((product) => {
-            const price = latestPrice.get(product.external_product_id);
-            return showUnavailableProducts || (price && price.is_available);
-        })
-        .toSorted((a, b) => {
-            const aPrice = latestPrice.get(a.external_product_id)?.price || +Infinity;
-            const bPrice = latestPrice.get(b.external_product_id)?.price || +Infinity;
-            return aPrice - bPrice;
-        });
+        const available = externalProducts
+            .filter((product) => {
+                const price = latestPrice.get(product.external_product_id);
+                return price && price.is_available;
+            })
+            .toSorted((a, b) => {
+                const aPrice = latestPrice.get(a.external_product_id)?.price || +Infinity;
+                const bPrice = latestPrice.get(b.external_product_id)?.price || +Infinity;
+                return aPrice - bPrice;
+            });
+        
+        const unavailable = externalProducts
+            .filter((product) => {
+                const price = latestPrice.get(product.external_product_id);
+                return !price || !price.is_available;
+            })
+            .toSorted((a, b) => {
+                const aPrice = latestPrice.get(a.external_product_id)?.price || +Infinity;
+                const bPrice = latestPrice.get(b.external_product_id)?.price || +Infinity;
+                return aPrice - bPrice;
+            });
+        
+        return [...available, ...unavailable];
     });
 
 
@@ -306,6 +341,16 @@
             }
         }
         return maxPrice;
+    });
+
+    let availableCount = $derived.by(() => {
+        let count = 0;
+        for (const price of latestPrice.values()) {
+            if (price?.is_available) {
+                count++;
+            }
+        }
+        return count;
     });
 
     let unavailableCount = $derived.by(() => {
@@ -862,16 +907,6 @@
             </div>
         </div>
     {/if}
-
-    {#if unavailableCount > 0}
-        <div class="toggle-container">
-            <label class="toggle-switch">
-                <input type="checkbox" bind:checked={showUnavailableProducts} />
-                <span class="toggle-slider"></span>
-            </label>
-            <span class="toggle-label">Show unavailable products ({unavailableCount} products)</span>
-        </div>
-    {/if}
     
     {#if externalProductsSorted.length > 0}
         {#if variants.length > 0}
@@ -899,6 +934,16 @@
                 {@const productBadges = externalProductBadgesMap.get(product.external_product_id) ?? []}
                 {@const productWebsiteName = websiteMap.get(product.website_id)?.name ?? 'Unknown'}
                 {@const isExpandedCard = expandedVariantId === product.external_product_id}
+                {@const isUnavailable = !productLatestPrice || !productLatestPrice.is_available}
+
+                <!-- Show separator text before first unavailable product -->
+                {#if index === availableCount && unavailableCount > 0}
+                    <div class="unavailable-separator">
+                        <div class="separator-line"></div>
+                        <span class="separator-text">Unavailable Products</span>
+                        <div class="separator-line"></div>
+                    </div>
+                {/if}
 
                 {#if isExpandedCard}
                     <ProductVariantDetail
@@ -1188,6 +1233,29 @@
         opacity: 0.6;
     }
 
+    .unavailable-separator {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 2rem 0 1.5rem 0;
+    }
+
+    .separator-line {
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(to right, transparent, #d1d5db, transparent);
+    }
+
+    .separator-text {
+        color: #6b7280;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+        padding: 0 0.5rem;
+    }
+
     @keyframes highlight-pulse {
         0%, 100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
         50% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.2), 0 8px 24px rgba(0, 0, 0, 0.12); }
@@ -1229,41 +1297,6 @@
         }
     }
 
-    .thumbnail-indicators {
-        position: absolute;
-        bottom: 0.25rem;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        gap: 0.25rem;
-        padding: 0.25rem 0.5rem;
-        background: rgba(0, 0, 0, 0.6);
-        border-radius: 9999px;
-        backdrop-filter: blur(4px);
-    }
-
-    .thumbnail-indicator-dot {
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.5);
-        border: none;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        padding: 0;
-    }
-
-    .thumbnail-indicator-dot:hover {
-        background: rgba(255, 255, 255, 0.8);
-        transform: scale(1.3);
-    }
-
-    .thumbnail-indicator-dot.active {
-        background: white;
-        width: 12px;
-        border-radius: 2px;
-    }
-
     @media (max-width: 640px) {
         .product-thumbnail-carousel {
             width: 80px;
@@ -1272,20 +1305,6 @@
 
         .thumbnail-image {
             padding: 0.25rem;
-        }
-
-        .thumbnail-indicators {
-            bottom: 0.125rem;
-            padding: 0.125rem 0.375rem;
-        }
-
-        .thumbnail-indicator-dot {
-            width: 3px;
-            height: 3px;
-        }
-
-        .thumbnail-indicator-dot.active {
-            width: 9px;
         }
     }
 
@@ -2352,22 +2371,6 @@
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
 
-    .btn-submit-track {
-        padding: 0.5rem 1rem;
-        background: #2563eb;
-        border: none;
-        border-radius: 6px;
-        color: white;
-        font-size: 0.875rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .btn-submit-track:hover {
-        background: #1d4ed8;
-    }
-
     .btn-login {
         padding: 0.5rem 1rem;
         background: #059669;
@@ -2399,7 +2402,6 @@
 
         .btn-cancel-modal,
         .btn-submit-flag,
-        .btn-submit-track,
         .btn-login {
             width: 100%;
             justify-content: center;
