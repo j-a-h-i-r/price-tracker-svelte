@@ -985,6 +985,7 @@
                         {maxPrice}
                         websiteName={productWebsiteName}
                         metadata={productMetadata}
+                        priceStats={productPriceStats}
                         {selectedVariants}
                         isHighlighted={externalProductIdToHighlight === product.external_product_id}
                         onAttach={(node) => {
@@ -1202,6 +1203,7 @@
     :global(.variant-card:not(.expanded):has(+ .variant-card:not(.expanded))) {
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
+        padding-bottom: 1.5rem;
     }
 
     :global(.variant-card.expanded + .variant-card) {
@@ -1209,7 +1211,7 @@
     }
 
     :global(.variant-card:not(.expanded)) {
-        margin-top: -0.5rem;
+        margin-top: -1.25rem;
     }
 
     :global(.variant-card:has(+ .variant-card.expanded)) {
